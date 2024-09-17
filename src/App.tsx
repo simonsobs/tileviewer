@@ -9,6 +9,7 @@ import { ColorMapControls } from './components/ColorMapControls';
 function App() {
   const [vmin, setVMin] = useState(-500);
   const [vmax, setVMax] = useState(500);
+  const [cmap, setCmap] = useState<string | undefined>(undefined);
   const [activeLayerName, setActiveLayerName] = useState<string | undefined>(undefined);
   const [bands, setBands] = useState<BandWithLayerName[] | undefined>(undefined);
 
@@ -34,10 +35,12 @@ function App() {
         setActiveLayerName(tempBands[0].layer_name)
         setVMin(tempBands[0].recommended_cmap_min)
         setVMax(tempBands[0].recommended_cmap_max)
+        setCmap(tempBands[0].recommended_cmap)
       } else {
         const activeBand = tempBands.find(band => band.layer_name === activeLayerName);
         setVMin(activeBand!.recommended_cmap_min)
         setVMin(activeBand!.recommended_cmap_max)
+        setCmap(activeBand!.recommended_cmap)
       }
     }
     getMapsAndMetadata();
@@ -56,8 +59,14 @@ function App() {
     }, [setVMin, setVMax]
   )
 
+  const onCmapChange = useCallback(
+    (cmap: string) => {
+      setCmap(cmap)
+    }, [setCmap]
+  )
+
   return (
-    activeLayerName && bands?.length && (
+    activeLayerName && bands?.length && cmap && (
       <>
         <MapContainer id='map' {...mapOptions}>
           <LayersControl>
@@ -66,7 +75,7 @@ function App() {
                 return (
                   <LayersControl.BaseLayer key={band.layer_name} checked={band.layer_name === activeLayerName} name={band.layer_name}>
                     <TileLayer
-                      url={`${SERVER}/maps/FITS_Maps/${band.id}/{z}/{y}/{x}/tile.png?cmap=${band.recommended_cmap}&vmin=${vmin}&vmax=${vmax}`}
+                      url={`${SERVER}/maps/FITS_Maps/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
                       tms
                       noWrap
                       bounds={
@@ -86,6 +95,8 @@ function App() {
         <ColorMapControls
           values={[vmin, vmax]}
           onCmapValuesChange={onCmapValuesChange}
+          cmap={cmap}
+          onCmapChange={onCmapChange}
         />
       </>
     )
