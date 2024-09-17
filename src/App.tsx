@@ -1,54 +1,63 @@
-import { useEffect, useState } from 'react';
-import { Circle, LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet';
-import { latLng, latLngBounds } from 'leaflet';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Circle, LayersControl, MapContainer, Pane, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { latLng, latLngBounds, Map } from 'leaflet';
 import { mapOptions, SERVER } from './configs/settings';
-import { Band, MapMetadataResponse, MapResponse } from './types/maps';
+import { BandWithLayerName, MapMetadataResponse, MapResponse } from './types/maps';
+import { makeLayerName } from './utils/layerUtils';
 
 function App() {
-  const [maps, setMaps] = useState<undefined | MapResponse[]>(undefined);
-  const [mapsMetadata, setMapsMetadata] = useState<undefined | MapMetadataResponse[]>(undefined);
   const [vmin, setVMin] = useState(-500);
+  const [activeLayerName, setActiveLayerName] = useState<string | undefined>(undefined);
+  const [bands, setBands] = useState<BandWithLayerName[] | undefined>(undefined);
 
   useEffect(() => {
     async function getMapsAndMetadata() {
       const availableMaps = await fetch(`${SERVER}/maps`);
       const availableMapsResponse: MapResponse[] = await availableMaps.json();
-      setMaps(availableMapsResponse)
       const availableMapsMetadata: MapMetadataResponse[] = await Promise.all(
         availableMapsResponse.map(
           async (resp) => (await fetch(`${SERVER}/maps/${resp.name}`)).json()
         )
       )
-      setMapsMetadata(availableMapsMetadata)
+      const tempBands = availableMapsMetadata.reduce(
+        (prev: BandWithLayerName[], curr: MapMetadataResponse) => {
+          if (curr.bands) {
+            return prev.concat(curr.bands.map(band => ({...band, 'layer_name': makeLayerName(curr, band)})))
+          } else {
+            return prev
+          }
+        }, []);
+      setBands(tempBands)
+      if (!activeLayerName) {
+        setActiveLayerName(tempBands[0].layer_name)
+      }
     }
     getMapsAndMetadata();
   }, [])
 
-  const bands = mapsMetadata ? mapsMetadata.reduce((prev: Band[], curr: MapMetadataResponse) => curr.bands ? prev.concat(curr.bands) : prev, []) : undefined;
-  console.log(bands)
-
-  const activeLayer = bands ? bands[0] : undefined;
+  const onBaseLayerChange = useCallback(
+    (name: string) => {
+      setActiveLayerName(name)
+    }, []
+  )
 
   return (
-    activeLayer && mapsMetadata && (
+    activeLayerName && bands?.length && (
       <>
-        <input type='number' value={vmin} onChange={e => setVMin(Number(e.target.value))}/>
         <MapContainer id='map' {...mapOptions}>
           <LayersControl>
             {bands?.map(
-                (d, i) => {
-                  const mapName = d.map_name;
-                  const mapMetadata = mapsMetadata.find(d => d.name === mapName);
+                (band) => {
                 return (
-                  <LayersControl.BaseLayer checked={i === 0} name={`${mapMetadata?.telescope} ${mapMetadata?.data_release} ${d.frequency} GHz (${d.stokes_parameter}, ${mapMetadata?.tags})`}>
+                  <LayersControl.BaseLayer key={band.layer_name} checked={band.layer_name === activeLayerName} name={band.layer_name}>
                     <TileLayer
-                      url={`${SERVER}/maps/FITS_Maps/${d.id}/{z}/{y}/{x}/tile.png?cmap=${d.recommended_cmap}&vmin=${vmin}&vmax=${d.recommended_cmap_max}`}
+                      url={`${SERVER}/maps/FITS_Maps/${band.id}/{z}/{y}/{x}/tile.png?cmap=${band.recommended_cmap}&vmin=${vmin}&vmax=${band.recommended_cmap_max}`}
                       tms
                       noWrap
                       bounds={
                         latLngBounds(
-                          latLng(d.bounding_top, d.bounding_left),
-                          latLng(d.bounding_bottom, d.bounding_right),
+                          latLng(band.bounding_top, band.bounding_left),
+                          latLng(band.bounding_bottom, band.bounding_right),
                         )
                       }
                     />
@@ -57,10 +66,27 @@ function App() {
               }
             )}
           </LayersControl>
+          <MapEvents onBaseLayerChange={onBaseLayerChange} />
         </MapContainer>
+        <div className='cmap-controls-pane'>
+          <input type='number' value={vmin} onChange={e => setVMin(Number(e.target.value))}/>
+        </div>
       </>
     )
   )
+}
+
+type MapEventsProps = {
+  onBaseLayerChange: (newBaseLayer: string) => void; 
+}
+
+function MapEvents({onBaseLayerChange}: MapEventsProps) {
+  useMapEvents({
+    baselayerchange: (e: { name: string }) => {
+      onBaseLayerChange(e.name)
+    }
+  })
+  return null
 }
 
 export default App
