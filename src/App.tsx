@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Circle, LayersControl, MapContainer, Pane, TileLayer, useMap, useMapEvents } from 'react-leaflet';
-import { latLng, latLngBounds, Map } from 'leaflet';
+import { useCallback, useEffect, useState } from 'react';
+import { LayersControl, MapContainer, TileLayer, useMapEvents } from 'react-leaflet';
+import { latLng, latLngBounds } from 'leaflet';
 import { mapOptions, SERVER } from './configs/settings';
 import { BandWithLayerName, MapMetadataResponse, MapResponse } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
+import { ColorMapControls } from './components/ColorMapControls';
 
 function App() {
   const [vmin, setVMin] = useState(-500);
+  const [vmax, setVMax] = useState(500);
   const [activeLayerName, setActiveLayerName] = useState<string | undefined>(undefined);
   const [bands, setBands] = useState<BandWithLayerName[] | undefined>(undefined);
 
@@ -30,6 +32,12 @@ function App() {
       setBands(tempBands)
       if (!activeLayerName) {
         setActiveLayerName(tempBands[0].layer_name)
+        setVMin(tempBands[0].recommended_cmap_min)
+        setVMax(tempBands[0].recommended_cmap_max)
+      } else {
+        const activeBand = tempBands.find(band => band.layer_name === activeLayerName);
+        setVMin(activeBand!.recommended_cmap_min)
+        setVMin(activeBand!.recommended_cmap_max)
       }
     }
     getMapsAndMetadata();
@@ -39,6 +47,13 @@ function App() {
     (name: string) => {
       setActiveLayerName(name)
     }, []
+  )
+
+  const onCmapValuesChange = useCallback(
+    (values: number[]) => {
+      setVMin(values[0])
+      setVMax(values[1])
+    }, [setVMin, setVMax]
   )
 
   return (
@@ -51,7 +66,7 @@ function App() {
                 return (
                   <LayersControl.BaseLayer key={band.layer_name} checked={band.layer_name === activeLayerName} name={band.layer_name}>
                     <TileLayer
-                      url={`${SERVER}/maps/FITS_Maps/${band.id}/{z}/{y}/{x}/tile.png?cmap=${band.recommended_cmap}&vmin=${vmin}&vmax=${band.recommended_cmap_max}`}
+                      url={`${SERVER}/maps/FITS_Maps/${band.id}/{z}/{y}/{x}/tile.png?cmap=${band.recommended_cmap}&vmin=${vmin}&vmax=${vmax}`}
                       tms
                       noWrap
                       bounds={
@@ -68,9 +83,10 @@ function App() {
           </LayersControl>
           <MapEvents onBaseLayerChange={onBaseLayerChange} />
         </MapContainer>
-        <div className='cmap-controls-pane'>
-          <input type='number' value={vmin} onChange={e => setVMin(Number(e.target.value))}/>
-        </div>
+        <ColorMapControls
+          values={[vmin, vmax]}
+          onCmapValuesChange={onCmapValuesChange}
+        />
       </>
     )
   )

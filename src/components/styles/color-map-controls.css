@@ -1,0 +1,28 @@
+.cmap-controls-pane {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 400;
+    width: 200px;
+  }
+
+.cmap-values-container {
+  display: flex;
+  justify-content: center;
+  background-color: white;
+  font-size: 14px; 
+  box-shadow: 0px 2px 6px #AAA;
+}
+
+.cmap-label {
+  padding: 0 5px;
+}
+
+.cmap-value {
+  width: 50px;
+}
+
+.cmap-value.vmin {
+  text-align: right;
+}
+
