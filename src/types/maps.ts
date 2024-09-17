@@ -30,3 +30,7 @@ export type Band = {
 export type MapMetadataResponse = MapResponse & {
     bands: Band[];
 }
+
+export type BandWithLayerName = Band & {
+    layer_name: string;
+}
