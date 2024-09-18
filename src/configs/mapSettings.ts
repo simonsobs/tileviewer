@@ -7,8 +7,3 @@ export const mapOptions: MapOptions = {
     zoom: 3,
     crs: CRS.EPSG4326,
 };
-
-export const MIN_TEMP = -2000;
-export const MAX_TEMP = 2000;
-
-export const CMAP_OPTIONS = ['RdBu_r', 'viridis', 'inferno'];

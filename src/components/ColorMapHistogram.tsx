@@ -2,13 +2,11 @@ import {
     PointArray,
   } from "@svgdotjs/svg.js";
 import { HistogramResponse } from "../types/maps";
+import { HISTOGRAM_SIZE_X, HISTOGRAM_SIZE_Y } from "../configs/cmapControlSettings";
 
 type Props = {
     data: HistogramResponse
 }
-
-const HISTOGRAM_SIZE_X = 200;
-const HISTOGRAM_SIZE_Y = 60;
 
 export function ColorMapHistogram({data}: Props) {
     const { edges, histogram } = data;

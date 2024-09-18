@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Range as RangeSlider, getTrackBackground } from 'react-range';
-import { MAX_TEMP, MIN_TEMP } from '../configs/settings';
+import { MAX_TEMP, MIN_TEMP } from '../configs/cmapControlSettings';
 import './styles/color-map-controls.css';
 
 type ColorMapSlideProps = {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { CMAP_OPTIONS, SERVER } from "../configs/settings";
+import { SERVER } from "../configs/mapSettings";
+import { CMAP_OPTIONS } from "../configs/cmapControlSettings";
 import { ColorMapSlider } from "./ColorMapSlider"
 import { HistogramResponse } from "../types/maps";
 import { ColorMapHistogram } from "./ColorMapHistogram";

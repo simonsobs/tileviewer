@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { LayersControl, MapContainer, TileLayer, useMapEvents } from 'react-leaflet';
 import { latLng, latLngBounds } from 'leaflet';
-import { mapOptions, SERVER } from './configs/settings';
+import { mapOptions, SERVER } from './configs/mapSettings';
 import { BandWithLayerName, MapMetadataResponse, MapResponse } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
 import { ColorMapControls } from './components/ColorMapControls';
