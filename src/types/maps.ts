@@ -34,3 +34,9 @@ export type MapMetadataResponse = MapResponse & {
 export type BandWithLayerName = Band & {
     layer_name: string;
 }
+
+export type HistogramResponse = {
+    edges: number[];
+    histogram: number[];
+    band_id: number;
+}

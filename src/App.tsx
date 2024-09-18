@@ -7,10 +7,10 @@ import { makeLayerName } from './utils/layerUtils';
 import { ColorMapControls } from './components/ColorMapControls';
 
 function App() {
-  const [vmin, setVMin] = useState(-500);
-  const [vmax, setVMax] = useState(500);
+  const [vmin, setVMin] = useState<number | undefined>(undefined);
+  const [vmax, setVMax] = useState<number | undefined>(undefined);
   const [cmap, setCmap] = useState<string | undefined>(undefined);
-  const [activeLayerName, setActiveLayerName] = useState<string | undefined>(undefined);
+  const [activeLayer, setActiveLayer] = useState<BandWithLayerName | undefined>(undefined);
   const [bands, setBands] = useState<BandWithLayerName[] | undefined>(undefined);
 
   useEffect(() => {
@@ -31,13 +31,13 @@ function App() {
           }
         }, []);
       setBands(tempBands)
-      if (!activeLayerName) {
-        setActiveLayerName(tempBands[0].layer_name)
+      if (!activeLayer) {
+        setActiveLayer(tempBands[0])
         setVMin(tempBands[0].recommended_cmap_min)
         setVMax(tempBands[0].recommended_cmap_max)
         setCmap(tempBands[0].recommended_cmap)
       } else {
-        const activeBand = tempBands.find(band => band.layer_name === activeLayerName);
+        const activeBand = tempBands.find(band => band.layer_name === activeLayer.layer_name);
         setVMin(activeBand!.recommended_cmap_min)
         setVMin(activeBand!.recommended_cmap_max)
         setCmap(activeBand!.recommended_cmap)
@@ -48,8 +48,8 @@ function App() {
 
   const onBaseLayerChange = useCallback(
     (name: string) => {
-      setActiveLayerName(name)
-    }, []
+      setActiveLayer(bands?.find(b => b.layer_name === name))
+    }, [bands, setActiveLayer]
   )
 
   const onCmapValuesChange = useCallback(
@@ -66,14 +66,13 @@ function App() {
   )
 
   return (
-    activeLayerName && bands?.length && cmap && (
       <>
         <MapContainer id='map' {...mapOptions}>
           <LayersControl>
             {bands?.map(
                 (band) => {
                 return (
-                  <LayersControl.BaseLayer key={band.layer_name} checked={band.layer_name === activeLayerName} name={band.layer_name}>
+                  <LayersControl.BaseLayer key={band.layer_name} checked={band.layer_name === activeLayer?.layer_name} name={band.layer_name}>
                     <TileLayer
                       url={`${SERVER}/maps/FITS_Maps/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
                       tms
@@ -92,15 +91,17 @@ function App() {
           </LayersControl>
           <MapEvents onBaseLayerChange={onBaseLayerChange} />
         </MapContainer>
-        <ColorMapControls
-          values={[vmin, vmax]}
-          onCmapValuesChange={onCmapValuesChange}
-          cmap={cmap}
-          onCmapChange={onCmapChange}
-        />
+        {vmin && vmax && cmap && activeLayer && (
+          <ColorMapControls
+            values={[vmin, vmax]}
+            onCmapValuesChange={onCmapValuesChange}
+            cmap={cmap}
+            onCmapChange={onCmapChange}
+            activeLayerId={activeLayer.id}
+          />
+        )}
       </>
     )
-  )
 }
 
 type MapEventsProps = {

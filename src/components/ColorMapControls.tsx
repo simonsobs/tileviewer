@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { CMAP_OPTIONS, SERVER } from "../configs/settings";
 import { ColorMapSlider } from "./ColorMapSlider"
+import { HistogramResponse } from "../types/maps";
 
 type ColorMapControlsProps = {
     values: number[]
     onCmapValuesChange: (values: number[]) => void;
     cmap: string;
     onCmapChange: (cmap: string) => void;
+    activeLayerId: number;
 }
 
-export function ColorMapControls({values, onCmapValuesChange, cmap, onCmapChange}: ColorMapControlsProps) {
-    const [cmapImage, setCmapImage] = useState<undefined | string>(undefined)
+export function ColorMapControls({values, onCmapValuesChange, cmap, onCmapChange, activeLayerId}: ColorMapControlsProps) {
+    const [cmapImage, setCmapImage] = useState<undefined | string>(undefined);
+    const [histogramData, setHistogramData] = useState<HistogramResponse | undefined>(undefined);
 
     useEffect(() => {
         async function getCmapImage() {
@@ -18,13 +21,22 @@ export function ColorMapControls({values, onCmapValuesChange, cmap, onCmapChange
             setCmapImage(image.url);
         }
         getCmapImage();
-    }, [cmap])
+    }, [cmap, setCmapImage])
+
+    useEffect(() => {
+        async function getHistogramData() {
+            const response = await fetch(`${SERVER}/histograms/data/${activeLayerId}`)
+            const data: HistogramResponse = await response.json();
+            setHistogramData(data);
+        }
+        getHistogramData()
+    }, [activeLayerId, setHistogramData])
 
     return (
         <div className='cmap-controls-pane'>
-            <select onChange={(e) => onCmapChange(e.target.value)}>
+            <select value={cmap} onChange={(e) => onCmapChange(e.target.value)}>
                 {CMAP_OPTIONS.map(c => (
-                    <option selected={c === cmap} key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>{c}</option>
                 ))}
             </select>
             <ColorMapSlider
