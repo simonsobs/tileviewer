@@ -1,5 +1,7 @@
 .cmap-controls-pane {
     position: absolute;
+    display: flex;
+    flex-direction: column;
     bottom: 10px;
     left: 10px;
     z-index: 400;
@@ -24,5 +26,16 @@
 
 .cmap-value.vmin {
   text-align: right;
+}
+
+select {
+  z-index: 1;
+  width: 80px;
+}
+
+img {
+  position: absolute;
+  height: 60px;
+  bottom: 15px;
 }
 

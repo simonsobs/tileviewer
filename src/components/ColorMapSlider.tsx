@@ -6,11 +6,37 @@ import './styles/color-map-controls.css';
 type ColorMapSlideProps = {
     values: number[];
     onCmapValuesChange: (values: number[]) => void;
+    cmapImage?: string;
 }
+
+const regexToFindPercents = /\b\d+(\.\d+)?%/g;
 
 export function ColorMapSlider(props: ColorMapSlideProps) {
     const [values, setValues] = useState([props.values[0], props.values[1]])
-    const rtl = false;
+    const { cmapImage, onCmapValuesChange } = props;
+
+    /** 
+     * The getTrackBackground react-range function returns a string with a CSS gradient that
+     * is used to determine thumb positions. The thumb positions are determined by parsing
+     * the gradient string for percentages, then by removing the percentage sign.
+     * 
+     * The thumb positions can then be used to determine:
+     *   1. the width of the cmap image which is equal to the distance between the thumbs
+     *   2. the left offset which is equal to the relative position of the left thumb
+     * 
+     * Note that the thumb positions default to 0% and 100% if the position logic craps out,
+     * which would result in the cmap image spanning the full length of the range slider.
+    */
+    const trackBackground = getTrackBackground({
+            values,
+            colors: ["#ccc", "#548BF4", "#ccc"],
+            min: MIN_TEMP,
+            max: MAX_TEMP,
+        })
+    const [ leftThumbPosition, rightThumbPosition ] = trackBackground
+        .match(regexToFindPercents)?.map(p => p.replace('%', ''))
+        .filter((_, i) => (i === 2 || i === 3)) ?? [0, 100];
+    const cmapWidth = Number(rightThumbPosition) - Number(leftThumbPosition);
 
     return (
         <>
@@ -19,8 +45,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
                 max={MAX_TEMP}
                 values={values}
                 onChange={(values) => setValues(values)}
-                onFinalChange={props.onCmapValuesChange}
-                rtl={rtl}
+                onFinalChange={onCmapValuesChange}
                 renderThumb={({ props, isDragged }) => (
                     <div
                     {...props}
@@ -54,22 +79,24 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
                       ...props.style,
                       height: "25px",
                       display: "flex",
-                      width: "100%",
                     }}
                   >
+                    {cmapImage && (
+                        <img
+                            src={cmapImage}
+                            style={{
+                                width: `${cmapWidth}%`,
+                                left: `${leftThumbPosition}%`,
+                            }}
+                        />
+                    )}
                     <div
                       ref={props.ref}
                       style={{
                         height: "5px",
                         width: "100%",
                         borderRadius: "4px",
-                        background: getTrackBackground({
-                          values,
-                          colors: ["#ccc", "#548BF4", "#ccc"],
-                          min: MIN_TEMP,
-                          max: MAX_TEMP,
-                          rtl,
-                        }),
+                        background: trackBackground,
                         alignSelf: "center",
                       }}
                     >

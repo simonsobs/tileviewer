@@ -1,4 +1,5 @@
-import { CMAP_OPTIONS } from "../configs/settings";
+import { useEffect, useState } from "react";
+import { CMAP_OPTIONS, SERVER } from "../configs/settings";
 import { ColorMapSlider } from "./ColorMapSlider"
 
 type ColorMapControlsProps = {
@@ -9,6 +10,16 @@ type ColorMapControlsProps = {
 }
 
 export function ColorMapControls({values, onCmapValuesChange, cmap, onCmapChange}: ColorMapControlsProps) {
+    const [cmapImage, setCmapImage] = useState<undefined | string>(undefined)
+
+    useEffect(() => {
+        async function getCmapImage() {
+            const image = await fetch(`${SERVER}/histograms/${cmap}.png`)
+            setCmapImage(image.url);
+        }
+        getCmapImage();
+    }, [cmap])
+
     return (
         <div className='cmap-controls-pane'>
             <select onChange={(e) => onCmapChange(e.target.value)}>
@@ -17,6 +28,7 @@ export function ColorMapControls({values, onCmapValuesChange, cmap, onCmapChange
                 ))}
             </select>
             <ColorMapSlider
+                cmapImage={cmapImage}
                 values={values}
                 onCmapValuesChange={onCmapValuesChange}
             />
