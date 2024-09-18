@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CMAP_OPTIONS, SERVER } from "../configs/settings";
 import { ColorMapSlider } from "./ColorMapSlider"
 import { HistogramResponse } from "../types/maps";
+import { ColorMapHistogram } from "./ColorMapHistogram";
 
 type ColorMapControlsProps = {
     values: number[]
@@ -39,6 +40,7 @@ export function ColorMapControls({values, onCmapValuesChange, cmap, onCmapChange
                     <option key={c} value={c}>{c}</option>
                 ))}
             </select>
+            {histogramData && <ColorMapHistogram data={histogramData} />}
             <ColorMapSlider
                 cmapImage={cmapImage}
                 values={values}
