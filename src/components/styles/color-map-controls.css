@@ -6,6 +6,7 @@
     left: 10px;
     z-index: 400;
     width: 200px;
+    height: 100px;
   }
 
 .cmap-values-container {
@@ -28,9 +29,19 @@
   text-align: right;
 }
 
-select {
-  z-index: 1;
+.cmap-selector-container {
+  height: 25px;
+  margin-bottom: auto;
   width: 80px;
+  z-index: 1;
+}
+
+select {
+  background-color: black;
+}
+
+.hide {
+  display: none;
 }
 
 img {
@@ -39,5 +50,10 @@ img {
   bottom: 15px;
   opacity: 0.75;
   pointer-events: none;
+}
+
+.cmap-histogram {
+  position: absolute;
+  bottom: 35px;
 }
 

@@ -5,7 +5,7 @@ import { HistogramResponse } from "../types/maps";
 import { HISTOGRAM_SIZE_X, HISTOGRAM_SIZE_Y } from "../configs/cmapControlSettings";
 
 type Props = {
-    data: HistogramResponse
+    data: HistogramResponse,
 }
 
 export function ColorMapHistogram({data}: Props) {
@@ -28,9 +28,12 @@ export function ColorMapHistogram({data}: Props) {
         HISTOGRAM_SIZE_X,
         HISTOGRAM_SIZE_Y,
       );
-        
+
     return (
-        <svg style={{position: 'absolute', bottom: '35px'}} width={HISTOGRAM_SIZE_X} height={HISTOGRAM_SIZE_Y}>
+        <svg
+            className="cmap-histogram"
+            width={HISTOGRAM_SIZE_X}
+            height={HISTOGRAM_SIZE_Y}>
             <polyline
                 opacity={0.65}
                 fill="black"
