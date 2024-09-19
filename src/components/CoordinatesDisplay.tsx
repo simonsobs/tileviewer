@@ -11,13 +11,15 @@ export function CoordinatesDisplay() {
     map.addEventListener('mousemove', (e) => setLatLng(e.latlng))
 
     return (
-        <div
-            className="coordinates-display"
-        >
-            <span className="parens">( </span>
-            <span className="coords lat">{latLng?.lat.toFixed(NUMBER_OF_FIXED_DECIMALS)} ,</span>
-            <span className="coords lng">{latLng?.lng.toFixed(NUMBER_OF_FIXED_DECIMALS)}</span>
-            <span className="parens"> )</span>
-        </div>
+        latLng && (
+            <div
+                className="coordinates-display"
+            >
+                <span className="parens">( </span>
+                <span className="coords lat">{latLng?.lat.toFixed(NUMBER_OF_FIXED_DECIMALS)} ,</span>
+                <span className="coords lng">{latLng?.lng.toFixed(NUMBER_OF_FIXED_DECIMALS)}</span>
+                <span className="parens"> )</span>
+            </div>
+        )
     );
 }
