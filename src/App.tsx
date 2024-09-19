@@ -6,6 +6,7 @@ import { BandWithLayerName, MapMetadataResponse, MapResponse } from './types/map
 import { makeLayerName } from './utils/layerUtils';
 import { ColorMapControls } from './components/ColorMapControls';
 import { CoordinatesDisplay } from './components/CoordinatesDisplay';
+import { AstroScale } from './components/AstroScale';
 
 function App() {
   const [vmin, setVMin] = useState<number | undefined>(undefined);
@@ -84,6 +85,9 @@ function App() {
                           latLng(band.bounding_bottom, band.bounding_right),
                         )
                       }
+                      maxZoom={band.levels + 3}
+                      minNativeZoom={band.levels - 4}
+                      maxNativeZoom={band.levels - 1}
                     />
                   </LayersControl.BaseLayer>
                 )
@@ -91,6 +95,7 @@ function App() {
             )}
           </LayersControl>
           <CoordinatesDisplay />
+          <AstroScale />
           <MapEvents onBaseLayerChange={onBaseLayerChange} />
         </MapContainer>
         {vmin && vmax && cmap && activeLayer && (

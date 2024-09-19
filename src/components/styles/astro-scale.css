@@ -1,0 +1,12 @@
+.astro-scale {
+    position: absolute;
+    bottom: 20px;
+    right: 10px;
+    z-index: 400;
+    box-sizing: border-box;
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 2px solid #777;
+    border-top: none;
+    padding: 2px 5px 1px;
+    opacity: 0.8;
+}
