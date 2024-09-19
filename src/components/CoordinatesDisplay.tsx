@@ -14,7 +14,10 @@ export function CoordinatesDisplay() {
         <div
             className="coordinates-display"
         >
-            {`( ${latLng?.lat.toFixed(NUMBER_OF_FIXED_DECIMALS)}, ${latLng?.lng.toFixed(NUMBER_OF_FIXED_DECIMALS)} )`}
+            <span className="parens">( </span>
+            <span className="coords lat">{latLng?.lat.toFixed(NUMBER_OF_FIXED_DECIMALS)} ,</span>
+            <span className="coords lng">{latLng?.lng.toFixed(NUMBER_OF_FIXED_DECIMALS)}</span>
+            <span className="parens"> )</span>
         </div>
     );
 }

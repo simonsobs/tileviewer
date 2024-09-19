@@ -1,5 +1,5 @@
 .coordinates-display {
-    width: 225px;
+    width: 250px;
     position: absolute;
     border: 2px solid rgba(0,0,0,0.2);
     border-radius: 4px;
@@ -12,5 +12,21 @@
     bottom: 10px;
     text-align: center;
     font-size: 1.3em;
-    font-weight: 500; 
+    font-weight: 500;
+}
+
+.coordinates-display>span {
+    display: inline-block;
+}
+
+.coords {
+    width: 110px;
+}
+
+.coords.lat {
+    text-align: right;
+}
+
+.parens {
+    width: 15px;
 }
