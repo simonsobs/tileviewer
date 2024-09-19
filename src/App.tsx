@@ -5,6 +5,7 @@ import { mapOptions, SERVER } from './configs/mapSettings';
 import { BandWithLayerName, MapMetadataResponse, MapResponse } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
 import { ColorMapControls } from './components/ColorMapControls';
+import { CoordinatesDisplay } from './components/CoordinatesDisplay';
 
 function App() {
   const [vmin, setVMin] = useState<number | undefined>(undefined);
@@ -89,6 +90,7 @@ function App() {
               }
             )}
           </LayersControl>
+          <CoordinatesDisplay />
           <MapEvents onBaseLayerChange={onBaseLayerChange} />
         </MapContainer>
         {vmin && vmax && cmap && activeLayer && (
