@@ -1,81 +1,58 @@
-import { useState, useEffect } from "react";
-import { useMap, useMapEvent } from "react-leaflet";
-import { Map } from "leaflet";
-import './styles/astro-scale.css';
+import { createControlComponent } from "@react-leaflet/core";
+import { Control } from "leaflet";
+import { MAX_SCALE_WIDTH } from "../configs/mapSettings";
 
-const MAX_WIDTH = 300;
+/**
+ * NOTE: I cast private vars and methods as "any" in order to remove some
+ * annoying TS errors. We may want to figure out a more type-safe solution,
+ * though Leaflet's source code confirms these vars and methods exist!
+ * https://github.com/Leaflet/Leaflet/blob/main/src/control/Control.Scale.js
+ */
 
-export function AstroScale() {
-    const map = useMap();
-    const [scaleUnitName, setScaleUnitName] = useState('arcsec');
-    const [scaleUnit, setScaleUnit] = useState<number | undefined>(undefined);
-    const [scaleWidth, setScaleWidth] = useState<number | undefined>(undefined)
+const AstroControl = Control.Scale.extend({
+    ...Control.Scale.prototype,
+    options: {
+        position: 'bottomright',
+	    imperial: false,
+	    maxWidth: MAX_SCALE_WIDTH,
+    },
+    _update() {
+        const map = (this as any)._map;
+        const center = map.getCenter();
+        const y = map.getSize().y / 2;
+        const maxMeters = map.distance(
+            map.containerPointToLatLng([0, y]),
+            map.containerPointToLatLng([this.options.maxWidth, y]),
+        );
+        // this calculation is based on info from https://www.opendem.info/arc2meters.html
+        const maxArcsec = Math.abs(maxMeters / (Math.cos(center.lat) * 1852 / 60));
+
+        (this as any)._updateScales(maxArcsec)
     
-    useMapEvent('moveend', () => {
-        const { unitName, unit, width } = getScaleParams(map)
-        setScaleUnitName(unitName);
-        setScaleUnit(unit);
-        setScaleWidth(width);
-    })
-
-    useEffect(() => {
-        const { unitName, unit, width } = getScaleParams(map)
-        setScaleUnitName(unitName);
-        setScaleUnit(unit);
-        setScaleWidth(width);
-    }, [])
-
-    return (
-        <div
-            className="astro-scale"
-            style={{
-                width: scaleWidth + 'px',
-            }}
-        >
-            {scaleUnit} {scaleUnitName}
-        </div>
-    )
-}
-
-function getScaleParams(map: Map): { unitName: string, unit: number, width: number } {
-    const center = map.getCenter();
-    const y = map.getSize().y / 2;
-    const maxMeters = map.distance(
-        map.containerPointToLatLng([0, y]),
-        map.containerPointToLatLng([MAX_WIDTH, y]),
-    )
-
-    const maxArcsec = Math.abs(maxMeters / (Math.cos(center.lat) * 1852 / 60));
-    let maxUnit = maxArcsec;
-    let unitName = 'arcsec';
-
-    if (maxArcsec > 7200) {
-        maxUnit /= 3600;
-        unitName = 'deg';
-    } else if (maxArcsec >= 180) {
-        maxUnit /= 60;
-        unitName = 'arcmin';
+    },
+    _updateMetric: function(maxArcsec: number) {
+        // this method is adapted from the tilerfrontend prototype (see link)
+        // https://github.com/simonsobs/tilerfrontend/blob/65fb52ec9e70b061a47f4ec112552c4bf60e63e5/src/astroControl.ts#L13
+        // a notable difference is that I've passed in maxArcsec from the _update method in order to access the map's methods
+	    let maxUnit = maxArcsec;
+	    let unitName = 'arcsec';
+		
+	    if (maxArcsec > 7200) {
+	        // degrees
+	        maxUnit /= 3600;
+	        unitName = 'deg';
+	    } else if (maxArcsec >= 180) {
+	        // arcmin
+	        maxUnit /= 60;
+	        unitName = 'arcmin';
+	    }
+	    const unit = (this as any)._getRoundNum(maxUnit);
+        const ratio = unit/maxUnit;
+		(this as any)._mScale.style.width = Math.round(this.options.maxWidth * ratio) + 'px';
+	    (this as any)._mScale.innerHTML = unit + ' ' + unitName;
     }
+})
 
-    const unit = getRoundNum(maxUnit);
-    const ratio = unit / maxUnit;
-
-    return {
-        unitName,
-        unit,
-        width: Math.round(MAX_WIDTH * ratio),
-    }
-}
-
-// method taken from leaflet's Control.Scale source code
-function getRoundNum(num: number) {
-    const pow10 = Math.pow(10, (`${Math.floor(num)}`).length - 1);
-    let d = num / pow10;
-
-    d = d >= 10 ? 10 :
-        d >= 5 ? 5 :
-        d >= 3 ? 3 :
-        d >= 2 ? 2 : 1;
-
-    return pow10 * d;
-}
+export const AstroScale = createControlComponent(
+    (props) => new AstroControl(props),
+)

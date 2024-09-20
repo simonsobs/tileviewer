@@ -7,3 +7,5 @@ export const mapOptions: MapOptions = {
     zoom: 3,
     crs: CRS.EPSG4326,
 };
+
+export const MAX_SCALE_WIDTH = 300;
