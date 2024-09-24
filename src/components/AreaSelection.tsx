@@ -15,36 +15,6 @@ import './styles/area-selection.css';
 
 interface SelectionRegionOptions extends L.ControlOptions {}
 
-class SelectionRegionButton {
-  button: HTMLElement;
-  base: HTMLElement;
-  text: string
-
-  constructor(base: HTMLElement, text: string) {
-    this.base = base;
-    this.text = text;
-
-    this.createButton();
-  }
-
-  private createButton() {
-    this.button = L.DomUtil.create("button", "area-select-button", this.base);
-    this.button.innerText = this.text;
-  }
-
-  hide() {
-    this.button.style.display = "none";
-  }
-
-  show() {
-    this.button.style.display = "flex";
-  }
-
-  addEventListener(event: string, callback: Function) {
-    this.button.addEventListener(event, (event) => {callback(event); event.stopPropagation();});
-  }
-}
-
 class SelectionRegionControl extends L.Control {
   options: SelectionRegionOptions;
 
@@ -52,24 +22,39 @@ class SelectionRegionControl extends L.Control {
   map: L.Map;
 
   /* Buttons */
-  start_button: SelectionRegionButton;
-  remove_button: SelectionRegionButton;
-  passive_buttons: SelectionRegionButton[];
+  start_button: HTMLButtonElement;
+  remove_button: HTMLButtonElement;
+  passive_buttons: HTMLButtonElement[];
 
   constructor(options?: SelectionRegionOptions) {
     super(options);
   }
 
+  private createButton(container: HTMLDivElement, buttonText: string) {
+    const button = L.DomUtil.create('button', 'area-select-button', container);
+    button.textContent = buttonText;
+    return button;
+  }
+
+  private hideElement(el: HTMLElement) {
+    el.style.display = 'none';
+  }
+
+  private showElement(el: HTMLElement, display?: string) {
+    const finalDisplay = display ?? 'block';
+    el.style.display = finalDisplay;
+  }
+
   private createButtons() {
     /* First create all the 'passive' buttons, those that will appear once 
      * we've selected the region and provide region-dependent functionality. */
-    const download_fits = new SelectionRegionButton(this.base_element, "Download FITS");
+    const download_fits = this.createButton(this.base_element, "Download FITS");
     download_fits.addEventListener("click", (event) => {
       /* TODO: Connect these to API endpoints */
       console.log("Download FITS");
     });
 
-    const download_png = new SelectionRegionButton(this.base_element, "Download PNG");
+    const download_png = this.createButton(this.base_element, "Download PNG");
     download_png.addEventListener("click", (event) => {
       /* TODO: Connect these to API endpoints */
       console.log("Download PNG");
@@ -77,35 +62,35 @@ class SelectionRegionControl extends L.Control {
 
     this.passive_buttons = [download_fits, download_png];
 
-    this.start_button = new SelectionRegionButton(this.base_element, "Select Region");
+    this.start_button = this.createButton(this.base_element, "Select Region");
     this.start_button.addEventListener("click", (event) => {
       /* The selection will be disabled by the handler once complete. */
       this.map.selection.enable();
-      this.start_button.hide();
+      this.hideElement(this.start_button)
       this.map.getContainer().style.cursor = "crosshair";
     });
 
-    this.remove_button = new SelectionRegionButton(this.base_element, "Remove Region");
+    this.remove_button = this.createButton(this.base_element, "Remove Region");
     this.remove_button.addEventListener("click", (event) => {
       this.map.selection.reset();
 
-      this.remove_button.hide();
-      this.passive_buttons.forEach((button) => {button.hide()});
+      this.hideElement(this.remove_button);
+      this.passive_buttons.forEach((button) => {this.hideElement(button)});
 
-      this.start_button.show();
+      this.showElement(this.start_button, 'flex')
 
       this.options.handleSelectionBounds(undefined);
     });
 
     /* By default, hide the remove button and all passive buttons */
-    this.remove_button.hide();
-    this.passive_buttons.forEach((button) => {button.hide()});
+    this.hideElement(this.remove_button);
+    this.passive_buttons.forEach((button) => {this.hideElement(button)});
   }
 
   /* Mutates the state of the buttons after drawing */
   mutateStateAfterDrawing() {
-    this.remove_button.show();
-    this.passive_buttons.forEach((button) => {button.show()});
+    this.showElement(this.remove_button, 'flex');
+    this.passive_buttons.forEach((button) => {this.showElement(button, 'flex')});
   }
 
   onAdd(map: L.Map) {
