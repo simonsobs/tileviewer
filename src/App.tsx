@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { LayersControl, MapContainer, TileLayer, useMapEvents } from 'react-leaflet';
-import { latLng, latLngBounds } from 'leaflet';
+import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
 import { mapOptions, SERVER } from './configs/mapSettings';
 import { BandWithLayerName, MapMetadataResponse, MapResponse } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
 import { ColorMapControls } from './components/ColorMapControls';
 import { CoordinatesDisplay } from './components/CoordinatesDisplay';
 import { AstroScale } from './components/AstroScale';
+import { AreaSelection } from './components/AreaSelection';
 
 function App() {
   const [vmin, setVMin] = useState<number | undefined>(undefined);
@@ -14,6 +15,7 @@ function App() {
   const [cmap, setCmap] = useState<string | undefined>(undefined);
   const [activeLayer, setActiveLayer] = useState<BandWithLayerName | undefined>(undefined);
   const [bands, setBands] = useState<BandWithLayerName[] | undefined>(undefined);
+  const [selectionBounds, setSelectionBounds] = useState<LatLngBounds | undefined>(undefined);
 
   useEffect(() => {
     async function getMapsAndMetadata() {
@@ -96,6 +98,7 @@ function App() {
           </LayersControl>
           <CoordinatesDisplay />
           <AstroScale />
+          <AreaSelection handleSelectionBounds={setSelectionBounds} />
           <MapEvents onBaseLayerChange={onBaseLayerChange} />
         </MapContainer>
         {vmin && vmax && cmap && activeLayer && (

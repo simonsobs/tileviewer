@@ -1,0 +1,27 @@
+.leaflet-control-selection-region {
+  clear: none;
+}
+
+.area-select-button {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  background-clip: padding-box;
+  border-radius: 4px;
+  height: 30px;
+  line-height: 30px;
+  background-color: #fff;
+  color: black;
+  cursor: pointer;
+}
+
+.area-select-button:hover {
+  background-color: #f4f4f4;
+}
+
+.area-select-button:disabled {
+  cursor: not-allowed;
+  background-color: #f4f4f4;
+  color: #bbb;
+}
