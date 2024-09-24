@@ -1,6 +1,6 @@
 import { useMap } from "react-leaflet";
-import { LatLng } from "leaflet";
-import { useState } from "react";
+import { LatLng, LeafletMouseEvent } from "leaflet";
+import { useCallback, useEffect, useState } from "react";
 import { NUMBER_OF_FIXED_COORDINATE_DECIMALS } from "../configs/mapSettings";
 import './styles/coordinates-display.css';
 
@@ -11,8 +11,29 @@ import './styles/coordinates-display.css';
 export function CoordinatesDisplay() {
     const [latLng, setLatLng] = useState<LatLng | undefined>(undefined);
     const map = useMap();
-    map.addEventListener('mousemove', (e) => setLatLng(e.latlng));
-    map.addEventListener('mouseout', () => latLng ? setLatLng(undefined) : null);
+
+    const handleMouseMove = useCallback(
+        (e: LeafletMouseEvent) => {
+            setLatLng(e.latlng)
+        }, [setLatLng]
+    );
+
+    const handleMouseOut = useCallback(
+        () => latLng ? setLatLng(undefined) : null,
+        [latLng, setLatLng]
+    )
+    
+    useEffect(
+        () => {
+            map.on('mousemove', handleMouseMove);
+            map.on('mouseout', handleMouseOut);
+
+            return function cleanup() {
+                map.off('mousemove', handleMouseMove);
+                map.off('mouseout', handleMouseOut);
+            }
+        }, [map, handleMouseMove, handleMouseOut]
+    )
 
     return (
         latLng && (
