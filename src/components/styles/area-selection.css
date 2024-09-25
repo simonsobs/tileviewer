@@ -9,8 +9,7 @@
   border: 2px solid rgba(0, 0, 0, 0.2);
   background-clip: padding-box;
   border-radius: 4px;
-  height: 30px;
-  line-height: 30px;
+  min-height: 30px;
   background-color: #fff;
   color: black;
   cursor: pointer;
