@@ -1,36 +1,45 @@
 /**
- * Taken more-or-less directly from the prototype's selectionRegionControl.ts code
+ * Derived largely from the prototype's selectionRegionControl.ts code
  * (https://github.com/simonsobs/tilerfrontend/blob/main/src/selectionRegionControl.ts)
  * 
  * Of note:
  * 1. Some logic has been added to set the selectionBounds at the top-level, allowing other
  *    child or map components access to them
- * 2. Typing is a pain for this, so I'm bypassing type checking for now.
+ * 2. Download/reset buttons are rendered in an overlay that show/hide wrt to mousing over/off
+ *    the drawn rectangle
+ * 3. I added the "definite assignment assertion" (!) operator to resolve lots of TS errors related to
+ *    the message "Property <prop_name> has no initializer and is not definitely assigned in the constructor"
  */
-
-// @ts-nocheck
 import { createControlComponent } from "@react-leaflet/core";
-import * as L from "leaflet";
+import L from "leaflet";
 import './styles/area-selection.css';
 
 // creates some padding between the top-left corner of the drawn region and the overlay_pane
 const CONTROLS_CONTAINER_BUFFER = 5;
 
-interface SelectionRegionOptions extends L.ControlOptions {}
+interface SelectionRegionOptions extends L.ControlOptions {
+  position: L.ControlPosition;
+  handleSelectionBounds: (bounds: L.LatLngBounds | undefined) => void;
+}
+
+interface MapWithSelectionHandler extends L.Map {
+  selection: SelectionRegionHandler
+}
 
 class SelectionRegionControl extends L.Control {
   options: SelectionRegionOptions;
 
-  base_element: HTMLElement;
-  overlay_pane: HTMLElement;
-  map: L.Map;
+  base_element!: HTMLDivElement;
+  overlay_pane!: HTMLDivElement;
+  map!: L.Map;
 
   /* Buttons */
-  start_button: HTMLButtonElement;
-  passive_buttons: HTMLButtonElement[];
+  start_button!: HTMLButtonElement;
+  passive_buttons!: HTMLButtonElement[];
 
-  constructor(options?: SelectionRegionOptions) {
+  constructor(options: SelectionRegionOptions) {
     super(options);
+    this.options = { ...options, handleSelectionBounds: options.handleSelectionBounds }
   }
 
   private createButton(container: HTMLDivElement, buttonText: string) {
@@ -48,17 +57,17 @@ class SelectionRegionControl extends L.Control {
     el.style.display = display;
   }
 
-  private createPassiveButtons(container) {
+  private createPassiveButtons(container: HTMLDivElement) {
     /* First create all the 'passive' buttons, those that will appear once 
      * we've selected the region and provide region-dependent functionality. */
     const download_fits = this.createButton(container, "Download FITS");
-    download_fits.addEventListener("click", (event) => {
+    download_fits.addEventListener("click", () => {
       /* TODO: Connect these to API endpoints */
       console.log("Download FITS");
     });
 
     const download_png = this.createButton(container, "Download PNG");
-    download_png.addEventListener("click", (event) => {
+    download_png.addEventListener("click", () => {
       /* TODO: Connect these to API endpoints */
       console.log("Download PNG");
     });
@@ -67,8 +76,8 @@ class SelectionRegionControl extends L.Control {
 
     this.passive_buttons = [download_fits, download_png, remove_button];
 
-    remove_button.addEventListener("click", (event) => {
-      this.map.selection.reset();
+    remove_button.addEventListener("click", () => {
+      (this.map as MapWithSelectionHandler).selection.reset();
       this.start_button.disabled = false;
       this.options.handleSelectionBounds(undefined);
       this.hideElement(this.overlay_pane);
@@ -107,13 +116,13 @@ class SelectionRegionControl extends L.Control {
      *    the overlay pane
      * 4. Begin with the overlay pane hidden
      */
-    this.overlay_pane = map.createPane("region-controls-overlay");
+    this.overlay_pane = map.createPane("region-controls-overlay") as HTMLDivElement;
     this.overlay_pane.style.zIndex = String(650);
     this.createPassiveButtons(this.overlay_pane);
-    this.overlay_pane.addEventListener('mouseover', (e) => {
+    this.overlay_pane.addEventListener('mouseover', () => {
       this.passive_buttons.forEach(b => this.showElement(b, 'flex'));
     })
-    this.overlay_pane.addEventListener('mouseout', (e) => {
+    this.overlay_pane.addEventListener('mouseout', () => {
       this.passive_buttons.forEach((b) => this.hideElement(b));
     })
     this.hideElement(this.overlay_pane);
@@ -127,16 +136,16 @@ class SelectionRegionControl extends L.Control {
 
     /* Create start button and define its click event */
     this.start_button = this.createButton(this.base_element, 'Select Region');
-    this.start_button.addEventListener("click", (event) => {
+    this.start_button.addEventListener("click", () => {
       /* The selection will be disabled by the handler once complete. */
-      this.map.selection.enable();
+      (this.map as MapWithSelectionHandler).selection.enable();
       this.start_button.disabled = true;
       this.map.getContainer().style.cursor = "crosshair";
     });
 
     /* Add callback to event handler */
-    this.map.selection.registerCallback(
-      (bounds) => {
+    (this.map as MapWithSelectionHandler).selection.registerCallback(
+      (bounds: L.LatLngBounds) => {
         this.mutateStateAfterDrawing(bounds);
         this.options.handleSelectionBounds(bounds)
     });
@@ -148,10 +157,10 @@ class SelectionRegionControl extends L.Control {
 class SelectionRegionHandler extends L.Handler {
   private drawing: boolean = false;
 
-  start_point: L.LatLng;
-  end_point: L.LatLng;
-  rectangle: L.Rectangle;
-  callback: Function;
+  start_point?: L.LatLng;
+  end_point?: L.LatLng;
+  rectangle?: L.Rectangle;
+  callback!: Function;
 
   private map: L.Map;
   private container: HTMLElement;
@@ -165,11 +174,11 @@ class SelectionRegionHandler extends L.Handler {
   }
 
   addHooks() {
-    L.DomEvent.on(this.container, "mousedown", this.onMouseDown, this);
+    L.DomEvent.on(this.container, "mousedown", this.onMouseDown as L.DomEvent.EventHandlerFn, this);
   }
 
   removeHooks() {
-    L.DomEvent.off(this.container, "mousedown", this.onMouseDown, this);
+    L.DomEvent.off(this.container, "mousedown", this.onMouseDown as L.DomEvent.EventHandlerFn, this);
   }
 
   private onMouseDown(event: MouseEvent) {
@@ -189,8 +198,8 @@ class SelectionRegionHandler extends L.Handler {
     );
 
     /* Add drag and stop event listeners */
-    L.DomEvent.on(this.container, "mousemove", this.onMouseMove, this);
-    L.DomEvent.on(this.container, "mouseup", this.onMouseUp, this);
+    L.DomEvent.on(this.container, "mousemove", this.onMouseMove as L.DomEvent.EventHandlerFn, this);
+    L.DomEvent.on(this.container, "mouseup", this.onMouseUp as L.DomEvent.EventHandlerFn, this);
   }
 
   private onMouseMove(event: MouseEvent) {
@@ -201,7 +210,7 @@ class SelectionRegionHandler extends L.Handler {
     } else {
       this.updateRectangleBounds(
         new L.LatLngBounds(
-          this.start_point,
+          this.start_point!,
           this.map.containerPointToLatLng(new L.Point(event.x, event.y))
         )
       );
@@ -214,8 +223,8 @@ class SelectionRegionHandler extends L.Handler {
     /* event.latlng seems to be undefined for some reason, so we need to convert manually. */
     this.end_point = this.map.containerPointToLatLng(new L.Point(event.x, event.y));
 
-    L.DomEvent.off(this.container, "mousemove", this.onMouseMove, this);
-    L.DomEvent.off(this.container, "mouseup", this.onMouseUp, this);
+    L.DomEvent.off(this.container, "mousemove", this.onMouseMove as L.DomEvent.EventHandlerFn, this);
+    L.DomEvent.off(this.container, "mouseup", this.onMouseUp as L.DomEvent.EventHandlerFn, this);
 
     /* Resume messing with my map, dude! */
     this.map.dragging.enable();
@@ -223,7 +232,7 @@ class SelectionRegionHandler extends L.Handler {
     this.map.getContainer().style.cursor = "";
 
     /* Remove myself. My job is done here. */
-    this.map.selection.disable();
+    (this.map as MapWithSelectionHandler).selection.disable();
 
     /* Finalise the style of the rectangle. */
     this.finaliseRectangle();
@@ -237,23 +246,24 @@ class SelectionRegionHandler extends L.Handler {
   private updateRectangleBounds(bounds: L.LatLngBounds) {
     if (!this.rectangle) {
       console.log("Rectangle not created, and you are trying to update it");
+    } else {
+      this.rectangle.setBounds(bounds);
     }
-    this.rectangle.setBounds(bounds);
   }
 
   /* Register the callback with the handler. This will be called once the user has finished drawing. */
   registerCallback(callback: Function) {
-    this.callback = () => callback(this.rectangle.getBounds());
+    this.callback = () => callback(this.rectangle!.getBounds());
   }
 
   private finaliseRectangle() {
     /* Make sure we are exactly bounding start and stop */
     this.updateRectangleBounds(
-      new L.LatLngBounds(this.start_point, this.end_point)
+      new L.LatLngBounds(this.start_point!, this.end_point!)
     );
 
     /* Set the style of the rectangle to something different so they know they've finished. */
-    this.rectangle.setStyle({ color: "black", fill: false } as L.PathOptions);
+    this.rectangle!.setStyle({ color: "black", fill: false } as L.PathOptions);
 
     if (this.callback) {
       this.callback();
@@ -273,13 +283,13 @@ class SelectionRegionHandler extends L.Handler {
 }
 
 export const AreaSelectionControl = createControlComponent(
-    (props) => new SelectionRegionControl({...props, position: 'topleft'}),
+    (props: SelectionRegionOptions) => new SelectionRegionControl(props),
   )
 
 type Props = {
-  handleSelectionBounds: (bounds: L.LatLngBounds) => void;
+  handleSelectionBounds: (bounds: L.LatLngBounds | undefined) => void;
 }
 
 export function AreaSelection({handleSelectionBounds}: Props) {
-  return <AreaSelectionControl handleSelectionBounds={handleSelectionBounds} />
+  return <AreaSelectionControl position='topleft' handleSelectionBounds={handleSelectionBounds} />
 }
