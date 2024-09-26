@@ -32,9 +32,10 @@
 }
 
 .cmap-selector-container {
+  display: flex;
+  justify-content: space-between;
   height: 25px;
   margin-bottom: auto;
-  width: 80px;
   z-index: 2;
 }
 

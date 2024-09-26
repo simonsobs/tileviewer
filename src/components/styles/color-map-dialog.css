@@ -1,0 +1,40 @@
+h1 {
+    margin: 0;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2em;
+}
+
+.close-dialog {
+    width: 30px;
+    font-size: 2em;
+    margin-left: 2em;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    row-gap: 2em;
+}
+
+label {
+    font-size: 1.25em;
+    display: flex;
+    flex-direction: column;
+    row-gap: 2px;
+}
+
+input[type="submit"] {
+    margin: 0 auto;
+    width: fit-content;
+    padding: 10px;
+    font-size: 1.5em;
+}
+
+input[type="number"],
+input[type="text"] {
+    width: 150px;
+}

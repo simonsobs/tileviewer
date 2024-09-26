@@ -4,8 +4,9 @@ import { CMAP_OPTIONS } from "../configs/cmapControlSettings";
 import { ColorMapSlider } from "./ColorMapSlider"
 import { HistogramResponse } from "../types/maps";
 import { ColorMapHistogram } from "./ColorMapHistogram";
+import { CustomColorMapDialog } from "./CustomColorMapDialog";
 
-type ColorMapControlsProps = {
+export type ColorMapControlsProps = {
     values: number[]
     onCmapValuesChange: (values: number[]) => void;
     cmap: string;
@@ -13,10 +14,13 @@ type ColorMapControlsProps = {
     activeLayerId: number;
 }
 
-export function ColorMapControls({values, onCmapValuesChange, cmap, onCmapChange, activeLayerId}: ColorMapControlsProps) {
+export function ColorMapControls(props: ColorMapControlsProps) {
+    const {values, onCmapValuesChange, cmap, onCmapChange, activeLayerId} = props;
     const [cmapImage, setCmapImage] = useState<undefined | string>(undefined);
     const [histogramData, setHistogramData] = useState<HistogramResponse | undefined>(undefined);
-    const [showCmapSelector, setShowCmapSelector] = useState(false) 
+    const [showCmapSelector, setShowCmapSelector] = useState(false);
+    const [showCustomDialog, setShowCustomDialog] = useState(false);
+    const [cmapOptions, setCmapOptions] = useState(CMAP_OPTIONS);
 
     useEffect(() => {
         async function getCmapImage() {
@@ -60,24 +64,42 @@ export function ColorMapControls({values, onCmapValuesChange, cmap, onCmapChange
     )
 
     return (
-        <div
-            className='cmap-controls-pane'
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
-        >
-            <div className="cmap-selector-container">
-                <select className={showCmapSelector ? undefined : 'hide'} value={cmap} onChange={handleCmapChange}>
-                    {CMAP_OPTIONS.map(c => (
-                        <option key={c} value={c}>{c}</option>
-                    ))}
-                </select>
-            </div>
-            {histogramData && <ColorMapHistogram data={histogramData} />}
-            <ColorMapSlider
-                cmapImage={cmapImage}
-                values={values}
-                onCmapValuesChange={onCmapValuesChange}
+        <>
+            <CustomColorMapDialog
+                isOpen={showCustomDialog}
+                closeModal={() => setShowCustomDialog(false)}
+                cmapOptions={cmapOptions}
+                setCmapOptions={setCmapOptions}
+                {...props}
             />
-        </div>
+            <div
+                className='cmap-controls-pane'
+                onMouseEnter={onMouseEnter}
+                onMouseLeave={onMouseLeave}
+            >
+                <div className="cmap-selector-container">
+                    {showCmapSelector &&
+                        <>
+                            <label>
+                                Colormap:
+                                <select value={cmap} onChange={handleCmapChange}>
+                                    {cmapOptions.map(c => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
+                            </label>
+                            <button onClick={() => setShowCustomDialog(true)} title="Customize parameters">&#x2197;</button>
+                        </>
+                    }
+                </div>
+                {histogramData && <ColorMapHistogram data={histogramData} />}
+                <ColorMapSlider
+                    cmapImage={cmapImage}
+                    values={values}
+                    onCmapValuesChange={onCmapValuesChange}
+                />
+            </div>
+        
+        </>
     )
 }
