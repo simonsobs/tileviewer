@@ -39,7 +39,7 @@ class SelectionRegionControl extends L.Control {
 
   constructor(options: SelectionRegionOptions) {
     super(options);
-    this.options = { ...options, handleSelectionBounds: options.handleSelectionBounds }
+    this.options = options;
   }
 
   private createButton(container: HTMLDivElement, buttonText: string) {
