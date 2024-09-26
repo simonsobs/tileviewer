@@ -35,7 +35,7 @@
   height: 25px;
   margin-bottom: auto;
   width: 80px;
-  z-index: 1;
+  z-index: 2;
 }
 
 select {
@@ -49,13 +49,14 @@ select {
 img {
   position: absolute;
   height: 60px;
-  bottom: 15px;
-  opacity: 0.75;
+  bottom: 40px;
+  opacity: 0.9;
   pointer-events: none;
 }
 
 .cmap-histogram {
   position: absolute;
   bottom: 35px;
+  z-index: 1;
 }
 

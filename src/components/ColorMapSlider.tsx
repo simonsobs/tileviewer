@@ -40,6 +40,15 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
 
     return (
         <>
+            {cmapImage && (
+              <img
+                src={cmapImage}
+                style={{
+                  width: `${cmapWidth}%`,
+                  left: `${leftThumbPosition}%`,
+                }}
+              />
+            )}
             <RangeSlider
                 min={MIN_TEMP}
                 max={MAX_TEMP}
@@ -79,17 +88,9 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
                       ...props.style,
                       height: "25px",
                       display: "flex",
+                      zIndex: 2,
                     }}
                   >
-                    {cmapImage && (
-                        <img
-                            src={cmapImage}
-                            style={{
-                                width: `${cmapWidth}%`,
-                                left: `${leftThumbPosition}%`,
-                            }}
-                        />
-                    )}
                     <div
                       ref={props.ref}
                       style={{
