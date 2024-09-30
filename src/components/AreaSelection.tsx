@@ -13,6 +13,7 @@
 import { createControlComponent } from "@react-leaflet/core";
 import L from "leaflet";
 import './styles/area-selection.css';
+import { getControlPaneOffsets } from "../utils/paneUtils";
 
 interface SelectionRegionOptions extends L.ControlOptions {
   position: L.ControlPosition;
@@ -90,15 +91,16 @@ class SelectionRegionControl extends L.Control {
   */ 
   mutateStateAfterDrawing(bounds: L.LatLngBounds) {
     this.showElement(this.overlay_pane);
-    const topLeft = this.map.latLngToLayerPoint(bounds.getNorthWest());
-    const bottomRight = this.map.latLngToLayerPoint(bounds.getSouthEast());
-    const width = Math.abs(bottomRight.x - topLeft.x);
-    const height = Math.abs(bottomRight.y - topLeft.y);
-    this.overlay_pane.style.top = `${topLeft.y}px`;
-    this.overlay_pane.style.left = `${topLeft.x}px`;
-    this.overlay_pane.style.width = `${width}px`;
-    this.overlay_pane.style.minWidth = 'fit-content';
-    this.overlay_pane.style.height = `${height}px`;
+    const {
+      top,
+      left,
+      width,
+      height,
+    } = getControlPaneOffsets(this.map, bounds);
+    this.overlay_pane.style.top = top as string;
+    this.overlay_pane.style.left = left as string;
+    this.overlay_pane.style.width = width as string;
+    this.overlay_pane.style.height = height as string;
   }
 
   onAdd(map: L.Map) {

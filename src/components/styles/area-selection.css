@@ -2,6 +2,10 @@
   clear: none;
 }
 
+.leaflet-region-controls-overlay-pane {
+  min-width: fit-content;
+}
+
 .area-select-button {
   display: flex;
   align-items: center;

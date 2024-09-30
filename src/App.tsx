@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { LayersControl, MapContainer, TileLayer, useMapEvents } from 'react-leaflet';
+import { LayersControl, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
 import { mapOptions, SERVER } from './configs/mapSettings';
 import { BandWithLayerName, MapMetadataResponse, MapResponse } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
+import { getControlPaneOffsets } from './utils/paneUtils';
 import { ColorMapControls } from './components/ColorMapControls';
 import { CoordinatesDisplay } from './components/CoordinatesDisplay';
 import { AstroScale } from './components/AstroScale';
@@ -99,7 +100,7 @@ function App() {
           <CoordinatesDisplay />
           <AstroScale />
           <AreaSelection handleSelectionBounds={setSelectionBounds} />
-          <MapEvents onBaseLayerChange={onBaseLayerChange} />
+          <MapEvents onBaseLayerChange={onBaseLayerChange} selectionBounds={selectionBounds} />
         </MapContainer>
         {vmin && vmax && cmap && activeLayer && (
           <ColorMapControls
@@ -115,13 +116,34 @@ function App() {
 }
 
 type MapEventsProps = {
-  onBaseLayerChange: (newBaseLayer: string) => void; 
+  onBaseLayerChange: (newBaseLayer: string) => void;
+  selectionBounds?: L.LatLngBounds;
 }
 
-function MapEvents({onBaseLayerChange}: MapEventsProps) {
+function MapEvents({onBaseLayerChange, selectionBounds}: MapEventsProps) {
+  const map = useMap();
   useMapEvents({
     baselayerchange: (e: { name: string }) => {
       onBaseLayerChange(e.name)
+    },
+    zoomend: () => {
+      const regionControlsOverlay = map.getPane('region-controls-overlay');
+      if (
+        regionControlsOverlay &&
+        regionControlsOverlay.style.display === 'block' &&
+        selectionBounds
+      ) {
+        const {
+          top,
+          left,
+          width,
+          height,
+        } = getControlPaneOffsets(map, selectionBounds);
+        regionControlsOverlay.style.top = top as string;
+        regionControlsOverlay.style.left = left as string;
+        regionControlsOverlay.style.width = width as string;
+        regionControlsOverlay.style.height = height as string;
+      }
     }
   })
   return null
