@@ -14,9 +14,6 @@ import { createControlComponent } from "@react-leaflet/core";
 import L from "leaflet";
 import './styles/area-selection.css';
 
-// creates some padding between the top-left corner of the drawn region and the overlay_pane
-const CONTROLS_CONTAINER_BUFFER = 5;
-
 interface SelectionRegionOptions extends L.ControlOptions {
   position: L.ControlPosition;
   handleSelectionBounds: (bounds: L.LatLngBounds | undefined) => void;
@@ -97,8 +94,8 @@ class SelectionRegionControl extends L.Control {
     const bottomRight = this.map.latLngToLayerPoint(bounds.getSouthEast());
     const width = Math.abs(bottomRight.x - topLeft.x);
     const height = Math.abs(bottomRight.y - topLeft.y);
-    this.overlay_pane.style.top = `${topLeft.y + CONTROLS_CONTAINER_BUFFER}px`;
-    this.overlay_pane.style.left = `${topLeft.x + CONTROLS_CONTAINER_BUFFER}px`;
+    this.overlay_pane.style.top = `${topLeft.y}px`;
+    this.overlay_pane.style.left = `${topLeft.x}px`;
     this.overlay_pane.style.width = `${width}px`;
     this.overlay_pane.style.minWidth = 'fit-content';
     this.overlay_pane.style.height = `${height}px`;
@@ -147,7 +144,7 @@ class SelectionRegionControl extends L.Control {
     (this.map as MapWithSelectionHandler).selection.registerCallback(
       (bounds: L.LatLngBounds) => {
         this.mutateStateAfterDrawing(bounds);
-        this.options.handleSelectionBounds(bounds)
+        this.options.handleSelectionBounds(bounds);
     });
 
     return this.base_element;
@@ -160,6 +157,12 @@ class SelectionRegionHandler extends L.Handler {
   start_point?: L.LatLng;
   end_point?: L.LatLng;
   rectangle?: L.Rectangle;
+  vertices?: {
+    ne?: L.CircleMarker,
+    nw?: L.CircleMarker,
+    se?: L.CircleMarker,
+    sw?: L.CircleMarker,
+  };
   callback!: Function;
 
   private map: L.Map;
@@ -208,12 +211,15 @@ class SelectionRegionHandler extends L.Handler {
         "This should never happen. Event handler for mouse move should never be called when not drawing"
       );
     } else {
-      this.updateRectangleBounds(
-        new L.LatLngBounds(
-          this.start_point!,
-          this.map.containerPointToLatLng(new L.Point(event.x, event.y))
-        )
-      );
+      const bounds = new L.LatLngBounds(
+        this.start_point!,
+        this.map.containerPointToLatLng(new L.Point(event.x, event.y))
+      )
+      this.updateRectangleBounds(bounds);
+
+      if (this.vertices) {
+        this.updateVertexPositions(bounds);
+      }
     }
   }
 
@@ -251,16 +257,82 @@ class SelectionRegionHandler extends L.Handler {
     }
   }
 
+  private updateVertexPositions(bounds: L.LatLngBounds) {
+    this.vertices?.ne?.setLatLng(bounds.getNorthEast());
+    this.vertices?.nw?.setLatLng(bounds.getNorthWest());
+    this.vertices?.se?.setLatLng(bounds.getSouthEast());
+    this.vertices?.sw?.setLatLng(bounds.getSouthWest());
+  }
+
   /* Register the callback with the handler. This will be called once the user has finished drawing. */
   registerCallback(callback: Function) {
     this.callback = () => callback(this.rectangle!.getBounds());
   }
 
+  private createVertex(latlng: L.LatLng, options?: Omit<L.CircleOptions, 'radius'>) {
+    return new L.CircleMarker(
+        latlng,
+        {
+          ...options,
+          color: 'black',
+          fillOpacity: 1,
+          radius: 3,
+        }
+      );
+  }
+
+  private handleResize(event: L.LeafletMouseEvent) {
+    if (!this.rectangle) return;
+    (this.map as MapWithSelectionHandler).selection.enable();
+
+    /* Stop messing with my map, dude! */
+    this.map.dragging.disable();
+    L.DomUtil.disableTextSelection();
+    this.drawing = true;
+
+    const clickedLatLngString = event.latlng.toString();
+    const rectangleBounds = this.rectangle.getBounds();
+    const ne = rectangleBounds.getNorthEast();
+    const se = rectangleBounds.getSouthEast();
+    const nw = rectangleBounds.getNorthWest();
+    const sw = rectangleBounds.getSouthWest();
+
+    // determine which corner is clicked; we want to set opposite corner as start_point
+    if (ne.toString() === clickedLatLngString) {
+      this.start_point = sw;
+    } else if (se.toString() === clickedLatLngString) {
+      this.start_point = nw;
+    } else if (nw.toString() === clickedLatLngString) {
+      this.start_point = se;
+    } else {
+      this.start_point = ne;
+    }
+
+    /* Add drag and stop event listeners */
+    L.DomEvent.on(this.container, "mousemove", this.onMouseMove as L.DomEvent.EventHandlerFn, this);
+    L.DomEvent.on(this.container, "mouseup", this.onMouseUp as L.DomEvent.EventHandlerFn, this);
+  }
+
   private finaliseRectangle() {
+    const bounds = new L.LatLngBounds(this.start_point!, this.end_point!);
     /* Make sure we are exactly bounding start and stop */
-    this.updateRectangleBounds(
-      new L.LatLngBounds(this.start_point!, this.end_point!)
-    );
+    this.updateRectangleBounds(bounds);
+
+    if (!this.vertices) {
+      /* Create circles at vertices */
+      this.vertices = {
+        ne: this.createVertex(bounds.getNorthEast(), {className: 'vertex-ne'}),
+        nw: this.createVertex(bounds.getNorthWest(), {className: 'vertex-nw'}),
+        se: this.createVertex(bounds.getSouthEast(), {className: 'vertex-se'}),
+        sw: this.createVertex(bounds.getSouthWest(), {className: 'vertex-sw'}),
+      };
+      Object.values(this.vertices).forEach(v => {
+        v.addEventListener('mousedown', this.handleResize, this)
+        v.addTo(this.map)
+      })
+    } else {
+      this.updateVertexPositions(bounds);
+    }
 
     /* Set the style of the rectangle to something different so they know they've finished. */
     this.rectangle!.setStyle({ color: "black", fill: false } as L.PathOptions);
@@ -274,6 +346,11 @@ class SelectionRegionHandler extends L.Handler {
     if (this.rectangle) {
       this.rectangle.remove();
       this.rectangle = undefined;
+    }
+
+    if (this.vertices) {
+      Object.values(this.vertices).forEach(v => v.remove());
+      this.vertices = undefined;
     }
 
     this.drawing = false;

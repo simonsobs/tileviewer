@@ -24,3 +24,16 @@
   background-color: #f4f4f4;
   color: #bbb;
 }
+
+.vertex-ne {
+  cursor: ne-resize;
+}
+.vertex-nw {
+  cursor: nw-resize;
+}
+.vertex-se {
+  cursor: se-resize;
+}
+.vertex-sw {
+  cursor: sw-resize;
+}
