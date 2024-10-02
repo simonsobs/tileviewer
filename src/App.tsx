@@ -79,7 +79,7 @@ function App() {
                 return (
                   <LayersControl.BaseLayer key={band.layer_name} checked={band.layer_name === activeLayer?.layer_name} name={band.layer_name}>
                     <TileLayer
-                      url={`${SERVER}/maps/FITS_Maps/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
+                      url={`${SERVER}/maps/${band.map_name}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
                       tms
                       noWrap
                       bounds={
