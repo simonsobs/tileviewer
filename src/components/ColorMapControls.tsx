@@ -1,5 +1,5 @@
 import { ChangeEventHandler, MouseEventHandler, useCallback, useEffect, useState } from "react";
-import { SERVER } from "../configs/mapSettings";
+import { SERVICE_URL } from "../configs/mapSettings";
 import { CMAP_OPTIONS } from "../configs/cmapControlSettings";
 import { ColorMapSlider } from "./ColorMapSlider"
 import { HistogramResponse } from "../types/maps";
@@ -24,7 +24,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
 
     useEffect(() => {
         async function getCmapImage() {
-            const image = await fetch(`${SERVER}/histograms/${cmap}.png`)
+            const image = await fetch(`${SERVICE_URL}/histograms/${cmap}.png`)
             setCmapImage(image.url);
         }
         getCmapImage();
@@ -32,7 +32,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
 
     useEffect(() => {
         async function getHistogramData() {
-            const response = await fetch(`${SERVER}/histograms/data/${activeLayerId}`)
+            const response = await fetch(`${SERVICE_URL}/histograms/data/${activeLayerId}`)
             const data: HistogramResponse = await response.json();
             setHistogramData(data);
         }

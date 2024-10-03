@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { LayersControl, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
-import { mapOptions, SERVER } from './configs/mapSettings';
+import { mapOptions, SERVICE_URL } from './configs/mapSettings';
 import { BandWithLayerName, MapMetadataResponse, MapResponse } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
 import { getControlPaneOffsets } from './utils/paneUtils';
@@ -20,11 +20,11 @@ function App() {
 
   useEffect(() => {
     async function getMapsAndMetadata() {
-      const availableMaps = await fetch(`${SERVER}/maps`);
+      const availableMaps = await fetch(`${SERVICE_URL}/maps`);
       const availableMapsResponse: MapResponse[] = await availableMaps.json();
       const availableMapsMetadata: MapMetadataResponse[] = await Promise.all(
         availableMapsResponse.map(
-          async (resp) => (await fetch(`${SERVER}/maps/${resp.name}`)).json()
+          async (resp) => (await fetch(`${SERVICE_URL}/maps/${resp.name}`)).json()
         )
       )
       const tempBands = availableMapsMetadata.reduce(
@@ -79,7 +79,7 @@ function App() {
                 return (
                   <LayersControl.BaseLayer key={band.layer_name} checked={band.layer_name === activeLayer?.layer_name} name={band.layer_name}>
                     <TileLayer
-                      url={`${SERVER}/maps/${band.map_name}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
+                      url={`${SERVICE_URL}/maps/${band.map_name}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
                       tms
                       noWrap
                       bounds={
