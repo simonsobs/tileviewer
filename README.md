@@ -1,50 +1,32 @@
-# React + TypeScript + Vite
+# MapViewerClient
+This is the user interface for the SO Map Viewer. The client is built with [React](https://react.dev/) and bundled by [vite](https://vite.dev/). The underlying mapping components are built with [leaflet.js](https://leafletjs.com/) and [react-leaflet](https://react-leaflet.js.org/).
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Steps to run locally
+1. Clone and initialize this repo:
+```sh
+git clone git@github.com:jernestmyers/mapviewerclient.git
+cd mapviewerclient
+npm install
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+2. Set up a `.env.development` file. The contents of `env.development.sample` should suffice if you plan to serve the map tiles using [the SO Tilemaker](https://github.com/simonsobs/tilemaker)
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+3. Depending on your tile server setup:
+  
+    3A. If using the SO Tilemaker:
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+      - Clone the repo and [follow its README instructions](https://github.com/simonsobs/tilemaker#readme) for creating a `SQLite` database.
+      - Amend the `settings.py` file as follows:
+      ```py
+        # vite's dev server is configured to be on port 8080; amend as desired.
+        origins: list[str] | None = ["http://localhost:8080"]
+        add_cors: bool = True
+      ```
+      - Run the tile server locally via `uvicorn tilemaker.server:app --port=9191 --reload`
+
+    3B. If using your own tile server:
+
+      - Set the `VITE_SERVICE_URL` environment variable in `.env.development` to point to your local server
+      - Run your tile server locally
+
+4. Run the client dev server via `npm run dev`
