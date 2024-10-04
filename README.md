@@ -1,11 +1,11 @@
-# MapViewerClient
+# Tileviewer
 This is the user interface for the SO Map Viewer. The client is built with [React](https://react.dev/) and bundled by [vite](https://vite.dev/). The underlying mapping components are built with [leaflet.js](https://leafletjs.com/) and [react-leaflet](https://react-leaflet.js.org/).
 
 ## Steps to run locally
 1. Clone and initialize this repo:
 ```sh
-git clone git@github.com:jernestmyers/mapviewerclient.git
-cd mapviewerclient
+git clone git@github.com:simonsobs/tileviewer.git
+cd tileviewer
 npm install
 ```
 
