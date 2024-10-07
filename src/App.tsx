@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { LayersControl, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
-import { mapOptions, SERVICE_URL } from './configs/mapSettings';
+import { mapOptions, SERVICE_URL, DEFAULT_MIN_ZOOM } from './configs/mapSettings';
 import { BandWithLayerName, MapMetadataResponse, MapResponse } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
 import { getControlPaneOffsets } from './utils/paneUtils';
 import { ColorMapControls } from './components/ColorMapControls';
 import { CoordinatesDisplay } from './components/CoordinatesDisplay';
-import { AstroScale } from './components/AstroScale';
+// import { AstroScale } from './components/AstroScale';
 import { AreaSelection } from './components/AreaSelection';
+import { GraticuleLayer } from './components/GraticuleLayer';
 
 function App() {
   const [vmin, setVMin] = useState<number | undefined>(undefined);
@@ -72,7 +73,10 @@ function App() {
 
   return (
       <>
-        <MapContainer id='map' {...mapOptions}>
+        <MapContainer
+          id='map'
+          {...mapOptions}
+        >
           <LayersControl>
             {bands?.map(
                 (band) => {
@@ -88,6 +92,7 @@ function App() {
                           latLng(band.bounding_bottom, band.bounding_right),
                         )
                       }
+                      minZoom={DEFAULT_MIN_ZOOM}
                       maxZoom={band.levels + 3}
                       minNativeZoom={band.levels - 4}
                       maxNativeZoom={band.levels - 1}
@@ -97,8 +102,9 @@ function App() {
               }
             )}
           </LayersControl>
+          <GraticuleLayer />
           <CoordinatesDisplay />
-          <AstroScale />
+          {/* <AstroScale /> */}
           <AreaSelection handleSelectionBounds={setSelectionBounds} />
           <MapEvents onBaseLayerChange={onBaseLayerChange} selectionBounds={selectionBounds} />
         </MapContainer>
