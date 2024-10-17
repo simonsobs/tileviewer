@@ -1,29 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-
-const baseConfig = {
-  plugins: [react()],
-  server: {
-    host: true,
-    port: 8080,
-  }
-}
+import dotenv from 'dotenv'
 
 // https://vitejs.dev/config/
 export default defineConfig(({mode}) => {
-  if (mode === 'production') {
-    return {
-      ...baseConfig,
-      base: '/beta/newmaps/',
+  dotenv.config({path: mode === 'production' ? ['.env.production'] : ['env.development']})
+  return {
+      plugins: [react()],
+      server: {
+        host: true,
+        port: 8080,
+      },
+      base: process.env.VITE_BASE_PATH || ''
     }
-  } else if (mode === 'serve') {
-    return {
-      ...baseConfig,
-      base: '/static/',
-    }
-  } else {
-    return {
-      ...baseConfig,
-    }
-  }
 })
