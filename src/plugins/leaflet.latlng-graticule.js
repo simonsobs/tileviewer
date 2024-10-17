@@ -76,10 +76,6 @@
             map.on('move', this._reset, this);
             map.on('moveend', this._reset, this);
 
-            if (map.options.zoomAnimation && L.Browser.any3d) {
-                map.on('zoomanim', this._animateZoom, this);
-            }
-
             this._reset();
         },
 
@@ -89,10 +85,6 @@
             map.off('viewreset', this._reset, this);
             map.off('move', this._reset, this);
             map.off('moveend', this._reset, this);
-
-            if (map.options.zoomAnimation) {
-                map.off('zoomanim', this._animateZoom, this);
-            }
         },
 
         addTo: function (map) {
@@ -108,7 +100,7 @@
 
         bringToFront: function () {
             if (this._canvas) {
-                //this._map._panes.overlayPane.appendChild(this._canvas);
+                this._map._panes.overlayPane.appendChild(this._canvas);
             }
             return this;
         },
@@ -116,7 +108,7 @@
         bringToBack: function () {
             var pane = this._map._panes.overlayPane;
             if (this._canvas) {
-                //pane.insertBefore(this._canvas, pane.firstChild);
+                pane.insertBefore(this._canvas, pane.firstChild);
             }
             return this;
         },
@@ -143,19 +135,6 @@
                 onmousemove: L.Util.falseFn,
                 onload: L.bind(this._onCanvasLoad, this)
             });
-        },
-
-        _animateZoom: function (e) {
-            var map = this._map,
-                canvas = this._canvas,
-                scale = map.getZoomScale(e.zoom),
-                nw = map.containerPointToLatLng([0, 0]),
-                se = map.containerPointToLatLng([canvas.width, canvas.height]),
-                topLeft = map._latLngToNewLayerPoint(nw, e.zoom, e.center),
-                size = map._latLngToNewLayerPoint(se, e.zoom, e.center)._subtract(topLeft),
-                origin = topLeft._add(size._multiplyBy((1 / 2) * (1 - 1 / scale)));
-
-            L.DomUtil.setTransform(canvas, origin, scale);
         },
 
         _reset: function () {
