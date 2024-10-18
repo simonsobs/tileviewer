@@ -11,6 +11,6 @@ export default defineConfig(({mode}) => {
         host: true,
         port: 8080,
       },
-      base: process.env.VITE_BASE_PATH || ''
+      // base: process.env.VITE_BASE_PATH || ''
     }
 })
