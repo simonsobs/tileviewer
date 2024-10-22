@@ -1,12 +1,10 @@
 import { createControlComponent } from "@react-leaflet/core";
 import L from "leaflet";
-import { MAX_SCALE_WIDTH } from "../configs/mapSettings";
 import { GraticuleDetails } from "../types/maps";
 
 interface AstroScaleOptions extends L.ControlOptions {
     position: L.ControlPosition;
     imperial: boolean;
-    maxWidth: number;
     graticuleDetails: GraticuleDetails;
   }
 
@@ -44,7 +42,6 @@ export function AstroScale({graticuleDetails}: Props) {
             key={graticuleDetails.pixelWidth + graticuleDetails.interval}
             position='bottomright'
             imperial={false}
-            maxWidth={MAX_SCALE_WIDTH}
             graticuleDetails={graticuleDetails}
         />
     )
