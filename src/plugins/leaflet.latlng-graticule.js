@@ -332,6 +332,13 @@
                 _lon_r = parseInt(_lon_r + _point_per_lon, 10);
                 _lon_l = parseInt(_lon_l - _point_per_lon, 10);
 
+                if (this.options.getCurrentGraticuleDetails) {
+                    const p1 = self._latLngToCanvasPoint(L.latLng(_lat_b, lngInterval))
+                    const p2 = self._latLngToCanvasPoint(L.latLng(_lat_b, lngInterval * 2))
+                    const dX = Math.abs(p1.x - p2.x);
+                    this.options.getCurrentGraticuleDetails({pixelWidth: dX, interval: lngInterval});
+                }
+
                 var ll, latstr, lngstr, _lon_delta = 0.5;
                 function __draw_lat_line(self, lat_tick) {
                     ll = self._latLngToCanvasPoint(L.latLng(lat_tick, _lon_l));

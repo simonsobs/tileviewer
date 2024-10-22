@@ -11,5 +11,4 @@ export const mapOptions: MapOptions = {
 export const DEFAULT_MIN_ZOOM = 0;
 
 // related to controls
-export const MAX_SCALE_WIDTH = 300;
 export const NUMBER_OF_FIXED_COORDINATE_DECIMALS = 5;
