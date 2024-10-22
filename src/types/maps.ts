@@ -40,3 +40,8 @@ export type HistogramResponse = {
     histogram: number[];
     band_id: number;
 }
+
+export type GraticuleDetails = {
+    pixelWidth: number,
+    interval: number,
+}

@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { LayersControl, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
 import { mapOptions, SERVICE_URL, DEFAULT_MIN_ZOOM } from './configs/mapSettings';
-import { BandWithLayerName, MapMetadataResponse, MapResponse } from './types/maps';
+import { BandWithLayerName, GraticuleDetails, MapMetadataResponse, MapResponse } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
 import { getControlPaneOffsets } from './utils/paneUtils';
 import { ColorMapControls } from './components/ColorMapControls';
 import { CoordinatesDisplay } from './components/CoordinatesDisplay';
-// import { AstroScale } from './components/AstroScale';
+import { AstroScale } from './components/AstroScale';
 import { AreaSelection } from './components/AreaSelection';
 import { GraticuleLayer } from './components/GraticuleLayer';
 
@@ -18,6 +18,7 @@ function App() {
   const [activeLayer, setActiveLayer] = useState<BandWithLayerName | undefined>(undefined);
   const [bands, setBands] = useState<BandWithLayerName[] | undefined>(undefined);
   const [selectionBounds, setSelectionBounds] = useState<LatLngBounds | undefined>(undefined);
+  const [graticuleDetails, setGraticuleDetails] = useState<undefined | GraticuleDetails>(undefined);
 
   useEffect(() => {
     async function getMapsAndMetadata() {
@@ -102,9 +103,9 @@ function App() {
               }
             )}
           </LayersControl>
-          <GraticuleLayer />
+          <GraticuleLayer setGraticuleDetails={setGraticuleDetails} />
           <CoordinatesDisplay />
-          {/* <AstroScale /> */}
+          {graticuleDetails && <AstroScale graticuleDetails={graticuleDetails} />}
           <AreaSelection handleSelectionBounds={setSelectionBounds} />
           <MapEvents onBaseLayerChange={onBaseLayerChange} selectionBounds={selectionBounds} />
         </MapContainer>
