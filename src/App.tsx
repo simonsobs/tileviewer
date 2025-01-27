@@ -116,6 +116,7 @@ function App() {
             cmap={cmap}
             onCmapChange={onCmapChange}
             activeLayerId={activeLayer.id}
+            units={activeLayer.units}
           />
         )}
       </>

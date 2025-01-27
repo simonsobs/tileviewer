@@ -9,29 +9,47 @@ import './styles/color-map-dialog.css';
  */
 
 interface Props extends Omit<ColorMapControlsProps, 'activeLayerId'> {
+    /** Boolean to control dialog display/hide status */
     isOpen: boolean;
+    /** Handler to set modal to be closed */
     closeModal: () => void;
+    /** Handler that allows us to add new user-specified color maps to the histogram's <select> menu */
     setCmapOptions: (options: string[]) => void;
+    /** The list of color map options used to determine whether or not to append a new color map option */
     cmapOptions: string[];
 }
 
-export function CustomColorMapDialog({isOpen, closeModal, values, cmap, onCmapChange, onCmapValuesChange, cmapOptions, setCmapOptions}: Props) {
+export function CustomColorMapDialog({
+    isOpen,
+    closeModal,
+    values,
+    cmap,
+    onCmapChange,
+    onCmapValuesChange,
+    cmapOptions,
+    setCmapOptions,
+    units,
+}: Props) {
     const ref = useRef<HTMLDialogElement | null>(null);
+    // Create temporary values to maintain component state without setting the global state, which is only done during "Update Map" 
     const [tempCmap, setTempCmap] = useState(cmap);
     const [tempValues, setTempValues] = useState<Array<string | undefined>>(values.map(v => String(v)));
 
+    /** Sync the tempCmap with higher-level cmap state changes */
     useEffect(
         () => {
             setTempCmap(cmap)
         }, [cmap]
     )
 
+    /** Sync the tempValues with higher-level values state changes */
     useEffect(
         () => {
             setTempValues(values.map(v => String(v)))
         }, [values]
     )
 
+    /** Uses ref to HTMLDialogElement to control opening or closing the modal */
     useEffect(
         () => {
             if (isOpen) {
@@ -39,15 +57,18 @@ export function CustomColorMapDialog({isOpen, closeModal, values, cmap, onCmapCh
              } else {
                 ref.current?.close();
              }
-
+            
+            // Clean up function closes the modal when the component unmounts
             () => ref.current?.close();
         }, [isOpen]
     )
 
+    /** Handles "submitting" the temp values set in the dialog and closes the modal */
     const handleUpdate = useCallback(
         () => {
             onCmapChange(tempCmap);
             onCmapValuesChange(tempValues.map(v => v ? Number(v) : 0));
+            // Check if tempCmap exists in cmapOptions and concat as a new option if not
             if (!cmapOptions.includes(tempCmap)) {
                 setCmapOptions(cmapOptions.concat(tempCmap))
             }
@@ -77,11 +98,11 @@ export function CustomColorMapDialog({isOpen, closeModal, values, cmap, onCmapCh
                     <input type="text" value={tempCmap} onChange={(e) => setTempCmap(e.target.value)} />
                 </label>
                 <label>
-                    Minimum of T[&mu;K]
+                    Minimum of {units}
                     <input type="number" value={tempValues[0]} onChange={(e) => setTempValues(values => [e.target.value, values[1]])} />
                 </label>
                 <label>
-                    Maximum of T[&mu;K]
+                    Maximum of {units}
                     <input type="number" value={tempValues[1]} onChange={(e) => setTempValues(values => [values[0], e.target.value])} />
                 </label>
                 <input type="submit" value="Update Map" />
