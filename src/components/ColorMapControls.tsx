@@ -7,7 +7,7 @@ import {
     useMemo 
 } from "react";
 import { SERVICE_URL } from "../configs/mapSettings";
-import { CMAP_OPTIONS } from "../configs/cmapControlSettings";
+import { CMAP_OPTIONS, STEPS_DIVISOR } from "../configs/cmapControlSettings";
 import { ColorMapSlider } from "./ColorMapSlider"
 import { HistogramResponse } from "../types/maps";
 import { ColorMapHistogram } from "./ColorMapHistogram";
@@ -69,16 +69,21 @@ export function ColorMapControls(props: ColorMapControlsProps) {
         getHistogramData();
     }, [activeLayerId, setHistogramData])
 
-    /** Determines the min and max values for the range slider by comparing the
-        user-controlled (or default) 'values' to the histogram's 'edges'.
-        Allows for the range slider to resize itself according to min/max values
-        that may extend beyond the recommended cmap settings. */
-    const sliderMinAndMax = useMemo(
+    /** Determines the min, max, and step attributes for the range slider. Min and max are
+        found by comparing the user-controlled (or default) 'values' to the histogram's 'edges',
+        which allows for the range slider to resize itself according to min/max values that may 
+        extend beyond the recommended cmap settings. The step attribute is the range of the
+        histogram edges divided by STEPS_DIVISOR. */
+    const sliderAttributes = useMemo(
         () => {
-            if (!histogramData) return
-            const min = Math.min(...histogramData.edges, values[0]);
-            const max = Math.max(...histogramData.edges, values[1]);
-            return {min, max}
+            if (!histogramData) return;
+            const histogramMin = Math.min(...histogramData.edges);
+            const histogramMax = Math.max(...histogramData.edges);
+            const min = Math.min(histogramMin, values[0]);
+            const max = Math.max(histogramMax, values[1]);
+            const stepCalc = (Math.abs(histogramMin) + Math.abs(histogramMax)) / STEPS_DIVISOR;
+            const step = stepCalc >= 1 ? Math.floor(stepCalc) : stepCalc
+            return {min, max, step}
         }, [histogramData, values[0], values[1]]
     )
 
@@ -145,13 +150,13 @@ export function ColorMapControls(props: ColorMapControlsProps) {
                         userMinAndMaxValues={{min: values[0], max: values[1]}}
                     />
                 )}
-                {sliderMinAndMax && (
+                {sliderAttributes && (
                     <ColorMapSlider
                         cmapImage={cmapImage}
                         values={values}
                         onCmapValuesChange={onCmapValuesChange}
                         units={units}
-                        sliderMinAndMax={sliderMinAndMax}
+                        sliderAttributes={sliderAttributes}
                     />
                 )}
             </div>

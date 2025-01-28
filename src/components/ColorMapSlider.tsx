@@ -8,9 +8,9 @@ interface ColorMapSlideProps extends
   Omit<ColorMapControlsProps, 'activeLayerId' | 'cmap' | 'onCmapChange'> {
     /** The URL to the color map image */
     cmapImage?: string;
-    /** The min and max values for the range slider, determined by histogram's min and max edge 
-      or the user's min and max setting */
-    sliderMinAndMax: {min: number, max: number};
+    /** The min, max, and step values for the range slider, determined by histogram's edges and
+      the user's min and max setting */
+    sliderAttributes: {min: number, max: number, step: number};
 }
 
 const regexToFindPercents = /\b\d+(\.\d+)?%/g;
@@ -21,7 +21,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
      * the RangeSlider has an onFinalChange handler that will set the global state once a user releases the slider handle
      */
     const [tempValues, setTempValues] = useState([props.values[0], props.values[1]])
-    const { cmapImage, onCmapValuesChange, units, sliderMinAndMax } = props;
+    const { cmapImage, onCmapValuesChange, units, sliderAttributes } = props;
 
     /** Sync the temp values  */
     useEffect(() => {
@@ -43,8 +43,8 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
     const trackBackground = getTrackBackground({
             values: tempValues,
             colors: ["#ccc", "#548BF4", "#ccc"],
-            min: sliderMinAndMax.min,
-            max: sliderMinAndMax.max,
+            min: sliderAttributes.min,
+            max: sliderAttributes.max,
         })
     const [ leftThumbPosition, rightThumbPosition ] = trackBackground
         .match(regexToFindPercents)?.map(p => p.replace('%', ''))
@@ -63,8 +63,9 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
               />
             )}
             <RangeSlider
-                min={sliderMinAndMax.min}
-                max={sliderMinAndMax.max}
+                min={sliderAttributes.min}
+                max={sliderAttributes.max}
+                step={sliderAttributes.step}
                 values={tempValues}
                 // Used to set component state while user is actively moving a slider "thumb"
                 onChange={(values) => setTempValues(values)}
