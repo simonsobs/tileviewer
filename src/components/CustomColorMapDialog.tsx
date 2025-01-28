@@ -93,17 +93,37 @@ export function CustomColorMapDialog({
             >
                 <label>
                     <span>
-                        Specify a <a target="_blank" href="https://matplotlib.org/stable/gallery/color/colormap_reference.html#colormap-reference">matplotlib colormap option</a>
+                        Specify a {' '}
+                        <a
+                            target="_blank"
+                            href="https://matplotlib.org/stable/gallery/color/colormap_reference.html#colormap-reference"
+                        >
+                            matplotlib colormap option
+                        </a>
                     </span>
                     <input type="text" value={tempCmap} onChange={(e) => setTempCmap(e.target.value)} />
                 </label>
                 <label>
                     Minimum of {units}
-                    <input type="number" value={tempValues[0]} onChange={(e) => setTempValues(values => [e.target.value, values[1]])} />
+                    <input
+                        type="number"
+                        step="any"
+                        // Prevent user from setting the min to be more than the max
+                        max={tempValues[1]}
+                        value={tempValues[0]}
+                        onChange={(e) => setTempValues(values => [e.target.value, values[1]])}
+                    />
                 </label>
                 <label>
                     Maximum of {units}
-                    <input type="number" value={tempValues[1]} onChange={(e) => setTempValues(values => [values[0], e.target.value])} />
+                    <input
+                        type="number"
+                        step="any"
+                        // Prevent user from setting the max to be less than the min
+                        min={tempValues[0]}
+                        value={tempValues[1]}
+                        onChange={(e) => setTempValues(values => [values[0], e.target.value])}
+                    />
                 </label>
                 <input type="submit" value="Update Map" />
             </form>
