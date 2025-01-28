@@ -53,10 +53,24 @@ function App() {
     getMapsAndMetadata();
   }, [])
 
+  /** 
+   * Handler fires when user changes map layers. If the units of the new
+   * layer are the same as the active layer, then we just set a new active
+   * layer. If the units differ, we set new values for vmin, vmax, and cmap
+   * from the band's recommended values in order to prevent nonsensical
+   * TileLayer requests.
+   */
   const onBaseLayerChange = useCallback(
     (layer: L.TileLayer) => {
-      setActiveLayer(bands?.find(b => b.id === Number(layer.options.id)))
-    }, [bands, setActiveLayer]
+      const currentLayerUnits = activeLayer?.units
+      const newActiveLayer = bands?.find(b => b.id === Number(layer.options.id))
+      if (currentLayerUnits != newActiveLayer?.units) {
+        setVMin(newActiveLayer?.recommended_cmap_min)
+        setVMax(newActiveLayer?.recommended_cmap_max)
+        setCmap(newActiveLayer?.recommended_cmap)
+      }
+      setActiveLayer(newActiveLayer)
+    }, [bands, setActiveLayer, activeLayer, setVMin, setVMax, setCmap]
   )
 
   const onCmapValuesChange = useCallback(
