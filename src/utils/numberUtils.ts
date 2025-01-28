@@ -60,3 +60,16 @@ function getExponentCharLength(expNumberString: string) {
     // the + or - rendered in the string
     return exponentStringLength - (exponent < 0 ? 1 : 0)
 }
+
+/**
+ * A utility that safely applies Math.log to numerical values
+ * @param x A number to process
+ * @returns 0 if x is 0 or less; otherwise its logarithmic value
+ */
+export function safeLog(x: number) {
+    if (x <= 0) {
+        return 0
+    } else {
+        return Math.log(x)
+    }
+}

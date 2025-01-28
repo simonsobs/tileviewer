@@ -3,6 +3,7 @@ import {
   } from "@svgdotjs/svg.js";
 import { HistogramResponse } from "../types/maps";
 import { HISTOGRAM_SIZE_X, HISTOGRAM_SIZE_Y } from "../configs/cmapControlSettings";
+import { safeLog } from "../utils/numberUtils";
 
 type Props = {
     /** The data from the histogram response */
@@ -14,7 +15,8 @@ type Props = {
 
 export function ColorMapHistogram({data, userMinAndMaxValues}: Props) {
     const { edges, histogram } = data;
-    const logarithmicHistogram = histogram.map(Math.log10)
+    /** Convert the histogram into log values using the safeLog utility function */
+    const logarithmicHistogram = histogram.map(safeLog)
     /** Include user's min value in case we need to rescale the histogram accordingly */
     const edgeStart = Math.min(...edges, userMinAndMaxValues.min);
     /** Include user's max value in case we need to rescale the histogram accordingly */
