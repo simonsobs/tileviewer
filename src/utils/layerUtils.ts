@@ -1,5 +1,11 @@
-import { Band, MapMetadataResponse } from "../types/maps";
+import { Band } from "../types/maps";
 
-export function makeLayerName(mapMetadata: MapMetadataResponse, bandData: Band) {
-    return `${mapMetadata.telescope} ${mapMetadata.data_release} ${bandData.frequency} GHz (${bandData.stokes_parameter}, ${mapMetadata.tags})`
+/**
+ * A utility function to format a layer's name.
+ * @param band The band object
+ * @returns A string of map_name + quantity, where quantity is conditionally
+ *          rendered based on its truthiness
+ */
+export function makeLayerName(band: Band) {
+    return band.map_name + (band.quantity ? ` ${band.quantity}` : '')
 }
