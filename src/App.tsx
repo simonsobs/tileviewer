@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { LayersControl, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
 import { mapOptions, SERVICE_URL, DEFAULT_MIN_ZOOM } from './configs/mapSettings';
-import { BandWithLayerName, GraticuleDetails, MapMetadataResponse, MapResponse } from './types/maps';
+import { GraticuleDetails, MapMetadataResponse, MapResponse, Band } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
 import { getControlPaneOffsets } from './utils/paneUtils';
 import { ColorMapControls } from './components/ColorMapControls';
@@ -15,8 +15,8 @@ function App() {
   const [vmin, setVMin] = useState<number | undefined>(undefined);
   const [vmax, setVMax] = useState<number | undefined>(undefined);
   const [cmap, setCmap] = useState<string | undefined>(undefined);
-  const [activeLayer, setActiveLayer] = useState<BandWithLayerName | undefined>(undefined);
-  const [bands, setBands] = useState<BandWithLayerName[] | undefined>(undefined);
+  const [activeLayer, setActiveLayer] = useState<Band | undefined>(undefined);
+  const [bands, setBands] = useState<Band[] | undefined>(undefined);
   const [selectionBounds, setSelectionBounds] = useState<LatLngBounds | undefined>(undefined);
   const [graticuleDetails, setGraticuleDetails] = useState<undefined | GraticuleDetails>(undefined);
 
@@ -30,9 +30,9 @@ function App() {
         )
       )
       const tempBands = availableMapsMetadata.reduce(
-        (prev: BandWithLayerName[], curr: MapMetadataResponse) => {
+        (prev: Band[], curr: MapMetadataResponse) => {
           if (curr.bands) {
-            return prev.concat(curr.bands.map(band => ({...band, 'layer_name': makeLayerName(curr, band)})))
+            return prev.concat(curr.bands)
           } else {
             return prev
           }
@@ -44,7 +44,7 @@ function App() {
         setVMax(tempBands[0].recommended_cmap_max)
         setCmap(tempBands[0].recommended_cmap)
       } else {
-        const activeBand = tempBands.find(band => band.layer_name === activeLayer.layer_name);
+        const activeBand = tempBands.find(band => band.id === activeLayer.id);
         setVMin(activeBand!.recommended_cmap_min)
         setVMin(activeBand!.recommended_cmap_max)
         setCmap(activeBand!.recommended_cmap)
@@ -54,8 +54,8 @@ function App() {
   }, [])
 
   const onBaseLayerChange = useCallback(
-    (name: string) => {
-      setActiveLayer(bands?.find(b => b.layer_name === name))
+    (layer: L.TileLayer) => {
+      setActiveLayer(bands?.find(b => b.id === Number(layer.options.id)))
     }, [bands, setActiveLayer]
   )
 
@@ -82,8 +82,9 @@ function App() {
             {bands?.map(
                 (band) => {
                 return (
-                  <LayersControl.BaseLayer key={band.layer_name} checked={band.layer_name === activeLayer?.layer_name} name={band.layer_name}>
+                  <LayersControl.BaseLayer key={band.id} checked={band.id === activeLayer?.id} name={makeLayerName(band)}>
                     <TileLayer
+                      id={String(band.id)}
                       url={`${SERVICE_URL}/maps/${band.map_name}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
                       tms
                       noWrap
@@ -124,15 +125,15 @@ function App() {
 }
 
 type MapEventsProps = {
-  onBaseLayerChange: (newBaseLayer: string) => void;
+  onBaseLayerChange: (newLayer: L.TileLayer) => void;
   selectionBounds?: L.LatLngBounds;
 }
 
 function MapEvents({onBaseLayerChange, selectionBounds}: MapEventsProps) {
   const map = useMap();
   useMapEvents({
-    baselayerchange: (e: { name: string }) => {
-      onBaseLayerChange(e.name)
+    baselayerchange: (e) => {
+      onBaseLayerChange(e.layer as L.TileLayer)
     },
     zoomend: () => {
       const regionControlsOverlay = map.getPane('region-controls-overlay');
