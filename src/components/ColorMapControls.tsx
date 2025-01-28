@@ -140,7 +140,13 @@ export function ColorMapControls(props: ColorMapControlsProps) {
                                 </select>
                             </label>
                             {/* Button to "pop out" the CustomColorMapDialog component; button only displays when mouse enters the histogram */}
-                            <button onClick={() => setShowCustomDialog(true)} title="Customize parameters">&#x2197;</button>
+                            <button
+                                className="dialog-popout-btn"
+                                onClick={() => setShowCustomDialog(true)}
+                                title="Customize parameters"
+                            >
+                                &#x2197;
+                            </button>
                         </>
                     }
                 </div>

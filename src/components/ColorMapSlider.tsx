@@ -102,7 +102,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
                     onTouchStart={props.onTouchStart}
                     style={{
                       ...props.style,
-                      height: "25px",
+                      height: "12px",
                       display: "flex",
                       zIndex: 2,
                     }}
