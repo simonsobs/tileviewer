@@ -33,3 +33,15 @@ html, body {
   font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
   font: 11px/1.5 monospace, "Helvetica Neue", Arial, Helvetica, sans-serif;
 }
+
+.source-popup > h3 {
+  margin: 0.5em 0;
+}
+
+.source-popup > p {
+  margin: 0.5em 0;
+}
+
+.source-popup > p > span {
+  font-weight: bold;
+}
