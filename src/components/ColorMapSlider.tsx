@@ -1,19 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Range as RangeSlider, getTrackBackground } from 'react-range';
-import { MAX_TEMP, MIN_TEMP } from '../configs/cmapControlSettings';
+import { formatNumberForDisplay } from '../utils/numberUtils';
+import { ColorMapControlsProps } from './ColorMapControls';
 import './styles/color-map-controls.css';
 
-type ColorMapSlideProps = {
-    values: number[];
-    onCmapValuesChange: (values: number[]) => void;
+interface ColorMapSlideProps extends 
+  Omit<ColorMapControlsProps, 'activeLayerId' | 'cmap' | 'onCmapChange'> {
+    /** The URL to the color map image */
     cmapImage?: string;
+    /** The min, max, and step values for the range slider, determined by histogram's edges and
+      the user's min and max setting */
+    sliderAttributes: {min: number, max: number, step: number};
 }
 
 const regexToFindPercents = /\b\d+(\.\d+)?%/g;
 
 export function ColorMapSlider(props: ColorMapSlideProps) {
-    const [values, setValues] = useState([props.values[0], props.values[1]])
-    const { cmapImage, onCmapValuesChange } = props;
+    /** 
+     * Create temporary values for range slider min/max to maintain component state without setting the global state;
+     * the RangeSlider has an onFinalChange handler that will set the global state once a user releases the slider handle
+     */
+    const [tempValues, setTempValues] = useState([props.values[0], props.values[1]])
+    const { cmapImage, onCmapValuesChange, units, sliderAttributes } = props;
+
+    /** Sync the temp values  */
+    useEffect(() => {
+      setTempValues([props.values[0], props.values[1]])
+    }, [props.values[0], props.values[1]])
 
     /** 
      * The getTrackBackground react-range function returns a string with a CSS gradient that
@@ -28,10 +41,10 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
      * which would result in the cmap image spanning the full length of the range slider.
     */
     const trackBackground = getTrackBackground({
-            values,
+            values: tempValues,
             colors: ["#ccc", "#548BF4", "#ccc"],
-            min: MIN_TEMP,
-            max: MAX_TEMP,
+            min: sliderAttributes.min,
+            max: sliderAttributes.max,
         })
     const [ leftThumbPosition, rightThumbPosition ] = trackBackground
         .match(regexToFindPercents)?.map(p => p.replace('%', ''))
@@ -50,13 +63,16 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
               />
             )}
             <RangeSlider
-                min={MIN_TEMP}
-                max={MAX_TEMP}
-                values={values}
-                onChange={(values) => setValues(values)}
+                min={sliderAttributes.min}
+                max={sliderAttributes.max}
+                step={sliderAttributes.step}
+                values={tempValues}
+                // Used to set component state while user is actively moving a slider "thumb"
+                onChange={(values) => setTempValues(values)}
+                // Used to set higher-level state once user releases the slider "thumb"
                 onFinalChange={onCmapValuesChange}
                 renderThumb={({ props, isDragged }) => (
-                    <div
+                  <div
                     {...props}
                     key={props.key}
                     style={{
@@ -81,12 +97,12 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
                   </div>
                 )}
                 renderTrack={({ props, children }) => (
-                    <div
+                  <div
                     onMouseDown={props.onMouseDown}
                     onTouchStart={props.onTouchStart}
                     style={{
                       ...props.style,
-                      height: "25px",
+                      height: "12px",
                       display: "flex",
                       zIndex: 2,
                     }}
@@ -107,9 +123,13 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
                 )}
             />
             <div className="cmap-values-container">
-                <span className="cmap-value vmin">{values[0]}</span>
-                <span className="cmap-label"> &lt; T [&mu;K] &lt; </span>
-                <span className="cmap-value">{values[1]}</span>
+                <span className="cmap-value vmin">
+                  {formatNumberForDisplay(tempValues[0], 7)}
+                </span>
+                <span className="cmap-label"> &lt; {units} &lt; </span>
+                <span className="cmap-value">
+                  {formatNumberForDisplay(tempValues[1], 7)}
+                </span>
             </div>
         </>
     )
