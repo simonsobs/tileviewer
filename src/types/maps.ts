@@ -1,4 +1,5 @@
 export type MapResponse = {
+    id: number;
     description: string;
     tags: string;
     telescope: string;
@@ -10,6 +11,7 @@ export type MapResponse = {
 
 export type Band = {
     id: number;
+    map_id: number;
     map_name: string;
     units: string;
     tiles_available: boolean;
@@ -38,6 +40,35 @@ export type HistogramResponse = {
 }
 
 export type GraticuleDetails = {
-    pixelWidth: number,
-    interval: number,
+    pixelWidth: number;
+    interval: number;
+}
+
+export type SourceListResponse = {
+    /** id of the source catalog */
+    id: number;
+    /** name of the source list */
+    name: string;
+    /** optional description attribute */
+    description?: string;
+}
+
+export type Source = {
+    /** id of the source */
+    id: number;
+    /** id of the source catalog containing this source */
+    source_list_id: number;
+    /** value of flux for the source */
+    flux: number;
+    /** value of right ascension for the source */
+    ra: number;
+    /** value of declination for the source */
+    dec: number;
+    /** optional name attribute */
+    name?: string;
+}
+
+export interface SourceList extends SourceListResponse {
+    /** the list of sources associated with a SourceList catalog */
+    sources: Source[];
 }
