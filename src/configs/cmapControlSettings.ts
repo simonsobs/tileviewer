@@ -2,7 +2,7 @@
 export const CMAP_OPTIONS = ['RdBu_r', 'viridis', 'inferno'];
 
 /** The fixed width of the histogram */
-export const HISTOGRAM_SIZE_X = 200;
+export const HISTOGRAM_SIZE_X = 300;
 
 /** The fixed height of the histogram */
 export const HISTOGRAM_SIZE_Y = 60;

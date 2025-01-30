@@ -21,7 +21,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
      * the RangeSlider has an onFinalChange handler that will set the global state once a user releases the slider handle
      */
     const [tempValues, setTempValues] = useState([props.values[0], props.values[1]])
-    const { cmapImage, onCmapValuesChange, units, sliderAttributes } = props;
+    const { cmapImage, onCmapValuesChange, units, sliderAttributes, quantity } = props;
 
     /** Sync the temp values  */
     useEffect(() => {
@@ -50,6 +50,16 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
         .match(regexToFindPercents)?.map(p => p.replace('%', ''))
         .filter((_, i) => (i === 2 || i === 3)) ?? [0, 100];
     const cmapWidth = Number(rightThumbPosition) - Number(leftThumbPosition);
+
+    /** Conditionally construct the quantity + units to display in the range slider such that: 
+     *  1. If both are defined, it reads as 'quantity [units]'
+     *  2. If only quantity is defined, it reads as 'quantity'
+     *  3. If only units is defined, it reads as '[units]'
+     *  4. If neither are defined, it reads as 'unknown'
+    */
+    const rangeUnitsDisplay = quantity ? 
+      quantity + (units ? ` [${units}]` : '') :
+      (units ? `[${units}]` : 'unknown');
 
     return (
         <>
@@ -126,7 +136,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
                 <span className="cmap-value vmin">
                   {formatNumberForDisplay(tempValues[0], 7)}
                 </span>
-                <span className="cmap-label"> &lt; {units} &lt; </span>
+                <span className="cmap-label"> &lt; {rangeUnitsDisplay} &lt; </span>
                 <span className="cmap-value">
                   {formatNumberForDisplay(tempValues[1], 7)}
                 </span>
