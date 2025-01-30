@@ -195,7 +195,7 @@ function App() {
           <AreaSelection handleSelectionBounds={setSelectionBounds} />
           <MapEvents onBaseLayerChange={onBaseLayerChange} selectionBounds={selectionBounds} />
         </MapContainer>
-        {vmin && vmax && cmap && activeLayer && (
+        {vmin !== undefined && vmax !== undefined && cmap && activeLayer && (
           <ColorMapControls
             values={[vmin, vmax]}
             onCmapValuesChange={onCmapValuesChange}
