@@ -203,6 +203,7 @@ function App() {
             onCmapChange={onCmapChange}
             activeLayerId={activeLayer.id}
             units={activeLayer.units}
+            quantity={activeLayer.quantity}
           />
         )}
       </>

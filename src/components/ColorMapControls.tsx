@@ -7,7 +7,7 @@ import {
     useMemo 
 } from "react";
 import { SERVICE_URL } from "../configs/mapSettings";
-import { CMAP_OPTIONS, STEPS_DIVISOR } from "../configs/cmapControlSettings";
+import { CMAP_OPTIONS, HISTOGRAM_SIZE_X, STEPS_DIVISOR } from "../configs/cmapControlSettings";
 import { ColorMapSlider } from "./ColorMapSlider"
 import { HistogramResponse } from "../types/maps";
 import { ColorMapHistogram } from "./ColorMapHistogram";
@@ -25,7 +25,9 @@ export type ColorMapControlsProps = {
     /** the id of the selected map layer */
     activeLayerId: number;
     /** the units to display in the histogram range */
-    units: string;
+    units?: string;
+    /** the quantity to display in the histogram range */
+    quantity?: string;
 }
 
 /**
@@ -43,6 +45,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
         onCmapChange,
         activeLayerId,
         units,
+        quantity,
     } = props;
     const [cmapImage, setCmapImage] = useState<undefined | string>(undefined);
     const [histogramData, setHistogramData] = useState<HistogramResponse | undefined>(undefined);
@@ -125,6 +128,9 @@ export function ColorMapControls(props: ColorMapControlsProps) {
             />
             <div
                 className='cmap-controls-pane'
+                // The width of the controls pane should equal the HISTOGRAM_SIZE_X constant set in
+                // cmapControlSettings.ts, so let's just use an inline style for easier maintenance.
+                style={{width: `${HISTOGRAM_SIZE_X}px`}}
                 onMouseEnter={onMouseEnter}
                 onMouseLeave={onMouseLeave}
             >
@@ -162,6 +168,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
                         values={values}
                         onCmapValuesChange={onCmapValuesChange}
                         units={units}
+                        quantity={quantity}
                         sliderAttributes={sliderAttributes}
                     />
                 )}
