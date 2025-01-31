@@ -10,14 +10,33 @@
  * 3. I added the "definite assignment assertion" (!) operator to resolve lots of TS errors related to
  *    the message "Property <prop_name> has no initializer and is not definitely assigned in the constructor"
  */
-import { createControlComponent } from "@react-leaflet/core";
+import { useEffect, useRef } from "react";
 import L from "leaflet";
 import './styles/area-selection.css';
 import { getControlPaneOffsets } from "../utils/paneUtils";
+import { useMap } from "react-leaflet";
+import { downloadSubmap } from "../utils/fetchUtils";
+
+/** Literal type of possible submap file extensions */
+export type SubmapFileExtensions = 'fits' | 'jpg' | 'png' | 'webp';
+
+type SubmapDownloadOption = {
+    display: string;
+    ext: SubmapFileExtensions
+}
+
+/** An array of download options used to create the buttons and the click events that download submaps */
+const SUBMAP_DOWNLOAD_OPTIONS: SubmapDownloadOption[] = [
+    { display: 'FITS', ext: 'fits' },
+    { display: 'PNG', ext: 'png' },
+    { display: 'JPG', ext: 'jpg' },
+    { display: 'WebP', ext: 'webp' },
+  ];
 
 interface SelectionRegionOptions extends L.ControlOptions {
   position: L.ControlPosition;
   handleSelectionBounds: (bounds: L.LatLngBounds | undefined) => void;
+  submapEndpointStub?: string;
 }
 
 interface MapWithSelectionHandler extends L.Map {
@@ -27,22 +46,78 @@ interface MapWithSelectionHandler extends L.Map {
 class SelectionRegionControl extends L.Control {
   options: SelectionRegionOptions;
 
-  base_element!: HTMLDivElement;
-  overlay_pane!: HTMLDivElement;
+  baseElement!: HTMLDivElement;
+  overlayPane!: HTMLDivElement;
   map!: L.Map;
 
-  /* Buttons */
-  start_button!: HTMLButtonElement;
-  passive_buttons!: HTMLButtonElement[];
+  /** The button rendered in the top-left of the map that, when clicked, allows the user to draw their selection region */
+  startButton!: HTMLButtonElement;
+  /** The hamburger menu button that, when clicked, shows the buttons to download, add or remove the region */
+  hamburgerMenuButton!: HTMLButtonElement;
+  /** The list of buttons containing actionable items, like download, add or remove region, that toggle on/off 
+    according to click events on the hamburger menu */
+  menuOptionButtons!: HTMLButtonElement[];
 
   constructor(options: SelectionRegionOptions) {
     super(options);
     this.options = options;
   }
 
-  private createButton(container: HTMLDivElement, buttonText: string) {
-    const button = L.DomUtil.create('button', 'area-select-button', container);
-    button.textContent = buttonText;
+  refreshMenuButtons(newStub?: string) {
+    this.options.submapEndpointStub = newStub;
+
+    // Remove all existing elements from this.overlayPane
+    while (this.overlayPane.firstChild) {
+      this.overlayPane.removeChild(this.overlayPane.firstChild)
+    }
+
+    /** Create a div to the overlayPane and hide it initially */
+    const menuDiv = L.DomUtil.create('div', undefined, this.overlayPane);
+    this.hideElement(menuDiv);
+
+    /** Create a div for the hamburger menu to pass into createHamburgerMenuButton
+      as the parent container */
+    const hamburgerMenuDiv = L.DomUtil.create('div', undefined, menuDiv);
+    this.createHamburgerMenuButton(hamburgerMenuDiv);
+    
+    /** Create a div for the menu options buttons to pass into createMenuOptionButtons
+      as the parent container, and set it to be hidden initially */
+    const menuOptionsButtonsDiv = L.DomUtil.create('div', 'menu-btns-container', menuDiv);
+    this.hideElement(menuOptionsButtonsDiv);
+    // Pass the new endpoint stub to be used by the download buttons
+    this.createMenuOptionButtons(menuOptionsButtonsDiv, newStub);
+
+    // Add click event to show/hide the container with the menu options buttons and
+    // adjust the style of the hamburger menu accordingly
+    this.hamburgerMenuButton.addEventListener('click', () => {
+      if (menuOptionsButtonsDiv.style.display == 'none') {
+        this.showElement(menuOptionsButtonsDiv, 'flex')
+        this.hamburgerMenuButton.classList.add('menu-button-active')
+      } else {
+        this.hideElement(menuOptionsButtonsDiv)
+        this.hamburgerMenuButton.classList.remove('menu-button-active')
+      }
+    })
+  }
+
+  /**
+   * A method to create and append new buttons to the DOM
+   * @param container The HTML container to append the button element to
+   * @param className A className to provide to DomUtil.create
+   * @param buttonText Optional button text
+   * @param buttonContent Optional button content that can be passed into innerHTML
+   *  for more elaborate button design
+   * @returns The new button
+   */
+  private createButton(
+    container: HTMLDivElement,
+    className: string = '',
+    buttonText: string | undefined,
+    buttonContent: string | undefined
+  ) {
+    const finalButtonContent = buttonContent ? buttonContent : buttonText ? buttonText : ''
+    const button = L.DomUtil.create('button', className, container);
+    button.innerHTML = finalButtonContent
     return button;
   }
 
@@ -55,31 +130,65 @@ class SelectionRegionControl extends L.Control {
     el.style.display = display;
   }
 
-  private createPassiveButtons(container: HTMLDivElement) {
-    /* First create all the 'passive' buttons, those that will appear once 
-     * we've selected the region and provide region-dependent functionality. */
-    const download_fits = this.createButton(container, "Download FITS");
-    download_fits.addEventListener("click", () => {
-      /* TODO: Connect these to API endpoints */
-      console.log("Download FITS");
-    });
+  private createHamburgerMenuButton(container: HTMLDivElement) {
+    const menuSvg = `
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="lucide lucide-menu"
+      >
+        <line x1="4" x2="20" y1="12" y2="12" />
+        <line x1="4" x2="20" y1="6" y2="6" />
+        <line x1="4" x2="20" y1="18" y2="18" />
+      </svg>
+    `;
 
-    const download_png = this.createButton(container, "Download PNG");
-    download_png.addEventListener("click", () => {
-      /* TODO: Connect these to API endpoints */
-      console.log("Download PNG");
-    });
+    this.hamburgerMenuButton = this.createButton(container, 'menu-button', undefined, menuSvg);
+  }
 
-    const remove_button = this.createButton(container, "Remove Region");
+  /**
+   * Creates the buttons used as the "expanded" menu, like the buttons to download the submap
+   * @param container The HTML container to append the buttons to
+   * @param submapEndpointStub The endpoint stub used in the click events associated with the download buttons
+   */
+  private createMenuOptionButtons(container: HTMLDivElement, submapEndpointStub?: string) {
+    // Set to an empty array when invoked
+    this.menuOptionButtons = [];
 
-    this.passive_buttons = [download_fits, download_png, remove_button];
+    // Create each "download" button and create a click event that will trigger the appropriate download
+    // according to its display, extension, and endpoint stub
+    SUBMAP_DOWNLOAD_OPTIONS.forEach(option => {
+      const btn = this.createButton(container, 'area-select-button', `Download ${option.display}`, undefined);
+      btn.addEventListener(
+        'click',
+        () => {
+          if (submapEndpointStub) {
+            downloadSubmap(submapEndpointStub, option.ext)
+          }
+        }
+      )
+      // Push each button onto the menuOptionButtons array
+      this.menuOptionButtons.push(btn)
+    })
 
+    /** Create a button that removes the selection region */
+    const remove_button = this.createButton(container, 'area-select-button', "Remove Region", undefined);
     remove_button.addEventListener("click", () => {
       (this.map as MapWithSelectionHandler).selection.reset();
-      this.start_button.disabled = false;
+      this.startButton.disabled = false;
       this.options.handleSelectionBounds(undefined);
-      this.hideElement(this.overlay_pane);
+      this.hideElement(this.overlayPane);
     });
+
+    // Push the remove button onto the menu_options_buttons array too
+    this.menuOptionButtons.push(remove_button);
   }
 
   /** 
@@ -90,17 +199,17 @@ class SelectionRegionControl extends L.Control {
    *      of the drawn region
   */ 
   mutateStateAfterDrawing(bounds: L.LatLngBounds) {
-    this.showElement(this.overlay_pane);
+    this.showElement(this.overlayPane);
     const {
       top,
       left,
       width,
       height,
     } = getControlPaneOffsets(this.map, bounds);
-    this.overlay_pane.style.top = top as string;
-    this.overlay_pane.style.left = left as string;
-    this.overlay_pane.style.width = width as string;
-    this.overlay_pane.style.height = height as string;
+    this.overlayPane.style.top = top as string;
+    this.overlayPane.style.left = left as string;
+    this.overlayPane.style.width = width as string;
+    this.overlayPane.style.height = height as string;
   }
 
   onAdd(map: L.Map) {
@@ -108,37 +217,43 @@ class SelectionRegionControl extends L.Control {
     this.map = map;
     this.map.addHandler("selection", SelectionRegionHandler);
 
-    /**
-     * 1. Create transparent overlay pane for the selected region's "control" elements
-     * 2. Create and attach the "control" elements to the overlay pane
-     * 3. Add event listeners that show/hide the "control" elements when mousing on/off
-     *    the overlay pane
-     * 4. Begin with the overlay pane hidden
-     */
-    this.overlay_pane = map.createPane("region-controls-overlay") as HTMLDivElement;
-    this.overlay_pane.style.zIndex = String(650);
-    this.createPassiveButtons(this.overlay_pane);
-    this.overlay_pane.addEventListener('mouseover', () => {
-      this.passive_buttons.forEach(b => this.showElement(b, 'flex'));
+    /* Create transparent overlay pane with a high z-index for the selected region's "control" elements,
+      and begin with the overlay pane hidden */
+    this.overlayPane = map.createPane("region-controls-overlay") as HTMLDivElement;
+    this.overlayPane.style.zIndex = String(650);
+    this.hideElement(this.overlayPane);
+
+    // Add event listeners to show/hide the pane's outermost div, which should be the
+    // menu container
+    this.overlayPane.addEventListener('mouseover', () => {
+      if (
+        this.overlayPane.firstChild && 
+        this.overlayPane.firstChild instanceof HTMLDivElement
+      ) {
+        this.showElement(this.overlayPane.firstChild, 'flex');
+      }
     })
-    this.overlay_pane.addEventListener('mouseout', () => {
-      this.passive_buttons.forEach((b) => this.hideElement(b));
+    this.overlayPane.addEventListener('mouseout', () => {
+      if (
+        this.overlayPane.firstChild && 
+        this.overlayPane.firstChild instanceof HTMLDivElement
+      ) {
+        this.hideElement(this.overlayPane.firstChild);
+      }
     })
-    this.hideElement(this.overlay_pane);
-    /** End of notes */
 
     /* Create container for "Select Region" control button */
-    this.base_element = L.DomUtil.create(
+    this.baseElement = L.DomUtil.create(
       "div",
       "leaflet-control-selection-region"
   );
 
     /* Create start button and define its click event */
-    this.start_button = this.createButton(this.base_element, 'Select Region');
-    this.start_button.addEventListener("click", () => {
+    this.startButton = this.createButton(this.baseElement, 'area-select-button', 'Select Region', undefined);
+    this.startButton.addEventListener("click", () => {
       /* The selection will be disabled by the handler once complete. */
       (this.map as MapWithSelectionHandler).selection.enable();
-      this.start_button.disabled = true;
+      this.startButton.disabled = true;
       this.map.getContainer().style.cursor = "crosshair";
     });
 
@@ -149,15 +264,15 @@ class SelectionRegionControl extends L.Control {
         this.options.handleSelectionBounds(bounds);
     });
 
-    return this.base_element;
+    return this.baseElement;
   }
 }
 
 class SelectionRegionHandler extends L.Handler {
   private drawing: boolean = false;
 
-  start_point?: L.LatLng;
-  end_point?: L.LatLng;
+  startPoint?: L.LatLng;
+  endPoint?: L.LatLng;
   rectangle?: L.Rectangle;
   vertices?: {
     ne?: L.CircleMarker,
@@ -193,13 +308,13 @@ class SelectionRegionHandler extends L.Handler {
     this.drawing = true;
 
     /* event.latlng seems to be undefined for some reason, so we need to convert manually. */
-    this.start_point = this.map.containerPointToLatLng(
+    this.startPoint = this.map.containerPointToLatLng(
       new L.Point(event.x, event.y)
     );
 
     /* Create the rectangle. We will update it as we move the mouse. */
     this.createRectangle(
-      new L.LatLngBounds(this.start_point, this.start_point)
+      new L.LatLngBounds(this.startPoint, this.startPoint)
     );
 
     /* Add drag and stop event listeners */
@@ -214,7 +329,7 @@ class SelectionRegionHandler extends L.Handler {
       );
     } else {
       const bounds = new L.LatLngBounds(
-        this.start_point!,
+        this.startPoint!,
         this.map.containerPointToLatLng(new L.Point(event.x, event.y))
       )
       this.updateRectangleBounds(bounds);
@@ -229,7 +344,7 @@ class SelectionRegionHandler extends L.Handler {
     this.drawing = false;
 
     /* event.latlng seems to be undefined for some reason, so we need to convert manually. */
-    this.end_point = this.map.containerPointToLatLng(new L.Point(event.x, event.y));
+    this.endPoint = this.map.containerPointToLatLng(new L.Point(event.x, event.y));
 
     L.DomEvent.off(this.container, "mousemove", this.onMouseMove as L.DomEvent.EventHandlerFn, this);
     L.DomEvent.off(this.container, "mouseup", this.onMouseUp as L.DomEvent.EventHandlerFn, this);
@@ -248,6 +363,11 @@ class SelectionRegionHandler extends L.Handler {
 
   private createRectangle(bounds: L.LatLngBounds) {
     this.rectangle = new L.Rectangle(bounds);
+    this.rectangle.setStyle({
+      'dashArray': '4',
+      'opacity': 0.7,
+      'weight': 2
+    })
     this.rectangle.addTo(this.map);
   }
 
@@ -279,6 +399,8 @@ class SelectionRegionHandler extends L.Handler {
           color: 'black',
           fillOpacity: 1,
           radius: 3,
+          weight: 2,
+          fillColor: 'white',
         }
       );
   }
@@ -299,15 +421,15 @@ class SelectionRegionHandler extends L.Handler {
     const nw = rectangleBounds.getNorthWest();
     const sw = rectangleBounds.getSouthWest();
 
-    // determine which corner is clicked; we want to set opposite corner as start_point
+    // determine which corner is clicked; we want to set opposite corner as startPoint
     if (ne.toString() === clickedLatLngString) {
-      this.start_point = sw;
+      this.startPoint = sw;
     } else if (se.toString() === clickedLatLngString) {
-      this.start_point = nw;
+      this.startPoint = nw;
     } else if (nw.toString() === clickedLatLngString) {
-      this.start_point = se;
+      this.startPoint = se;
     } else {
-      this.start_point = ne;
+      this.startPoint = ne;
     }
 
     /* Add drag and stop event listeners */
@@ -316,7 +438,7 @@ class SelectionRegionHandler extends L.Handler {
   }
 
   private finaliseRectangle() {
-    const bounds = new L.LatLngBounds(this.start_point!, this.end_point!);
+    const bounds = new L.LatLngBounds(this.startPoint!, this.endPoint!);
     /* Make sure we are exactly bounding start and stop */
     this.updateRectangleBounds(bounds);
 
@@ -356,19 +478,79 @@ class SelectionRegionHandler extends L.Handler {
     }
 
     this.drawing = false;
-    this.start_point = undefined;
-    this.end_point = undefined;
+    this.startPoint = undefined;
+    this.endPoint = undefined;
   }
 }
 
-export const AreaSelectionControl = createControlComponent(
-    (props: SelectionRegionOptions) => new SelectionRegionControl(props),
-  )
+export const AreaSelectionControl = ({
+  position,
+  handleSelectionBounds,
+  submapEndpointStub,
+}: SelectionRegionOptions) => {
+  /** Get a reference to the map so we can add the control to it */
+  const map = useMap();
+  
+  /** We're creating a reference to the control element so that we can sync it with
+    changes to the submapEndpointStub */
+  const controlRef = useRef<SelectionRegionControl | null>(null);
 
-type Props = {
-  handleSelectionBounds: (bounds: L.LatLngBounds | undefined) => void;
+  useEffect(() => {
+    // Remove existing control before adding a new one
+    if (controlRef.current) {
+      map.removeControl(controlRef.current)
+    }
+
+    const control = new SelectionRegionControl({
+      position,
+      handleSelectionBounds,
+      submapEndpointStub,
+    });
+    control.addTo(map);
+    controlRef.current = control;
+
+    // Remove the control when component unmounts
+    return () => {
+      if (controlRef.current) {
+        map.removeControl(controlRef.current);
+      }
+    }
+  }, [map, handleSelectionBounds])
+
+  useEffect(() => {
+    // Invoke the SelectionRegionControl's refreshMenuButtons method
+    // if/when the submapEndpointStub prop changes
+    if (controlRef.current) {
+      controlRef.current.refreshMenuButtons(submapEndpointStub)
+    }
+  }, [map, submapEndpointStub])
+
+  return null
 }
 
-export function AreaSelection({handleSelectionBounds}: Props) {
-  return <AreaSelectionControl position='topleft' handleSelectionBounds={handleSelectionBounds} />
+/**
+  * handleSelectionBounds: The handler to set the selection bounds in SelectionRegionControl,
+  *  which exists higher up the component order so we can recompute the selection region's
+  *  position when the map is zoomed.
+  * 
+  * submapEndpointStub: A stubbed string of the endpoint used to download submaps, which exists
+  *  higher up the component order because we need state at the map level to construct it
+ */
+type Props = {
+  handleSelectionBounds: (bounds: L.LatLngBounds | undefined) => void;
+  submapEndpointStub?: string;
+}
+
+export function AreaSelection({
+  handleSelectionBounds,
+  submapEndpointStub,
+}: Props) {
+  return (
+    <AreaSelectionControl
+      // Sets the position of the "Select Region" control button to the top left of the map
+      position='topleft'
+      handleSelectionBounds={handleSelectionBounds}
+      submapEndpointStub={submapEndpointStub}
+    />
+  )
 }

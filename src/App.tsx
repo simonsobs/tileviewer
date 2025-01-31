@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayersControl, MapContainer, Popup, TileLayer, useMap, useMapEvents, CircleMarker, FeatureGroup } from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
 import { mapOptions, SERVICE_URL, DEFAULT_MIN_ZOOM } from './configs/mapSettings';
@@ -129,6 +129,22 @@ function App() {
     }, [setCmap]
   )
 
+  /** Creates a stub of the endpoint used to download submaps. Since it's composed from state at this level,
+    we must construct it here and pass it down to the AreaSelection component. We memoize the stub such that
+    it'll only be constructed when the selection bounds or the active baselayer changes. */
+  const submapEndpointStub = useMemo(
+    () => {
+      if (activeLayer && selectionBounds) {
+        const {map_id: mapId, id: bandId} = activeLayer;
+        const left = selectionBounds.getWest();
+        const right = selectionBounds.getEast();
+        const top = selectionBounds.getNorth();
+        const bottom = selectionBounds.getSouth();
+        return `${SERVICE_URL}/maps/${mapId}/${bandId}/submap/${left}/${right}/${top}/${bottom}/image.`
+      }
+    }, [selectionBounds, activeLayer?.map_id, activeLayer?.id]
+  )
+
   return (
       <>
         <MapContainer
@@ -192,7 +208,10 @@ function App() {
           <GraticuleLayer setGraticuleDetails={setGraticuleDetails} />
           <CoordinatesDisplay />
           {graticuleDetails && <AstroScale graticuleDetails={graticuleDetails} />}
-          <AreaSelection handleSelectionBounds={setSelectionBounds} />
+          <AreaSelection
+            handleSelectionBounds={setSelectionBounds}
+            submapEndpointStub={submapEndpointStub}
+          />
           <MapEvents onBaseLayerChange={onBaseLayerChange} selectionBounds={selectionBounds} />
         </MapContainer>
         {vmin !== undefined && vmax !== undefined && cmap && activeLayer && (
