@@ -6,6 +6,17 @@
   min-width: fit-content;
 }
 
+.leaflet-top.leaflet-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.lucide.lucide-crop {
+  width: 20px;
+  height: 20px;
+}
+
+.start-button,
 .menu-button,
 .area-select-button {
   border: 2px solid rgba(0, 0, 0, 0.2);
@@ -19,6 +30,10 @@
   align-items: center;
 }
 
+.start-button {
+  padding: 5px;
+}
+
 .menu-button {
   margin: 5px;
   padding: 0 2px;
@@ -28,6 +43,7 @@
   padding: 0 10px;
 }
 
+.start-button:hover,
 .menu-button-active,
 .area-select-button:hover,
 .area-select-button:disabled,
@@ -35,6 +51,7 @@
   background-color: #f4f4f4;
 }
 
+.start-button:disabled,
 .area-select-button:disabled {
   cursor: not-allowed;
   color: #bbb;

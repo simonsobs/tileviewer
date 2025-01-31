@@ -16,6 +16,8 @@ import './styles/area-selection.css';
 import { getControlPaneOffsets } from "../utils/paneUtils";
 import { useMap } from "react-leaflet";
 import { downloadSubmap } from "../utils/fetchUtils";
+import { crop } from "../icons/crop";
+import { menu } from "../icons/menu";
 
 /** Literal type of possible submap file extensions */
 export type SubmapFileExtensions = 'fits' | 'jpg' | 'png' | 'webp';
@@ -131,26 +133,7 @@ class SelectionRegionControl extends L.Control {
   }
 
   private createHamburgerMenuButton(container: HTMLDivElement) {
-    const menuSvg = `
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="lucide lucide-menu"
-      >
-        <line x1="4" x2="20" y1="12" y2="12" />
-        <line x1="4" x2="20" y1="6" y2="6" />
-        <line x1="4" x2="20" y1="18" y2="18" />
-      </svg>
-    `;
-
-    this.hamburgerMenuButton = this.createButton(container, 'menu-button', undefined, menuSvg);
+    this.hamburgerMenuButton = this.createButton(container, 'menu-button', undefined, menu);
   }
 
   /**
@@ -249,7 +232,13 @@ class SelectionRegionControl extends L.Control {
   );
 
     /* Create start button and define its click event */
-    this.startButton = this.createButton(this.baseElement, 'area-select-button', 'Select Region', undefined);
+    this.startButton = this.createButton(
+      this.baseElement,
+      'start-button',
+      undefined,
+      crop,
+    );
+    this.startButton.setAttribute('title', 'Draw a region on the map');
     this.startButton.addEventListener("click", () => {
       /* The selection will be disabled by the handler once complete. */
       (this.map as MapWithSelectionHandler).selection.enable();
