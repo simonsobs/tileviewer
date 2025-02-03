@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { LayersControl, MapContainer, Popup, TileLayer, useMap, useMapEvents, CircleMarker, FeatureGroup } from 'react-leaflet';
+import { LayersControl, MapContainer, Popup, TileLayer, useMap, useMapEvents, CircleMarker, FeatureGroup, Rectangle } from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
 import { mapOptions, SERVICE_URL, DEFAULT_MIN_ZOOM } from './configs/mapSettings';
-import { GraticuleDetails, MapMetadataResponse, Band, SourceList } from './types/maps';
+import { GraticuleDetails, MapMetadataResponse, Band, SourceList, Box } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
 import { getControlPaneOffsets } from './utils/paneUtils';
 import { ColorMapControls } from './components/ColorMapControls';
@@ -25,6 +25,8 @@ function App() {
   const [bands, setBands] = useState<Band[] | undefined>(undefined);
   /** sourceLists are used as FeatureGroups in the map, which can be toggled on/off in the map legend */
   const [sourceLists, setSourceLists] = useState<SourceList[] | undefined>(undefined);
+  /** highlightBoxes are regions user's have added to a map via the AreaSelection tooling */
+  const [highlightBoxes, setHighlightBoxes] = useState<Box[] | undefined>(undefined);
   /** sets the bounds of the rectangular "select region" box */
   const [selectionBounds, setSelectionBounds] = useState<LatLngBounds | undefined>(undefined);
   /** used to set the AstroScale component to the same width and interval as the graticule layer */
@@ -96,6 +98,14 @@ function App() {
     getSourceLists()
   }, [])
 
+  useEffect(() => {
+    async function getHighlightBoxes() {
+      const boxes: Box[] = await (await fetch(`${SERVICE_URL}/highlights/boxes`)).json()
+      setHighlightBoxes(boxes)
+    }
+    getHighlightBoxes()
+  }, [])
+
   /** 
    * Handler fires when user changes map layers. If the units of the new
    * layer are the same as the active layer, then we just set a new active
@@ -129,10 +139,11 @@ function App() {
     }, [setCmap]
   )
 
-  /** Creates a stub of the endpoint used to download submaps. Since it's composed from state at this level,
-    we must construct it here and pass it down to the AreaSelection component. We memoize the stub such that
-    it'll only be constructed when the selection bounds or the active baselayer changes. */
-  const submapEndpointStub = useMemo(
+  /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
+    composed from state at this level, we must construct it here and pass it down to the AreaSelection
+    component. We memoize the object such that it'll only be constructed when the selection bounds or the 
+    active baselayer changes. */
+  const submapEndpointData = useMemo(
     () => {
       if (activeLayer && selectionBounds) {
         const {map_id: mapId, id: bandId} = activeLayer;
@@ -140,7 +151,14 @@ function App() {
         const right = selectionBounds.getEast();
         const top = selectionBounds.getNorth();
         const bottom = selectionBounds.getSouth();
-        return `${SERVICE_URL}/maps/${mapId}/${bandId}/submap/${left}/${right}/${top}/${bottom}/image.`
+        return {
+          mapId,
+          bandId,
+          left,
+          right,
+          top,
+          bottom,
+        }
       }
     }, [selectionBounds, activeLayer?.map_id, activeLayer?.id]
   )
@@ -204,13 +222,29 @@ function App() {
                 )
               }
             )}
+            {highlightBoxes?.map(
+              (box) => {
+                return (
+                  <LayersControl.Overlay key={`${box.name}-${box.id}`} name={box.name}>
+                    <Rectangle
+                      bounds={
+                        latLngBounds(
+                          latLng(box.top_left_dec, box.top_left_ra),
+                          latLng(box.bottom_right_dec, box.bottom_right_ra),
+                        )
+                      }
+                      />
+                  </LayersControl.Overlay>
+                )
+              }
+            )}
           </LayersControl>
           <GraticuleLayer setGraticuleDetails={setGraticuleDetails} />
           <CoordinatesDisplay />
           {graticuleDetails && <AstroScale graticuleDetails={graticuleDetails} />}
           <AreaSelection
             handleSelectionBounds={setSelectionBounds}
-            submapEndpointStub={submapEndpointStub}
+            submapEndpointData={submapEndpointData}
           />
           <MapEvents onBaseLayerChange={onBaseLayerChange} selectionBounds={selectionBounds} />
         </MapContainer>

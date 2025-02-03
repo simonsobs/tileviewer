@@ -10,14 +10,15 @@
  * 3. I added the "definite assignment assertion" (!) operator to resolve lots of TS errors related to
  *    the message "Property <prop_name> has no initializer and is not definitely assigned in the constructor"
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback, FormEvent } from "react";
 import L from "leaflet";
 import './styles/area-selection.css';
 import { getControlPaneOffsets } from "../utils/paneUtils";
 import { useMap } from "react-leaflet";
-import { downloadSubmap } from "../utils/fetchUtils";
+import { downloadSubmap, addSubmapAsBox } from "../utils/fetchUtils";
 import { crop } from "../icons/crop";
 import { menu } from "../icons/menu";
+import { SERVICE_URL } from "../configs/mapSettings";
 
 /** Literal type of possible submap file extensions */
 export type SubmapFileExtensions = 'fits' | 'jpg' | 'png' | 'webp';
@@ -25,6 +26,15 @@ export type SubmapFileExtensions = 'fits' | 'jpg' | 'png' | 'webp';
 type SubmapDownloadOption = {
     display: string;
     ext: SubmapFileExtensions
+}
+
+export type SubmapEndpointData = {
+  mapId: number;
+  bandId: number;
+  left: number;
+  top: number;
+  bottom: number;
+  right: number;
 }
 
 /** An array of download options used to create the buttons and the click events that download submaps */
@@ -38,7 +48,8 @@ const SUBMAP_DOWNLOAD_OPTIONS: SubmapDownloadOption[] = [
 interface SelectionRegionOptions extends L.ControlOptions {
   position: L.ControlPosition;
   handleSelectionBounds: (bounds: L.LatLngBounds | undefined) => void;
-  submapEndpointStub?: string;
+  submapEndpointData?: SubmapEndpointData;
+  setShowAddBoxDialog: (showBox: boolean) => void;
 }
 
 interface MapWithSelectionHandler extends L.Map {
@@ -65,8 +76,8 @@ class SelectionRegionControl extends L.Control {
     this.options = options;
   }
 
-  refreshMenuButtons(newStub?: string) {
-    this.options.submapEndpointStub = newStub;
+  refreshMenuButtons(setShowAddBoxDialog: SelectionRegionOptions['setShowAddBoxDialog'], newSubmapEndpointData?: SubmapEndpointData) {
+    this.options.submapEndpointData = newSubmapEndpointData;
 
     // Remove all existing elements from this.overlayPane
     while (this.overlayPane.firstChild) {
@@ -87,7 +98,7 @@ class SelectionRegionControl extends L.Control {
     const menuOptionsButtonsDiv = L.DomUtil.create('div', 'menu-btns-container', menuDiv);
     this.hideElement(menuOptionsButtonsDiv);
     // Pass the new endpoint stub to be used by the download buttons
-    this.createMenuOptionButtons(menuOptionsButtonsDiv, newStub);
+    this.createMenuOptionButtons(menuOptionsButtonsDiv, setShowAddBoxDialog, newSubmapEndpointData);
 
     // Add click event to show/hide the container with the menu options buttons and
     // adjust the style of the hamburger menu accordingly
@@ -141,7 +152,7 @@ class SelectionRegionControl extends L.Control {
    * @param container The HTML container to append the buttons to
    * @param submapEndpointStub The endpoint stub used in the click events associated with the download buttons
    */
-  private createMenuOptionButtons(container: HTMLDivElement, submapEndpointStub?: string) {
+  private createMenuOptionButtons(container: HTMLDivElement, setShowAddBoxDialog: SelectionRegionOptions['setShowAddBoxDialog'], submapEndpointData?: SubmapEndpointData) {
     // Set to an empty array when invoked
     this.menuOptionButtons = [];
 
@@ -152,14 +163,21 @@ class SelectionRegionControl extends L.Control {
       btn.addEventListener(
         'click',
         () => {
-          if (submapEndpointStub) {
-            downloadSubmap(submapEndpointStub, option.ext)
+          if (submapEndpointData) {
+            downloadSubmap(submapEndpointData, option.ext)
           }
         }
       )
       // Push each button onto the menuOptionButtons array
       this.menuOptionButtons.push(btn)
     })
+
+    const addBoxBtn = this.createButton(container, 'area-select-button', 'Add as Box', undefined);
+    addBoxBtn.addEventListener(
+      'click',
+      () => setShowAddBoxDialog(true)
+    )
+    this.menuOptionButtons.push(addBoxBtn)
 
     /** Create a button that removes the selection region */
     const remove_button = this.createButton(container, 'area-select-button', "Remove Region", undefined);
@@ -475,7 +493,8 @@ class SelectionRegionHandler extends L.Handler {
 export const AreaSelectionControl = ({
   position,
   handleSelectionBounds,
-  submapEndpointStub,
+  submapEndpointData,
+  setShowAddBoxDialog,
 }: SelectionRegionOptions) => {
   /** Get a reference to the map so we can add the control to it */
   const map = useMap();
@@ -493,7 +512,8 @@ export const AreaSelectionControl = ({
     const control = new SelectionRegionControl({
       position,
       handleSelectionBounds,
-      submapEndpointStub,
+      submapEndpointData,
+      setShowAddBoxDialog,
     });
     control.addTo(map);
     controlRef.current = control;
@@ -510,9 +530,9 @@ export const AreaSelectionControl = ({
     // Invoke the SelectionRegionControl's refreshMenuButtons method
     // if/when the submapEndpointStub prop changes
     if (controlRef.current) {
-      controlRef.current.refreshMenuButtons(submapEndpointStub)
+      controlRef.current.refreshMenuButtons(setShowAddBoxDialog, submapEndpointData)
     }
-  }, [map, submapEndpointStub])
+  }, [map, submapEndpointData, setShowAddBoxDialog])
 
   return null
 }
@@ -527,19 +547,103 @@ export const AreaSelectionControl = ({
  */
 type Props = {
   handleSelectionBounds: (bounds: L.LatLngBounds | undefined) => void;
-  submapEndpointStub?: string;
+  submapEndpointData?: SubmapEndpointData;
 }
 
 export function AreaSelection({
   handleSelectionBounds,
-  submapEndpointStub,
+  submapEndpointData,
 }: Props) {
+  const [showAddBoxDialog, setShowAddBoxDialog] = useState(false)
+  const [boxName, setBoxName] = useState<string | undefined>(undefined)
+  const [boxDescription, setBoxDescription] = useState<string | undefined>(undefined)
+  const ref = useRef<HTMLDialogElement | null>(null);
+
+  useEffect(() => {
+    if (showAddBoxDialog) {
+      ref.current?.showModal()
+    } else {
+      ref.current?.close()
+    }
+
+    return () => ref.current?.close();
+  }, [showAddBoxDialog])
+
+    const handleSubmit = useCallback(
+      (e: FormEvent) => {
+        // Return if we don't have any coords to send the server
+        if (!submapEndpointData) return;
+
+        const formData = new FormData(e.target as HTMLFormElement)
+        const params = new URLSearchParams();
+
+        formData.forEach(
+          (val, key) => {
+            params.append(key, val.toString());
+          }
+        )
+
+        const endpoint = `${SERVICE_URL}/highlights/boxes/new?${params.toString()}`
+
+        const {top, left, bottom, right} = submapEndpointData;
+        const top_left = [left, top]
+        const bottom_right = [right, bottom]
+
+        addSubmapAsBox(
+          endpoint,
+          top_left,
+          bottom_right,
+        )
+
+        setShowAddBoxDialog(false);
+
+      }, [setShowAddBoxDialog, submapEndpointData]
+    )
+
   return (
-    <AreaSelectionControl
-      // Sets the position of the "Select Region" control button to the top left of the map
-      position='topleft'
-      handleSelectionBounds={handleSelectionBounds}
-      submapEndpointStub={submapEndpointStub}
-    />
+    <>
+      <dialog
+        ref={ref}
+        onCancel={() => setShowAddBoxDialog(false)}
+      >
+          <header>
+            <h1>Add New Box Layer</h1>
+            <button className="close-dialog" title="Close" onClick={() => setShowAddBoxDialog(false)}>&#9747;</button>
+          </header>
+          <form
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSubmit(e);
+                }}
+            >
+                <label>
+                    Name
+                    <input
+                      name="name"
+                      type="text"
+                      value={boxName}
+                      onChange={(e) => setBoxName(e.target.value)}
+                      required
+                    />
+                </label>
+                <label>
+                    Description
+                    <textarea
+                      name="description"
+                      value={boxDescription}
+                      onChange={(e) => setBoxDescription(e.target.value)}
+                    />
+                </label>
+                <input type="submit" value="Add Box" />
+            </form>
+      </dialog>
+      <AreaSelectionControl
+        // Sets the position of the "Select Region" control button to the top left of the map
+        position='topleft'
+        handleSelectionBounds={handleSelectionBounds}
+        submapEndpointData={submapEndpointData}
+        setShowAddBoxDialog={setShowAddBoxDialog}
+      />
+    </>
   )
 }

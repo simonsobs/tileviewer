@@ -1,6 +1,6 @@
 import { SERVICE_URL } from "../configs/mapSettings";
 import { MapMetadataResponse, MapResponse, Source, SourceListResponse } from "../types/maps";
-import { SubmapFileExtensions } from "../components/AreaSelection";
+import { SubmapEndpointData, SubmapFileExtensions } from "../components/AreaSelection";
 
 type SourcesResponse = {
     catalogs: SourceListResponse[];
@@ -47,34 +47,54 @@ export async function fetchProducts(type: 'maps' | 'sources'): Promise<ProductsR
  * @returns Nothing as of now
  */
 export function downloadSubmap(
-    submapEndpointStub: string,
+    submapEndpointData: SubmapEndpointData,
     fileExtension: SubmapFileExtensions,
 ) {
-    fetch(submapEndpointStub + fileExtension, {
-        method: 'GET',
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Error downloading the submap: ${response.status}`);
-        }
-        return response.blob();
-    })
-    .then(blob => {
-        // Create a URL for the blob
-        const url = window.URL.createObjectURL(blob);
-    
-        // Create a temporary anchor element to trigger the download
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `tileviewer-submap.${fileExtension}`; // Give it a filename
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-    
-        // Clean up the blob URL
-        window.URL.revokeObjectURL(url);
-    })
+    // Use the submapEndpointData to construct the request endpoint
+    const { mapId, bandId, left, right, top, bottom } = submapEndpointData;
+    const endpoint = `${SERVICE_URL}/maps/${mapId}/${bandId}/submap/${left}/${right}/${top}/${bottom}/image.${fileExtension}`
+
+    fetch(endpoint, {method: 'GET'})
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error downloading the submap: ${response.status}`);
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            // Create a URL for the blob
+            const url = window.URL.createObjectURL(blob);
+        
+            // Create a temporary anchor element to trigger the download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tileviewer-submap.${fileExtension}`; // Give it a filename
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        
+            // Clean up the blob URL
+            window.URL.revokeObjectURL(url);
+        })
     .catch(error => {
         console.error('Error downloading the file:', error);
     });
+}
+
+export function addSubmapAsBox(endpoint: string, top_left: number[], bottom_right: number[]) {
+    const requestBody = {
+        top_left,
+        bottom_right
+    }
+
+    fetch(
+        endpoint,
+        {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        }
+    )
 }
