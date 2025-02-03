@@ -59,7 +59,7 @@ export function CustomColorMapDialog({
              }
             
             // Clean up function closes the modal when the component unmounts
-            () => ref.current?.close();
+            return () => ref.current?.close();
         }, [isOpen]
     )
 
@@ -73,7 +73,7 @@ export function CustomColorMapDialog({
                 setCmapOptions(cmapOptions.concat(tempCmap))
             }
             closeModal();
-        }, [onCmapChange, tempCmap, onCmapValuesChange, tempValues]
+        }, [onCmapChange, tempCmap, onCmapValuesChange, tempValues, closeModal]
     )
 
     return (
