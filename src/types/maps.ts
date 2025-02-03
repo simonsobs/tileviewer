@@ -72,3 +72,13 @@ export interface SourceList extends SourceListResponse {
     /** the list of sources associated with a SourceList catalog */
     sources: Source[];
 }
+
+export type Box = {
+    id: number;
+    name: string;
+    description: string;
+    top_left_ra: number;
+    top_left_dec: number;
+    bottom_right_ra: number;
+    bottom_right_dec: number;
+}
