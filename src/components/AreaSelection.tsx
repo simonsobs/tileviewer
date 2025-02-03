@@ -19,6 +19,7 @@ import { downloadSubmap, addSubmapAsBox } from "../utils/fetchUtils";
 import { crop } from "../icons/crop";
 import { menu } from "../icons/menu";
 import { SERVICE_URL } from "../configs/mapSettings";
+import { Dialog } from "./Dialog";
 
 /** Literal type of possible submap file extensions */
 export type SubmapFileExtensions = 'fits' | 'jpg' | 'png' | 'webp';
@@ -555,88 +556,75 @@ export function AreaSelection({
   submapEndpointData,
 }: Props) {
   const [showAddBoxDialog, setShowAddBoxDialog] = useState(false)
-  const [boxName, setBoxName] = useState<string | undefined>(undefined)
-  const [boxDescription, setBoxDescription] = useState<string | undefined>(undefined)
-  const ref = useRef<HTMLDialogElement | null>(null);
+  const [boxName, setBoxName] = useState('')
+  const [boxDescription, setBoxDescription] = useState('')
 
-  useEffect(() => {
-    if (showAddBoxDialog) {
-      ref.current?.showModal()
-    } else {
-      ref.current?.close()
-    }
+  const handleSubmit = useCallback(
+    (e: FormEvent) => {
+      // Return if we don't have any coords to send the server
+      if (!submapEndpointData) return;
 
-    return () => ref.current?.close();
-  }, [showAddBoxDialog])
+      const formData = new FormData(e.target as HTMLFormElement)
+      const params = new URLSearchParams();
 
-    const handleSubmit = useCallback(
-      (e: FormEvent) => {
-        // Return if we don't have any coords to send the server
-        if (!submapEndpointData) return;
+      formData.forEach(
+        (val, key) => {
+          params.append(key, val.toString());
+        }
+      )
 
-        const formData = new FormData(e.target as HTMLFormElement)
-        const params = new URLSearchParams();
+      const endpoint = `${SERVICE_URL}/highlights/boxes/new?${params.toString()}`
 
-        formData.forEach(
-          (val, key) => {
-            params.append(key, val.toString());
-          }
-        )
+      const {top, left, bottom, right} = submapEndpointData;
+      const top_left = [left, top]
+      const bottom_right = [right, bottom]
 
-        const endpoint = `${SERVICE_URL}/highlights/boxes/new?${params.toString()}`
+      addSubmapAsBox(
+        endpoint,
+        top_left,
+        bottom_right,
+      )
 
-        const {top, left, bottom, right} = submapEndpointData;
-        const top_left = [left, top]
-        const bottom_right = [right, bottom]
+      setShowAddBoxDialog(false);
 
-        addSubmapAsBox(
-          endpoint,
-          top_left,
-          bottom_right,
-        )
-
-        setShowAddBoxDialog(false);
-
-      }, [setShowAddBoxDialog, submapEndpointData]
-    )
+    }, [setShowAddBoxDialog, submapEndpointData]
+  )
 
   return (
     <>
-      <dialog
-        ref={ref}
-        onCancel={() => setShowAddBoxDialog(false)}
+      <Dialog
+        dialogKey='add-box-dialog'
+        openDialog={showAddBoxDialog}
+        setOpenDialog={setShowAddBoxDialog}
+        headerText="Add New Box Layer"
       >
-          <header>
-            <h1>Add New Box Layer</h1>
-            <button className="close-dialog" title="Close" onClick={() => setShowAddBoxDialog(false)}>&#9747;</button>
-          </header>
-          <form
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSubmit(e);
-                }}
-            >
-                <label>
-                    Name
-                    <input
-                      name="name"
-                      type="text"
-                      value={boxName}
-                      onChange={(e) => setBoxName(e.target.value)}
-                      required
-                    />
-                </label>
-                <label>
-                    Description
-                    <textarea
-                      name="description"
-                      value={boxDescription}
-                      onChange={(e) => setBoxDescription(e.target.value)}
-                    />
-                </label>
-                <input type="submit" value="Add Box" />
-            </form>
-      </dialog>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit(e);
+          }}
+        >
+          <label>
+              Name
+              <input
+                name="name"
+                type="text"
+                value={boxName}
+                onChange={(e) => setBoxName(e.target.value)}
+                required
+              />
+          </label>
+          <label>
+              Description
+              <textarea
+                name="description"
+                value={boxDescription}
+                onChange={(e) => setBoxDescription(e.target.value)}
+              />
+          </label>
+          <input type="submit" value="Add Box" />
+        </form>
+      </Dialog>
       <AreaSelectionControl
         // Sets the position of the "Select Region" control button to the top left of the map
         position='topleft'

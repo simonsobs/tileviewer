@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ColorMapControlsProps } from "./ColorMapControls";
 import './styles/color-map-dialog.css';
+import { Dialog } from "./Dialog";
 
 /**
  * TODOS/QUESTIONS:
@@ -30,7 +31,6 @@ export function CustomColorMapDialog({
     setCmapOptions,
     units,
 }: Props) {
-    const ref = useRef<HTMLDialogElement | null>(null);
     // Create temporary values to maintain component state without setting the global state, which is only done during "Update Map" 
     const [tempCmap, setTempCmap] = useState(cmap);
     const [tempValues, setTempValues] = useState<Array<string | undefined>>(values.map(v => String(v)));
@@ -49,20 +49,6 @@ export function CustomColorMapDialog({
         }, [values]
     )
 
-    /** Uses ref to HTMLDialogElement to control opening or closing the modal */
-    useEffect(
-        () => {
-            if (isOpen) {
-                ref.current?.showModal();
-             } else {
-                ref.current?.close();
-             }
-            
-            // Clean up function closes the modal when the component unmounts
-            return () => ref.current?.close();
-        }, [isOpen]
-    )
-
     /** Handles "submitting" the temp values set in the dialog and closes the modal */
     const handleUpdate = useCallback(
         () => {
@@ -77,14 +63,12 @@ export function CustomColorMapDialog({
     )
 
     return (
-        <dialog
-            ref={ref}
-            onCancel={closeModal}
+        <Dialog
+            dialogKey="custom-cmap-dialog"
+            openDialog={isOpen}
+            setOpenDialog={closeModal}
+            headerText="Custom Colormap Parameters"
         >
-            <header>
-                <h1>Custom Colormap Parameters</h1>
-                <button className="close-dialog" title="Close" onClick={closeModal}>&#9747;</button>
-            </header>
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
@@ -127,6 +111,6 @@ export function CustomColorMapDialog({
                 </label>
                 <input type="submit" value="Update Map" />
             </form>
-        </dialog>
+        </Dialog>
     )
 }
