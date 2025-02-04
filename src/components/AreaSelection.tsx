@@ -36,6 +36,9 @@ export type SubmapEndpointData = {
   top: number;
   bottom: number;
   right: number;
+  vmin: number | undefined;
+  vmax: number | undefined;
+  cmap: string | undefined;
 }
 
 /** An array of download options used to create the buttons and the click events that download submaps */

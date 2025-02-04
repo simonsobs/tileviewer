@@ -158,9 +158,12 @@ function App() {
           right,
           top,
           bottom,
+          vmin,
+          vmax,
+          cmap,
         }
       }
-    }, [selectionBounds, activeLayer?.map_id, activeLayer?.id]
+    }, [selectionBounds, activeLayer?.map_id, activeLayer?.id, vmin, vmax, cmap]
   )
 
   return (

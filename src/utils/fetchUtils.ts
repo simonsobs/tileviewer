@@ -51,8 +51,8 @@ export function downloadSubmap(
     fileExtension: SubmapFileExtensions,
 ) {
     // Use the submapEndpointData to construct the request endpoint
-    const { mapId, bandId, left, right, top, bottom } = submapEndpointData;
-    const endpoint = `${SERVICE_URL}/maps/${mapId}/${bandId}/submap/${left}/${right}/${top}/${bottom}/image.${fileExtension}`
+    const { mapId, bandId, left, right, top, bottom, vmin, vmax, cmap } = submapEndpointData;
+    const endpoint = `${SERVICE_URL}/maps/${mapId}/${bandId}/submap/${left}/${right}/${top}/${bottom}/image.${fileExtension}?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`
 
     fetch(endpoint, {method: 'GET'})
         .then(response => {
