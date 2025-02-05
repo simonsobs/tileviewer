@@ -25,7 +25,6 @@
   background-color: #fff;
   color: black;
   cursor: pointer;
-  min-height: 30px;
   display: flex;
   align-items: center;
 }
@@ -34,13 +33,19 @@
   padding: 5px;
 }
 
+.area-select-button,
 .menu-button {
+  height: 24px;
+}
+
+.menu-button {
+  width: 24px;
   margin: 5px;
-  padding: 0 2px;
 }
 
 .area-select-button {
   padding: 0 10px;
+  text-wrap: nowrap;
 }
 
 .start-button:hover,

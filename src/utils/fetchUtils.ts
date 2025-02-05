@@ -1,6 +1,6 @@
 import { SERVICE_URL } from "../configs/mapSettings";
 import { MapMetadataResponse, MapResponse, Source, SourceListResponse } from "../types/maps";
-import { SubmapEndpointData, SubmapFileExtensions } from "../components/AreaSelection";
+import { SubmapDataWithBounds, SubmapFileExtensions } from "../components/AreaSelection";
 
 type SourcesResponse = {
     catalogs: SourceListResponse[];
@@ -47,11 +47,11 @@ export async function fetchProducts(type: 'maps' | 'sources'): Promise<ProductsR
  * @returns Nothing as of now
  */
 export function downloadSubmap(
-    submapEndpointData: SubmapEndpointData,
+    submapDataWithBounds: SubmapDataWithBounds,
     fileExtension: SubmapFileExtensions,
 ) {
     // Use the submapEndpointData to construct the request endpoint
-    const { mapId, bandId, left, right, top, bottom, vmin, vmax, cmap } = submapEndpointData;
+    const { mapId, bandId, left, right, top, bottom, vmin, vmax, cmap } = submapDataWithBounds;
     const endpoint = `${SERVICE_URL}/maps/${mapId}/${bandId}/submap/${left}/${right}/${top}/${bottom}/image.${fileExtension}?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`
 
     fetch(endpoint, {method: 'GET'})

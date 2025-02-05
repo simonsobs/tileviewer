@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { LayersControl, MapContainer, Popup, TileLayer, useMap, useMapEvents, CircleMarker, FeatureGroup, Rectangle } from 'react-leaflet';
+import { LayersControl, MapContainer, Popup, TileLayer, useMap, useMapEvents, CircleMarker, FeatureGroup } from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
 import { mapOptions, SERVICE_URL, DEFAULT_MIN_ZOOM } from './configs/mapSettings';
 import { GraticuleDetails, MapMetadataResponse, Band, SourceList, Box } from './types/maps';
@@ -11,6 +11,7 @@ import { AstroScale } from './components/AstroScale';
 import { AreaSelection } from './components/AreaSelection';
 import { GraticuleLayer } from './components/GraticuleLayer';
 import { fetchProducts } from './utils/fetchUtils';
+import { HighlightBoxLayer } from './components/HighlightBoxLayer';
 
 function App() {
   /** vmin, vmax, and cmap are matplotlib parameters used in the histogram components
@@ -140,30 +141,21 @@ function App() {
   )
 
   /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
-    composed from state at this level, we must construct it here and pass it down to the AreaSelection
-    component. We memoize the object such that it'll only be constructed when the selection bounds or the 
-    active baselayer changes. */
-  const submapEndpointData = useMemo(
+    composed from state at this level, we must construct it here and pass it down to the AreaSelection and
+    HighlightBoxLayer components. */
+  const submapData = useMemo(
     () => {
-      if (activeLayer && selectionBounds) {
-        const {map_id: mapId, id: bandId} = activeLayer;
-        const left = selectionBounds.getWest();
-        const right = selectionBounds.getEast();
-        const top = selectionBounds.getNorth();
-        const bottom = selectionBounds.getSouth();
+      if (activeLayer) {
+        const {map_id: mapId, id: bandId } = activeLayer;
         return {
           mapId,
           bandId,
-          left,
-          right,
-          top,
-          bottom,
           vmin,
           vmax,
           cmap,
         }
       }
-    }, [selectionBounds, activeLayer?.map_id, activeLayer?.id, vmin, vmax, cmap]
+    }, [activeLayer?.id, activeLayer?.map_id, vmin, vmax, cmap]
   )
 
   return (
@@ -226,20 +218,9 @@ function App() {
               }
             )}
             {highlightBoxes?.map(
-              (box) => {
-                return (
-                  <LayersControl.Overlay key={`${box.name}-${box.id}`} name={box.name}>
-                    <Rectangle
-                      bounds={
-                        latLngBounds(
-                          latLng(box.top_left_dec, box.top_left_ra),
-                          latLng(box.bottom_right_dec, box.bottom_right_ra),
-                        )
-                      }
-                      />
-                  </LayersControl.Overlay>
-                )
-              }
+              (box) => (
+                  <HighlightBoxLayer key={`${box.name}-${box.id}`} box={box} submapData={submapData} />
+              )
             )}
           </LayersControl>
           <GraticuleLayer setGraticuleDetails={setGraticuleDetails} />
@@ -247,9 +228,10 @@ function App() {
           {graticuleDetails && <AstroScale graticuleDetails={graticuleDetails} />}
           <AreaSelection
             handleSelectionBounds={setSelectionBounds}
-            submapEndpointData={submapEndpointData}
+            selectionBounds={selectionBounds}
+            submapData={submapData}
           />
-          <MapEvents onBaseLayerChange={onBaseLayerChange} selectionBounds={selectionBounds} />
+          <MapEvents onBaseLayerChange={onBaseLayerChange} selectionBounds={selectionBounds} boxes={highlightBoxes} />
         </MapContainer>
         {vmin !== undefined && vmax !== undefined && cmap && activeLayer && (
           <ColorMapControls
@@ -269,6 +251,37 @@ function App() {
 type MapEventsProps = {
   onBaseLayerChange: (newLayer: L.TileLayer) => void;
   selectionBounds?: L.LatLngBounds;
+  boxes?: Box[]
+}
+
+function repositionBoxOverlays(map: L.Map, boxes: Box[]) {
+  const panes = map.getPanes()
+  map.eachLayer((l) => {
+    if (l.options.pane && l.options.pane.includes('highlight-boxes-pane') && panes[l.options.pane]) {
+      const splitPaneName = l.options.pane.split('-');
+      const boxId = Number(splitPaneName[splitPaneName.length - 1])
+      const box = boxes.find(b => b.id === boxId)
+
+      if (box) {
+        const bounds = latLngBounds(
+          latLng(box.top_left_dec, box.top_left_ra),
+          latLng(box.bottom_right_dec, box.bottom_right_ra)
+        )
+        const pane = panes[l.options.pane]
+        const overlayContainer = pane.firstChild as HTMLDivElement
+
+        if (overlayContainer) {
+          const {
+            top,
+            left,
+          } = getControlPaneOffsets(map, bounds)
+
+          overlayContainer.style.top = top as string;
+          overlayContainer.style.left = left as string;
+        }
+      }
+    }
+  })
 }
 
 /**
@@ -276,11 +289,16 @@ type MapEventsProps = {
  * @param MapEventsProps
  * @returns null
  */
-function MapEvents({onBaseLayerChange, selectionBounds}: MapEventsProps) {
+function MapEvents({onBaseLayerChange, selectionBounds, boxes}: MapEventsProps) {
   const map = useMap();
   useMapEvents({
     baselayerchange: (e) => {
       onBaseLayerChange(e.layer as L.TileLayer)
+    },
+    moveend: () => {
+      if (boxes) {
+        repositionBoxOverlays(map, boxes)
+      }
     },
     /** Resize the "select region" overlay if the map is zoomed while overlay is drawn */
     zoomend: () => {
@@ -301,7 +319,11 @@ function MapEvents({onBaseLayerChange, selectionBounds}: MapEventsProps) {
         regionControlsOverlay.style.width = width as string;
         regionControlsOverlay.style.height = height as string;
       }
-    }
+
+      if (boxes) {
+        repositionBoxOverlays(map, boxes)
+      }
+    },
   })
   return null
 }
