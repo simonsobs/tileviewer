@@ -3,24 +3,26 @@ import L, { latLng, latLngBounds } from "leaflet"
 import { Box } from "../types/maps"
 import { useCallback, useEffect, useMemo, useRef } from "react"
 import './styles/highlight-controls.css'
-import { SERVICE_URL } from "../configs/mapSettings"
 import { SUBMAP_DOWNLOAD_OPTIONS, SubmapData, SubmapDataWithBounds } from "./AreaSelection"
-import { downloadSubmap } from "../utils/fetchUtils"
+import { deleteSubmapBox, downloadSubmap } from "../utils/fetchUtils"
 import { menu } from "../icons/menu"
 import { getTopLeftBottomRightFromBounds } from "../utils/layerUtils"
 
 type HighlightBoxLayerProps = {
     box: Box;
     submapData?: SubmapData;
+    setBoxes: (boxes: Box[]) => void;
 }
 
 function generateBoxContent(
+    map: L.Map,
     boxId: number,
     container: HTMLDivElement,
     name: string,
     description: string,
     panePosition: CustomBoxPaneProps['panePosition'],
     hideBoxHandler: CustomBoxPaneProps['hideBoxHandler'],
+    setBoxes: HighlightBoxLayerProps['setBoxes'],
     submapDataWithBounds?: SubmapDataWithBounds,
 ) {
     if (!submapDataWithBounds) return
@@ -87,7 +89,7 @@ function generateBoxContent(
     deleteBtn.textContent = 'Delete Box'
     deleteBtn.classList.add('area-select-button', 'highlight-box-button', 'delete-box-button')
     deleteBtn.addEventListener('click', () => {
-        fetch(`${SERVICE_URL}/highlights/boxes/${boxId}`, {method: 'DELETE'})
+        deleteSubmapBox(boxId, setBoxes, map)
     })
     menuBtns.push(deleteBtn)
 
@@ -111,6 +113,7 @@ type CustomBoxPaneProps = {
         topLeft: L.Point,
         bottomRight: L.Point,
     };
+    setBoxes: HighlightBoxLayerProps['setBoxes'];
     hideBoxHandler: () => void;
 }
 
@@ -122,6 +125,7 @@ export function CustomBoxPane({
     boxDescription,
     panePosition,
     submapDataWithBounds,
+    setBoxes,
     hideBoxHandler,
 }: CustomBoxPaneProps) {
     const map = useMap();
@@ -161,12 +165,14 @@ export function CustomBoxPane({
         }
 
         generateBoxContent(
+            map,
             boxId,
             pane as HTMLDivElement,
             boxName,
             boxDescription,
             panePosition,
             hideBoxHandler,
+            setBoxes,
             submapDataWithBounds,
         )
 
@@ -178,6 +184,7 @@ export function CustomBoxPane({
 export function HighlightBoxLayer({
     box, 
     submapData,
+    setBoxes,
 }: HighlightBoxLayerProps) {
     const map = useMap();
     const layer = useRef<L.Rectangle | null>(null);
@@ -206,8 +213,12 @@ export function HighlightBoxLayer({
     }, [bounds, submapData])
 
     return (
-        <LayersControl.Overlay name={box.name}>
+        <LayersControl.Overlay
+            key={box.id}
+            name={box.name}
+        >
             <CustomBoxPane
+                key={`custom-pane-${box.id}`}
                 boxId={box.id}
                 paneName={`highlight-boxes-pane-${box.id}`}
                 zIndex={500}
@@ -219,8 +230,10 @@ export function HighlightBoxLayer({
                 }}
                 submapDataWithBounds={submapDataWithBounds}
                 hideBoxHandler={hideBoxHandler}
+                setBoxes={setBoxes}
             />
             <Rectangle
+                key={`rectangle-${box.id}`}
                 ref={layer}
                 bounds={bounds}
                 pathOptions={{

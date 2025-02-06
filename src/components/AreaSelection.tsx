@@ -21,6 +21,7 @@ import { menu } from "../icons/menu";
 import { SERVICE_URL } from "../configs/mapSettings";
 import { Dialog } from "./Dialog";
 import { getTopLeftBottomRightFromBounds } from "../utils/layerUtils";
+import { Box } from "../types/maps";
 
 /** Literal type of possible submap file extensions */
 export type SubmapFileExtensions = 'fits' | 'jpg' | 'png' | 'webp';
@@ -58,6 +59,8 @@ interface SelectionRegionOptions extends L.ControlOptions {
   handleSelectionBounds: (bounds: L.LatLngBounds | undefined) => void;
   submapDataWithBounds?: SubmapDataWithBounds;
   setShowAddBoxDialog: (showBox: boolean) => void;
+  resetAreaSelection: boolean;
+  setResetAreaSelection: (shouldReset: boolean) => void;
 }
 
 interface MapWithSelectionHandler extends L.Map {
@@ -503,6 +506,8 @@ export const AreaSelectionControl = ({
   handleSelectionBounds,
   submapDataWithBounds,
   setShowAddBoxDialog,
+  resetAreaSelection,
+  setResetAreaSelection,
 }: SelectionRegionOptions) => {
   /** Get a reference to the map so we can add the control to it */
   const map = useMap();
@@ -522,6 +527,8 @@ export const AreaSelectionControl = ({
       handleSelectionBounds,
       submapDataWithBounds,
       setShowAddBoxDialog,
+      resetAreaSelection,
+      setResetAreaSelection,
     });
     control.addTo(map);
     controlRef.current = control;
@@ -542,6 +549,15 @@ export const AreaSelectionControl = ({
     }
   }, [map, submapDataWithBounds, setShowAddBoxDialog])
 
+  useEffect(() => {
+    if (controlRef.current && resetAreaSelection) {
+      controlRef.current.startButton.disabled = false;
+      controlRef.current.overlayPane.style.display = 'none';
+      (map as MapWithSelectionHandler).selection.reset()
+      setResetAreaSelection(false)
+    }
+  }, [map, resetAreaSelection])
+
   return null
 }
 
@@ -557,16 +573,20 @@ type Props = {
   selectionBounds: L.LatLngBounds | undefined;
   handleSelectionBounds: (bounds: L.LatLngBounds | undefined) => void;
   submapData?: SubmapData;
+  setBoxes: (boxes: Box[]) => void;
 }
 
 export function AreaSelection({
   selectionBounds,
   handleSelectionBounds,
   submapData,
+  setBoxes,
 }: Props) {
+  const map = useMap()
   const [showAddBoxDialog, setShowAddBoxDialog] = useState(false)
   const [boxName, setBoxName] = useState('')
   const [boxDescription, setBoxDescription] = useState('')
+  const [resetAreaSelection, setResetAreaSelection] = useState(false)
 
   const handleSubmit = useCallback(
     (e: FormEvent) => {
@@ -598,8 +618,14 @@ export function AreaSelection({
         endpoint,
         top_left,
         bottom_right,
+        setBoxes,
+        map,
       )
 
+      handleSelectionBounds(undefined)
+      setResetAreaSelection(true)
+      setBoxName('')
+      setBoxDescription('')
       setShowAddBoxDialog(false);
 
     }, [setShowAddBoxDialog, selectionBounds]
@@ -655,6 +681,8 @@ export function AreaSelection({
         handleSelectionBounds={handleSelectionBounds}
         submapDataWithBounds={submapDataWithBounds}
         setShowAddBoxDialog={setShowAddBoxDialog}
+        resetAreaSelection={resetAreaSelection}
+        setResetAreaSelection={setResetAreaSelection}
       />
     </>
   )

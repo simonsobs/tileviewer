@@ -10,7 +10,7 @@ import { CoordinatesDisplay } from './components/CoordinatesDisplay';
 import { AstroScale } from './components/AstroScale';
 import { AreaSelection } from './components/AreaSelection';
 import { GraticuleLayer } from './components/GraticuleLayer';
-import { fetchProducts } from './utils/fetchUtils';
+import { fetchBoxes, fetchProducts } from './utils/fetchUtils';
 import { HighlightBoxLayer } from './components/HighlightBoxLayer';
 
 function App() {
@@ -101,7 +101,7 @@ function App() {
 
   useEffect(() => {
     async function getHighlightBoxes() {
-      const boxes: Box[] = await (await fetch(`${SERVICE_URL}/highlights/boxes`)).json()
+      const boxes = await fetchBoxes()
       setHighlightBoxes(boxes)
     }
     getHighlightBoxes()
@@ -219,7 +219,12 @@ function App() {
             )}
             {highlightBoxes?.map(
               (box) => (
-                  <HighlightBoxLayer key={`${box.name}-${box.id}`} box={box} submapData={submapData} />
+                <HighlightBoxLayer
+                  key={`${box.name}-${box.id}`}
+                  box={box}
+                  submapData={submapData}
+                  setBoxes={setHighlightBoxes}
+                />
               )
             )}
           </LayersControl>
@@ -230,6 +235,7 @@ function App() {
             handleSelectionBounds={setSelectionBounds}
             selectionBounds={selectionBounds}
             submapData={submapData}
+            setBoxes={setHighlightBoxes}
           />
           <MapEvents onBaseLayerChange={onBaseLayerChange} selectionBounds={selectionBounds} boxes={highlightBoxes} />
         </MapContainer>

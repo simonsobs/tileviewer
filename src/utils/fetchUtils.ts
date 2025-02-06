@@ -1,5 +1,5 @@
 import { SERVICE_URL } from "../configs/mapSettings";
-import { MapMetadataResponse, MapResponse, Source, SourceListResponse } from "../types/maps";
+import { Box, MapMetadataResponse, MapResponse, Source, SourceListResponse } from "../types/maps";
 import { SubmapDataWithBounds, SubmapFileExtensions } from "../components/AreaSelection";
 
 type SourcesResponse = {
@@ -37,6 +37,11 @@ export async function fetchProducts(type: 'maps' | 'sources'): Promise<ProductsR
         catalogs: productsList as SourceListResponse[],
         sources: productList.flat(1) as Source[],
     }
+}
+
+export async function fetchBoxes() {
+    const boxes: Box[] = await (await fetch(`${SERVICE_URL}/highlights/boxes`)).json()
+    return boxes
 }
 
 /**
@@ -81,20 +86,62 @@ export function downloadSubmap(
     });
 }
 
-export function addSubmapAsBox(endpoint: string, top_left: number[], bottom_right: number[]) {
+export async function addSubmapAsBox(
+    endpoint: string,
+    top_left: number[],
+    bottom_right: number[],
+    setBoxes: (boxes: Box[]) => void,
+    map: L.Map,
+) {
     const requestBody = {
         top_left,
         bottom_right
     }
 
-    fetch(
-        endpoint,
-        {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody)
+    try {
+        const response = await fetch(
+            endpoint,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
+            }
+        )
+
+        if (response.ok) {
+            const boxes = await fetchBoxes()
+            setBoxes(boxes)
+            map.eachLayer(l => {
+                if (l.options.pane && l.options.pane.includes('highlight-boxes-pane')) {
+                    map.removeLayer(l)
+                }
+            })
         }
-    )
+    } catch(e) {
+        console.error(e)
+    } 
+}
+
+export async function deleteSubmapBox(
+    boxId: number,
+    setBoxes: (boxes: Box[]) => void,
+    map: L.Map,
+) {
+    try {
+        const response = await fetch(`${SERVICE_URL}/highlights/boxes/${boxId}`, {method: 'DELETE'})
+
+        if (response.ok) {
+            const boxes = await fetchBoxes()
+            setBoxes(boxes)
+            map.eachLayer(l => {
+                if (l.options.pane && l.options.pane.includes('highlight-boxes-pane')) {
+                    map.removeLayer(l)
+                }
+            })
+        }
+    } catch(e) {
+        console.error(e)
+    }
 }
