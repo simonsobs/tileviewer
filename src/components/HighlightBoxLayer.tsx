@@ -90,6 +90,7 @@ function generateBoxContent(
     deleteBtn.classList.add('area-select-button', 'highlight-box-button', 'delete-box-button')
     deleteBtn.addEventListener('click', () => {
         deleteSubmapBox(boxId, setBoxes, map)
+        container.remove()
     })
     menuBtns.push(deleteBtn)
 
