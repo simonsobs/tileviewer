@@ -582,7 +582,6 @@ export function AreaSelection({
   submapData,
   setBoxes,
 }: Props) {
-  const map = useMap()
   const [showAddBoxDialog, setShowAddBoxDialog] = useState(false)
   const [boxName, setBoxName] = useState('')
   const [boxDescription, setBoxDescription] = useState('')
@@ -619,7 +618,6 @@ export function AreaSelection({
         top_left,
         bottom_right,
         setBoxes,
-        map,
       )
 
       handleSelectionBounds(undefined)

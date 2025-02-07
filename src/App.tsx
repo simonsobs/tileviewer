@@ -217,7 +217,7 @@ function App() {
                 )
               }
             )}
-            {highlightBoxes?.map(
+            {submapData && highlightBoxes?.map(
               (box) => (
                 <HighlightBoxLayer
                   key={`${box.name}-${box.id}`}

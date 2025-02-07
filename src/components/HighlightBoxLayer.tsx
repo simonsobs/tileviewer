@@ -1,7 +1,7 @@
 import { LayersControl, Rectangle, useMap } from "react-leaflet"
 import L, { latLng, latLngBounds } from "leaflet"
 import { Box } from "../types/maps"
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useRef, useMemo } from "react"
 import './styles/highlight-controls.css'
 import { SUBMAP_DOWNLOAD_OPTIONS, SubmapData, SubmapDataWithBounds } from "./AreaSelection"
 import { deleteSubmapBox, downloadSubmap } from "../utils/fetchUtils"
@@ -10,30 +10,36 @@ import { getTopLeftBottomRightFromBounds } from "../utils/layerUtils"
 
 type HighlightBoxLayerProps = {
     box: Box;
-    submapData?: SubmapData;
+    submapData: SubmapData;
     setBoxes: (boxes: Box[]) => void;
 }
 
+interface CustomBoxPaneProps extends HighlightBoxLayerProps {
+    hideBoxHandler: () => void;
+    bounds: L.LatLngBounds;
+}
+
 function generateBoxContent(
-    map: L.Map,
     boxId: number,
     container: HTMLDivElement,
     name: string,
     description: string,
-    panePosition: CustomBoxPaneProps['panePosition'],
+    panePosition: {topLeft: L.Point, bottomRight: L.Point},
     hideBoxHandler: CustomBoxPaneProps['hideBoxHandler'],
     setBoxes: HighlightBoxLayerProps['setBoxes'],
-    submapDataWithBounds?: SubmapDataWithBounds,
+    submapDataWithBounds: SubmapDataWithBounds,
 ) {
-    if (!submapDataWithBounds) return
-
     const { topLeft, bottomRight } = panePosition;
 
     const boxWidth = Math.abs(topLeft.x - bottomRight.x);
     const boxHeight = Math.abs(topLeft.y - bottomRight.y);
 
-    const boxContainer = document.createElement('div')
-    boxContainer.className = 'highlight-box-hover-container'
+    const boxContainer = container.firstChild as HTMLDivElement;
+
+    while (boxContainer.firstChild) {
+        boxContainer.removeChild(boxContainer.firstChild)
+    }
+
     boxContainer.style.top = topLeft.y + 'px'
     boxContainer.style.left = topLeft.x + 'px'
     boxContainer.style.minHeight = boxHeight + 'px'
@@ -89,7 +95,7 @@ function generateBoxContent(
     deleteBtn.textContent = 'Delete Box'
     deleteBtn.classList.add('area-select-button', 'highlight-box-button', 'delete-box-button')
     deleteBtn.addEventListener('click', () => {
-        deleteSubmapBox(boxId, setBoxes, map)
+        deleteSubmapBox(boxId, setBoxes)
         container.remove()
     })
     menuBtns.push(deleteBtn)
@@ -99,85 +105,63 @@ function generateBoxContent(
     headerDiv.append(hamburgerMenuButton, menuBtnsContainer, boxHeader)
 
     boxContainer.append(headerDiv, p)
-
-    container.append(boxContainer)
-}
-
-type CustomBoxPaneProps = {
-    boxId: number;
-    paneName: string;
-    zIndex: number,
-    boxName: string;
-    boxDescription: string;
-    submapDataWithBounds?: SubmapDataWithBounds;
-    panePosition: {
-        topLeft: L.Point,
-        bottomRight: L.Point,
-    };
-    setBoxes: HighlightBoxLayerProps['setBoxes'];
-    hideBoxHandler: () => void;
 }
 
 export function CustomBoxPane({ 
-    boxId,
-    paneName, 
-    zIndex,
-    boxName,
-    boxDescription,
-    panePosition,
-    submapDataWithBounds,
+    box,
+    submapData,
+    bounds,
     setBoxes,
     hideBoxHandler,
 }: CustomBoxPaneProps) {
     const map = useMap();
+    const paneName = `highlight-boxes-pane-${box.id}`;
   
     useEffect(() => {
       if (!map.getPane(paneName)) {
         const pane = map.createPane(paneName);
-        pane.style.zIndex = String(zIndex);
+        pane.style.zIndex = String(500);
+        const boxContainer = document.createElement('div');
+        boxContainer.className = 'highlight-box-hover-container';
+        pane.append(boxContainer)
 
         pane.addEventListener(
             'mouseover', 
-            () => {
-                if (pane && pane instanceof HTMLDivElement) {
-                    const firstChild = pane.firstChild as HTMLDivElement
-                    firstChild.style.display = 'block'
-                }
-            }
+            () => boxContainer.style.display = 'block',
         )
 
         pane.addEventListener(
             'mouseout',
-            () => {
-                if (pane && pane instanceof HTMLDivElement) {
-                    const firstChild = pane.firstChild as HTMLDivElement
-                    firstChild.style.display = 'none'
-                }
-            }
+            () => boxContainer.style.display = 'none',
         )
       }
-    }, [map, paneName, zIndex]);
+    }, [map, paneName]);
 
     useEffect(() => {
         const pane = map.getPane(paneName);
 
-        while (pane?.firstChild) {
-            pane.removeChild(pane.firstChild)
+        const submapDataWithBounds = {
+            ...submapData,
+            ...getTopLeftBottomRightFromBounds(bounds)
+        }
+
+        const panePosition = {
+            topLeft: map.latLngToLayerPoint(bounds.getNorthWest()),
+            bottomRight: map.latLngToLayerPoint(bounds.getSouthEast()),
         }
 
         generateBoxContent(
-            map,
-            boxId,
+            box.id,
             pane as HTMLDivElement,
-            boxName,
-            boxDescription,
+            box.name,
+            box.description,
             panePosition,
             hideBoxHandler,
             setBoxes,
             submapDataWithBounds,
         )
 
-    }, [map, submapDataWithBounds])
+    }, [map, submapData, bounds])
   
     return null;
 }
@@ -192,26 +176,28 @@ export function HighlightBoxLayer({
 
     const hideBoxHandler = useCallback(() => {
         if (layer.current) {
+            const pane = map.getPane(`highlight-boxes-pane-${box.id}`);
+            if (pane && pane.firstChild && pane.firstChild instanceof HTMLDivElement) {
+                const boxOverlayContainer = pane.firstChild
+                boxOverlayContainer.style.display = 'none';
+                const boxHeaderContainer = boxOverlayContainer.firstChild
+                if (boxHeaderContainer && boxHeaderContainer instanceof HTMLDivElement && boxHeaderContainer.children) {
+                    const menuContainer = boxHeaderContainer.children[1] as HTMLDivElement
+                    menuContainer.style.display = 'none';
+                }
+            }
             map.removeLayer(layer.current)
         }
     }, [map, layer])
 
-    const bounds = useMemo(
-        () => (
+    const bounds = useMemo(() => {
+        return (
             latLngBounds(
                 latLng(box.top_left_dec, box.top_left_ra),
                 latLng(box.bottom_right_dec, box.bottom_right_ra),
             )
-        ), [box]
+        )}, [box]
     )
-
-    const submapDataWithBounds = useMemo(() => {
-        if (!submapData) return;        
-        return {
-            ...submapData,
-            ...getTopLeftBottomRightFromBounds(bounds)
-        }
-    }, [bounds, submapData])
 
     return (
         <LayersControl.Overlay
@@ -220,18 +206,11 @@ export function HighlightBoxLayer({
         >
             <CustomBoxPane
                 key={`custom-pane-${box.id}`}
-                boxId={box.id}
-                paneName={`highlight-boxes-pane-${box.id}`}
-                zIndex={500}
-                boxName={box.name}
-                boxDescription={box.description}
-                panePosition={{
-                    topLeft: map.latLngToLayerPoint(bounds.getNorthWest()),
-                    bottomRight: map.latLngToLayerPoint(bounds.getSouthEast())
-                }}
-                submapDataWithBounds={submapDataWithBounds}
+                box={box}
                 hideBoxHandler={hideBoxHandler}
                 setBoxes={setBoxes}
+                submapData={submapData}
+                bounds={bounds}
             />
             <Rectangle
                 key={`rectangle-${box.id}`}

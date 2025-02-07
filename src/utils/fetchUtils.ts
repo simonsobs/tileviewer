@@ -91,7 +91,6 @@ export async function addSubmapAsBox(
     top_left: number[],
     bottom_right: number[],
     setBoxes: (boxes: Box[]) => void,
-    map: L.Map,
 ) {
     const requestBody = {
         top_left,
@@ -111,13 +110,8 @@ export async function addSubmapAsBox(
         )
 
         if (response.ok) {
-            const boxes = await fetchBoxes()
-            setBoxes(boxes)
-            map.eachLayer(l => {
-                if (l.options.pane && l.options.pane.includes('highlight-boxes-pane')) {
-                    map.removeLayer(l)
-                }
-            })
+            const boxes = await fetchBoxes();
+            setBoxes(boxes);
         }
     } catch(e) {
         console.error(e)
@@ -127,7 +121,6 @@ export async function addSubmapAsBox(
 export async function deleteSubmapBox(
     boxId: number,
     setBoxes: (boxes: Box[]) => void,
-    map: L.Map,
 ) {
     try {
         const response = await fetch(`${SERVICE_URL}/highlights/boxes/${boxId}`, {method: 'DELETE'})
@@ -135,11 +128,6 @@ export async function deleteSubmapBox(
         if (response.ok) {
             const boxes = await fetchBoxes()
             setBoxes(boxes)
-            map.eachLayer(l => {
-                if (l.options.pane && l.options.pane.includes('highlight-boxes-pane')) {
-                    map.removeLayer(l)
-                }
-            })
         }
     } catch(e) {
         console.error(e)
