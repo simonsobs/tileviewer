@@ -292,10 +292,14 @@ function repositionBoxOverlays(map: L.Map, boxes: Box[]) {
           const {
             top,
             left,
+            width,
+            height,
           } = getControlPaneOffsets(map, bounds)
 
           overlayContainer.style.top = top as string;
           overlayContainer.style.left = left as string;
+          overlayContainer.style.width = width as string;
+          overlayContainer.style.height = height as string;
         }
       }
     }
