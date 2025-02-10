@@ -17,29 +17,29 @@ const BASE_NUM_OF_CHARS_FOR_EXPONENTIAL_FORMATTING = 3;
  * @param maxChars The maximum number of characters in the string, defaults to 7
  * @returns A string of the number either as-is or in exponential form
  */
-export function formatNumberForDisplay(
-    number: number,
-    maxChars: number = 7,
-) {
-    const numString = String(number)
-    const numStringLength = numString.length;
-    if (numStringLength > maxChars) {
-        // At this point we need to determine how many exponents there are for the calculation
-        // of fractionDigits
-        const exponentCharLength = getExponentCharLength(number.toExponential())
-        // Check if exponentCharLength + BASE_NUM_OF_CHARS_FOR_EXPONENTIAL_FORMATTING exceeds maxChars
-        //  Y: set fractionDigits to 0
-        //  N: fractionDigits will be determined based on the two exponent char lengths
-        const fractionDigits = 
-            maxChars > (BASE_NUM_OF_CHARS_FOR_EXPONENTIAL_FORMATTING + exponentCharLength) ? 
-                maxChars - BASE_NUM_OF_CHARS_FOR_EXPONENTIAL_FORMATTING - exponentCharLength : 
-                0;
-        // Return the original number as a string in exponential form with the number of chars
-        // past the decimal as determined by fractionDigits
-        return number.toExponential(fractionDigits);
-    } else {
-        return numString;
-    }
+export function formatNumberForDisplay(number: number, maxChars: number = 7) {
+  const numString = String(number);
+  const numStringLength = numString.length;
+  if (numStringLength > maxChars) {
+    // At this point we need to determine how many exponents there are for the calculation
+    // of fractionDigits
+    const exponentCharLength = getExponentCharLength(number.toExponential());
+    // Check if exponentCharLength + BASE_NUM_OF_CHARS_FOR_EXPONENTIAL_FORMATTING exceeds maxChars
+    //  Y: set fractionDigits to 0
+    //  N: fractionDigits will be determined based on the two exponent char lengths
+    const fractionDigits =
+      maxChars >
+      BASE_NUM_OF_CHARS_FOR_EXPONENTIAL_FORMATTING + exponentCharLength
+        ? maxChars -
+          BASE_NUM_OF_CHARS_FOR_EXPONENTIAL_FORMATTING -
+          exponentCharLength
+        : 0;
+    // Return the original number as a string in exponential form with the number of chars
+    // past the decimal as determined by fractionDigits
+    return number.toExponential(fractionDigits);
+  } else {
+    return numString;
+  }
 }
 
 /**
@@ -49,16 +49,16 @@ export function formatNumberForDisplay(
  * @returns The number of exponent characters in the .toExponential() string format
  */
 function getExponentCharLength(expNumberString: string) {
-    // Split the string at the "e"
-    const splitString = expNumberString.split("e");
-    // Cast the value of the exponent portion to a number
-    const exponent = Number(splitString[1]);
-    // Convert the exponent back to a string and grab its length
-    const exponentStringLength = String(exponent).length
-    // If the exponent is less than 0, subtract 1 from the length returned
-    // because the BASE_NUM_OF_CHARS_FOR_EXPONENTIAL_FORMATTING accounts for 
-    // the + or - rendered in the string
-    return exponentStringLength - (exponent < 0 ? 1 : 0)
+  // Split the string at the "e"
+  const splitString = expNumberString.split('e');
+  // Cast the value of the exponent portion to a number
+  const exponent = Number(splitString[1]);
+  // Convert the exponent back to a string and grab its length
+  const exponentStringLength = String(exponent).length;
+  // If the exponent is less than 0, subtract 1 from the length returned
+  // because the BASE_NUM_OF_CHARS_FOR_EXPONENTIAL_FORMATTING accounts for
+  // the + or - rendered in the string
+  return exponentStringLength - (exponent < 0 ? 1 : 0);
 }
 
 /**
@@ -67,9 +67,9 @@ function getExponentCharLength(expNumberString: string) {
  * @returns 0 if x is 0 or less; otherwise its logarithmic value
  */
 export function safeLog(x: number) {
-    if (x <= 0) {
-        return 0
-    } else {
-        return Math.log(x)
-    }
+  if (x <= 0) {
+    return 0;
+  } else {
+    return Math.log(x);
+  }
 }

@@ -1,8 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { LayersControl, MapContainer, Popup, TileLayer, useMap, useMapEvents, CircleMarker, FeatureGroup } from 'react-leaflet';
+import {
+  LayersControl,
+  MapContainer,
+  Popup,
+  TileLayer,
+  useMap,
+  useMapEvents,
+  CircleMarker,
+  FeatureGroup,
+} from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
-import { mapOptions, SERVICE_URL, DEFAULT_MIN_ZOOM } from './configs/mapSettings';
-import { GraticuleDetails, MapMetadataResponse, Band, SourceList, Box } from './types/maps';
+import {
+  mapOptions,
+  SERVICE_URL,
+  DEFAULT_MIN_ZOOM,
+} from './configs/mapSettings';
+import {
+  GraticuleDetails,
+  MapMetadataResponse,
+  Band,
+  SourceList,
+  Box,
+} from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
 import { getControlPaneOffsets } from './utils/paneUtils';
 import { ColorMapControls } from './components/ColorMapControls';
@@ -25,13 +44,21 @@ function App() {
   /** bands are used as the baselayers of the map */
   const [bands, setBands] = useState<Band[] | undefined>(undefined);
   /** sourceLists are used as FeatureGroups in the map, which can be toggled on/off in the map legend */
-  const [sourceLists, setSourceLists] = useState<SourceList[] | undefined>(undefined);
+  const [sourceLists, setSourceLists] = useState<SourceList[] | undefined>(
+    undefined
+  );
   /** highlightBoxes are regions user's have added to a map via the AreaSelection tooling */
-  const [highlightBoxes, setHighlightBoxes] = useState<Box[] | undefined>(undefined);
+  const [highlightBoxes, setHighlightBoxes] = useState<Box[] | undefined>(
+    undefined
+  );
   /** sets the bounds of the rectangular "select region" box */
-  const [selectionBounds, setSelectionBounds] = useState<LatLngBounds | undefined>(undefined);
+  const [selectionBounds, setSelectionBounds] = useState<
+    LatLngBounds | undefined
+  >(undefined);
   /** used to set the AstroScale component to the same width and interval as the graticule layer */
-  const [graticuleDetails, setGraticuleDetails] = useState<undefined | GraticuleDetails>(undefined);
+  const [graticuleDetails, setGraticuleDetails] = useState<
+    undefined | GraticuleDetails
+  >(undefined);
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
 
@@ -47,15 +74,16 @@ function App() {
       // Loop through each map's metadata and reduce the map's bands
       // into a single array
       const finalBands = mapsMetadata.reduce(
-          (prev: Band[], curr: MapMetadataResponse) => {
-            if (curr.bands.length) {
-              return prev.concat(curr.bands)
-            } else {
-              return prev
-            }
-          }, []
-        );
-      setBands(finalBands)
+        (prev: Band[], curr: MapMetadataResponse) => {
+          if (curr.bands.length) {
+            return prev.concat(curr.bands);
+          } else {
+            return prev;
+          }
+        },
+        []
+      );
+      setBands(finalBands);
 
       // If we end up with no bands for some reason, return early
       if (!finalBands.length) return;
@@ -63,21 +91,23 @@ function App() {
       // Default the active layer to be the first band of finalBands and set
       // the color map properties to its recommended values
       if (!activeLayer) {
-        setActiveLayer(finalBands[0])
-        setVMin(finalBands[0].recommended_cmap_min)
-        setVMax(finalBands[0].recommended_cmap_max)
-        setCmap(finalBands[0].recommended_cmap)
+        setActiveLayer(finalBands[0]);
+        setVMin(finalBands[0].recommended_cmap_min);
+        setVMax(finalBands[0].recommended_cmap_max);
+        setCmap(finalBands[0].recommended_cmap);
       } else {
         // If somehow activeLayer is truthy, sync up the color map properties
         // to the active band's recommendations
-        const activeBand = finalBands.find(band => band.id === activeLayer.id);
-        setVMin(activeBand!.recommended_cmap_min)
-        setVMin(activeBand!.recommended_cmap_max)
-        setCmap(activeBand!.recommended_cmap)
+        const activeBand = finalBands.find(
+          (band) => band.id === activeLayer.id
+        );
+        setVMin(activeBand!.recommended_cmap_min);
+        setVMin(activeBand!.recommended_cmap_max);
+        setCmap(activeBand!.recommended_cmap);
       }
     }
     getMapsAndMetadata();
-  }, [])
+  }, []);
 
   /**
    * On mount, fetch the source catalogs and each catalog's source in order to
@@ -89,27 +119,25 @@ function App() {
 
       // Map through the source catalogs in order to link the appropriate sources
       // to each catalog
-      const finalSourceLists: SourceList[] = catalogs.map(
-        (catalog) => ({
-          ...catalog,
-          // create a sources attribute that consists of sources associated with the catalog
-          sources: sources.filter(src => src.source_list_id == catalog.id)
-        })
-      )
-      setSourceLists(finalSourceLists)
+      const finalSourceLists: SourceList[] = catalogs.map((catalog) => ({
+        ...catalog,
+        // create a sources attribute that consists of sources associated with the catalog
+        sources: sources.filter((src) => src.source_list_id == catalog.id),
+      }));
+      setSourceLists(finalSourceLists);
     }
-    getSourceLists()
-  }, [])
+    getSourceLists();
+  }, []);
 
   useEffect(() => {
     async function getHighlightBoxes() {
-      const boxes = await fetchBoxes()
-      setHighlightBoxes(boxes)
+      const boxes = await fetchBoxes();
+      setHighlightBoxes(boxes);
     }
-    getHighlightBoxes()
-  }, [])
+    getHighlightBoxes();
+  }, []);
 
-  /** 
+  /**
    * Handler fires when user changes map layers. If the units of the new
    * layer are the same as the active layer, then we just set a new active
    * layer. If the units differ, we set new values for vmin, vmax, and cmap
@@ -118,183 +146,191 @@ function App() {
    */
   const onBaseLayerChange = useCallback(
     (layer: L.TileLayer) => {
-      const currentLayerUnits = activeLayer?.units
-      const newActiveLayer = bands?.find(b => b.id === Number(layer.options.id))
+      const currentLayerUnits = activeLayer?.units;
+      const newActiveLayer = bands?.find(
+        (b) => b.id === Number(layer.options.id)
+      );
       if (currentLayerUnits != newActiveLayer?.units) {
-        setVMin(newActiveLayer?.recommended_cmap_min)
-        setVMax(newActiveLayer?.recommended_cmap_max)
-        setCmap(newActiveLayer?.recommended_cmap)
+        setVMin(newActiveLayer?.recommended_cmap_min);
+        setVMax(newActiveLayer?.recommended_cmap_max);
+        setCmap(newActiveLayer?.recommended_cmap);
       }
-      setActiveLayer(newActiveLayer)
-    }, [bands, setActiveLayer, activeLayer, setVMin, setVMax, setCmap]
-  )
+      setActiveLayer(newActiveLayer);
+    },
+    [bands, setActiveLayer, activeLayer, setVMin, setVMax, setCmap]
+  );
 
   const onCmapValuesChange = useCallback(
     (values: number[]) => {
-      setVMin(values[0])
-      setVMax(values[1])
-    }, [setVMin, setVMax]
-  )
+      setVMin(values[0]);
+      setVMax(values[1]);
+    },
+    [setVMin, setVMax]
+  );
 
   const onCmapChange = useCallback(
     (cmap: string) => {
-      setCmap(cmap)
-    }, [setCmap]
-  )
+      setCmap(cmap);
+    },
+    [setCmap]
+  );
 
   /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
     composed from state at this level, we must construct it here and pass it down to the AreaSelection and
     HighlightBoxLayer components. */
-  const submapData = useMemo(
-    () => {
-      if (activeLayer) {
-        const {map_id: mapId, id: bandId } = activeLayer;
-        return {
-          mapId,
-          bandId,
-          vmin,
-          vmax,
-          cmap,
-        }
-      }
-    }, [activeLayer?.id, activeLayer?.map_id, vmin, vmax, cmap]
-  )
+  const submapData = useMemo(() => {
+    if (activeLayer) {
+      const { map_id: mapId, id: bandId } = activeLayer;
+      return {
+        mapId,
+        bandId,
+        vmin,
+        vmax,
+        cmap,
+      };
+    }
+  }, [activeLayer?.id, activeLayer?.map_id, vmin, vmax, cmap]);
 
   return (
-      <>
-        <MapContainer
-          id='map'
-          {...mapOptions}
-        >
-          <LayersControl>
-            {/** Set each band to be a baselayer and set up the TileLayer according to the band- and user-set attributes */}
-            {bands?.map(
-              (band) => {
-                return (
-                  <LayersControl.BaseLayer key={`${band.map_name}-${band.id}`} checked={band.id === activeLayer?.id} name={makeLayerName(band)}>
-                    <TileLayer
-                      id={String(band.id)}
-                      url={`${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
-                      tms
-                      noWrap
-                      bounds={
-                        latLngBounds(
-                          latLng(band.bounding_top, band.bounding_left),
-                          latLng(band.bounding_bottom, band.bounding_right),
-                        )
-                      }
-                      minZoom={DEFAULT_MIN_ZOOM}
-                      maxZoom={band.levels + 3}
-                      minNativeZoom={band.levels - 4}
-                      maxNativeZoom={band.levels - 1}
-                    />
-                  </LayersControl.BaseLayer>
-                )
-              }
-            )}
-            {/** Set each sourceList as an overlay, with each of its sources contained within a FeatureGroup and displayed as a 
-              circle that, when clicked, shows a popup with the source details */}
-            {sourceLists?.map(
-              (sourceList) => {
-                return (
-                  <LayersControl.Overlay key={`${sourceList.name}-${sourceList.id}`} name={sourceList.name}>
-                    <FeatureGroup>
-                      {sourceList.sources.map(
-                        (source) => {
-                          return (
-                            <CircleMarker key={`marker-${sourceList.id}-${source.id}`} center={[source.dec, source.ra]} radius={5}>
-                              <Popup>
-                                <div className='source-popup'>
-                                  {source.name ? (<h3>{source.name}</h3>) : null}               
-                                  <p><span>RA, Dec:</span> ({source.ra}, {source.dec})</p>
-                                  <p><span>Flux:</span> {source.flux}</p>
-                                </div>
-                              </Popup>
-                            </CircleMarker>
-                          )
-                        }
-                      )}
-                    </FeatureGroup>
-                  </LayersControl.Overlay>
-                )
-              }
-            )}
-            {submapData && highlightBoxes?.map(
-              (box) => (
-                <HighlightBoxLayer
-                  key={`${box.name}-${box.id}`}
-                  box={box}
-                  submapData={submapData}
-                  setBoxes={setHighlightBoxes}
-                  activeBoxIds={activeBoxIds}
+    <>
+      <MapContainer id="map" {...mapOptions}>
+        <LayersControl>
+          {/** Set each band to be a baselayer and set up the TileLayer according to the band- and user-set attributes */}
+          {bands?.map((band) => {
+            return (
+              <LayersControl.BaseLayer
+                key={`${band.map_name}-${band.id}`}
+                checked={band.id === activeLayer?.id}
+                name={makeLayerName(band)}
+              >
+                <TileLayer
+                  id={String(band.id)}
+                  url={`${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
+                  tms
+                  noWrap
+                  bounds={latLngBounds(
+                    latLng(band.bounding_top, band.bounding_left),
+                    latLng(band.bounding_bottom, band.bounding_right)
+                  )}
+                  minZoom={DEFAULT_MIN_ZOOM}
+                  maxZoom={band.levels + 3}
+                  minNativeZoom={band.levels - 4}
+                  maxNativeZoom={band.levels - 1}
                 />
-              )
-            )}
-          </LayersControl>
-          <GraticuleLayer setGraticuleDetails={setGraticuleDetails} />
-          <CoordinatesDisplay />
-          {graticuleDetails && <AstroScale graticuleDetails={graticuleDetails} />}
-          <AreaSelection
-            handleSelectionBounds={setSelectionBounds}
-            selectionBounds={selectionBounds}
-            submapData={submapData}
-            setBoxes={setHighlightBoxes}
-            setActiveBoxIds={setActiveBoxIds}
-          />
-          <MapEvents
-            onBaseLayerChange={onBaseLayerChange}
-            selectionBounds={selectionBounds}
-            boxes={highlightBoxes}
-            activeBoxIds={activeBoxIds}
-            setActiveBoxIds={setActiveBoxIds}
-          />
-        </MapContainer>
-        {vmin !== undefined && vmax !== undefined && cmap && activeLayer && (
-          <ColorMapControls
-            values={[vmin, vmax]}
-            onCmapValuesChange={onCmapValuesChange}
-            cmap={cmap}
-            onCmapChange={onCmapChange}
-            activeLayerId={activeLayer.id}
-            units={activeLayer.units}
-            quantity={activeLayer.quantity}
-          />
-        )}
-      </>
-    )
+              </LayersControl.BaseLayer>
+            );
+          })}
+          {/** Set each sourceList as an overlay, with each of its sources contained within a FeatureGroup and displayed as a 
+              circle that, when clicked, shows a popup with the source details */}
+          {sourceLists?.map((sourceList) => {
+            return (
+              <LayersControl.Overlay
+                key={`${sourceList.name}-${sourceList.id}`}
+                name={sourceList.name}
+              >
+                <FeatureGroup>
+                  {sourceList.sources.map((source) => {
+                    return (
+                      <CircleMarker
+                        key={`marker-${sourceList.id}-${source.id}`}
+                        center={[source.dec, source.ra]}
+                        radius={5}
+                      >
+                        <Popup>
+                          <div className="source-popup">
+                            {source.name ? <h3>{source.name}</h3> : null}
+                            <p>
+                              <span>RA, Dec:</span> ({source.ra}, {source.dec})
+                            </p>
+                            <p>
+                              <span>Flux:</span> {source.flux}
+                            </p>
+                          </div>
+                        </Popup>
+                      </CircleMarker>
+                    );
+                  })}
+                </FeatureGroup>
+              </LayersControl.Overlay>
+            );
+          })}
+          {submapData &&
+            highlightBoxes?.map((box) => (
+              <HighlightBoxLayer
+                key={`${box.name}-${box.id}`}
+                box={box}
+                submapData={submapData}
+                setBoxes={setHighlightBoxes}
+                activeBoxIds={activeBoxIds}
+              />
+            ))}
+        </LayersControl>
+        <GraticuleLayer setGraticuleDetails={setGraticuleDetails} />
+        <CoordinatesDisplay />
+        {graticuleDetails && <AstroScale graticuleDetails={graticuleDetails} />}
+        <AreaSelection
+          handleSelectionBounds={setSelectionBounds}
+          selectionBounds={selectionBounds}
+          submapData={submapData}
+          setBoxes={setHighlightBoxes}
+          setActiveBoxIds={setActiveBoxIds}
+        />
+        <MapEvents
+          onBaseLayerChange={onBaseLayerChange}
+          selectionBounds={selectionBounds}
+          boxes={highlightBoxes}
+          activeBoxIds={activeBoxIds}
+          setActiveBoxIds={setActiveBoxIds}
+        />
+      </MapContainer>
+      {vmin !== undefined && vmax !== undefined && cmap && activeLayer && (
+        <ColorMapControls
+          values={[vmin, vmax]}
+          onCmapValuesChange={onCmapValuesChange}
+          cmap={cmap}
+          onCmapChange={onCmapChange}
+          activeLayerId={activeLayer.id}
+          units={activeLayer.units}
+          quantity={activeLayer.quantity}
+        />
+      )}
+    </>
+  );
 }
 
 type MapEventsProps = {
   onBaseLayerChange: (newLayer: L.TileLayer) => void;
   selectionBounds?: L.LatLngBounds;
-  boxes?: Box[]
+  boxes?: Box[];
   activeBoxIds: number[];
   setActiveBoxIds: (ids: number[]) => void;
-}
+};
 
 function repositionBoxOverlays(map: L.Map, boxes: Box[]) {
-  const panes = map.getPanes()
+  const panes = map.getPanes();
   map.eachLayer((l) => {
-    if (l.options.pane && l.options.pane.includes('highlight-boxes-pane') && panes[l.options.pane]) {
+    if (
+      l.options.pane &&
+      l.options.pane.includes('highlight-boxes-pane') &&
+      panes[l.options.pane]
+    ) {
       const splitPaneName = l.options.pane.split('-');
-      const boxId = Number(splitPaneName[splitPaneName.length - 1])
-      const box = boxes.find(b => b.id === boxId)
+      const boxId = Number(splitPaneName[splitPaneName.length - 1]);
+      const box = boxes.find((b) => b.id === boxId);
 
       if (box) {
         const bounds = latLngBounds(
           latLng(box.top_left_dec, box.top_left_ra),
           latLng(box.bottom_right_dec, box.bottom_right_ra)
-        )
-        const pane = panes[l.options.pane]
-        const overlayContainer = pane.firstChild as HTMLDivElement
+        );
+        const pane = panes[l.options.pane];
+        const overlayContainer = pane.firstChild as HTMLDivElement;
 
         if (overlayContainer) {
-          const {
-            top,
-            left,
-            width,
-            height,
-          } = getControlPaneOffsets(map, bounds)
+          const { top, left, width, height } = getControlPaneOffsets(
+            map,
+            bounds
+          );
 
           overlayContainer.style.top = top as string;
           overlayContainer.style.left = left as string;
@@ -303,22 +339,22 @@ function repositionBoxOverlays(map: L.Map, boxes: Box[]) {
         }
       }
     }
-  })
+  });
 }
 
 function handleAddOrDeleteBoxOverlay(
   layer: L.Layer,
   activeBoxIds: number[],
-  setActiveBoxIds: (ids: number[]) => void,
+  setActiveBoxIds: (ids: number[]) => void
 ) {
   const paneName = layer.options.pane;
   if (paneName && paneName.includes('highlight-boxes-pane')) {
     const splitPaneName = paneName.split('-');
-    const boxId = Number(splitPaneName[splitPaneName.length - 1])
+    const boxId = Number(splitPaneName[splitPaneName.length - 1]);
     if (!activeBoxIds.includes(boxId)) {
-      setActiveBoxIds(activeBoxIds.concat(boxId))
+      setActiveBoxIds(activeBoxIds.concat(boxId));
     } else {
-      setActiveBoxIds(activeBoxIds.filter(id => id !== boxId))
+      setActiveBoxIds(activeBoxIds.filter((id) => id !== boxId));
     }
   }
 }
@@ -338,18 +374,18 @@ function MapEvents({
   const map = useMap();
   useMapEvents({
     baselayerchange: (e) => {
-      onBaseLayerChange(e.layer as L.TileLayer)
+      onBaseLayerChange(e.layer as L.TileLayer);
     },
     moveend: () => {
       if (boxes) {
-        repositionBoxOverlays(map, boxes)
+        repositionBoxOverlays(map, boxes);
       }
     },
     overlayadd: (e) => {
-      handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds)
+      handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds);
     },
     overlayremove: (e) => {
-      handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds)
+      handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds);
     },
     /** Resize the "select region" overlay if the map is zoomed while overlay is drawn */
     zoomend: () => {
@@ -359,12 +395,10 @@ function MapEvents({
         regionControlsOverlay.style.display === 'block' &&
         selectionBounds
       ) {
-        const {
-          top,
-          left,
-          width,
-          height,
-        } = getControlPaneOffsets(map, selectionBounds);
+        const { top, left, width, height } = getControlPaneOffsets(
+          map,
+          selectionBounds
+        );
         regionControlsOverlay.style.top = top as string;
         regionControlsOverlay.style.left = left as string;
         regionControlsOverlay.style.width = width as string;
@@ -372,11 +406,11 @@ function MapEvents({
       }
 
       if (boxes) {
-        repositionBoxOverlays(map, boxes)
+        repositionBoxOverlays(map, boxes);
       }
     },
-  })
-  return null
+  });
+  return null;
 }
 
-export default App
+export default App;

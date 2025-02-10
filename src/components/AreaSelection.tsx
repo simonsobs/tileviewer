@@ -1,7 +1,7 @@
 /**
  * Derived largely from the prototype's selectionRegionControl.ts code
  * (https://github.com/simonsobs/tilerfrontend/blob/main/src/selectionRegionControl.ts)
- * 
+ *
  * Of note:
  * 1. Some logic has been added to set the selectionBounds at the top-level, allowing other
  *    child or map components access to them
@@ -10,26 +10,33 @@
  * 3. I added the "definite assignment assertion" (!) operator to resolve lots of TS errors related to
  *    the message "Property <prop_name> has no initializer and is not definitely assigned in the constructor"
  */
-import { useEffect, useRef, useState, useCallback, useMemo, FormEvent } from "react";
-import L from "leaflet";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+  FormEvent,
+} from 'react';
+import L from 'leaflet';
 import './styles/area-selection.css';
-import { getControlPaneOffsets } from "../utils/paneUtils";
-import { useMap } from "react-leaflet";
-import { downloadSubmap, addSubmapAsBox } from "../utils/fetchUtils";
-import { crop } from "../icons/crop";
-import { menu } from "../icons/menu";
-import { SERVICE_URL } from "../configs/mapSettings";
-import { Dialog } from "./Dialog";
-import { getTopLeftBottomRightFromBounds } from "../utils/layerUtils";
-import { Box } from "../types/maps";
+import { getControlPaneOffsets } from '../utils/paneUtils';
+import { useMap } from 'react-leaflet';
+import { downloadSubmap, addSubmapAsBox } from '../utils/fetchUtils';
+import { crop } from '../icons/crop';
+import { menu } from '../icons/menu';
+import { SERVICE_URL } from '../configs/mapSettings';
+import { Dialog } from './Dialog';
+import { getTopLeftBottomRightFromBounds } from '../utils/layerUtils';
+import { Box } from '../types/maps';
 
 /** Literal type of possible submap file extensions */
 export type SubmapFileExtensions = 'fits' | 'jpg' | 'png' | 'webp';
 
 export type SubmapDownloadOption = {
-    display: string;
-    ext: SubmapFileExtensions
-}
+  display: string;
+  ext: SubmapFileExtensions;
+};
 
 export type SubmapData = {
   mapId: number;
@@ -37,22 +44,22 @@ export type SubmapData = {
   vmin: number | undefined;
   vmax: number | undefined;
   cmap: string | undefined;
-}
+};
 
-export type SubmapDataWithBounds = SubmapData & { 
+export type SubmapDataWithBounds = SubmapData & {
   top: number;
   right: number;
   bottom: number;
   left: number;
-}
+};
 
 /** An array of download options used to create the buttons and the click events that download submaps */
 export const SUBMAP_DOWNLOAD_OPTIONS: SubmapDownloadOption[] = [
-    { display: 'FITS', ext: 'fits' },
-    { display: 'PNG', ext: 'png' },
-    { display: 'JPG', ext: 'jpg' },
-    { display: 'WebP', ext: 'webp' },
-  ];
+  { display: 'FITS', ext: 'fits' },
+  { display: 'PNG', ext: 'png' },
+  { display: 'JPG', ext: 'jpg' },
+  { display: 'WebP', ext: 'webp' },
+];
 
 interface SelectionRegionOptions extends L.ControlOptions {
   position: L.ControlPosition;
@@ -64,7 +71,7 @@ interface SelectionRegionOptions extends L.ControlOptions {
 }
 
 interface MapWithSelectionHandler extends L.Map {
-  selection: SelectionRegionHandler
+  selection: SelectionRegionHandler;
 }
 
 class SelectionRegionControl extends L.Control {
@@ -87,12 +94,15 @@ class SelectionRegionControl extends L.Control {
     this.options = options;
   }
 
-  refreshMenuButtons(setShowAddBoxDialog: SelectionRegionOptions['setShowAddBoxDialog'], newSubmapDataWithBounds?: SubmapDataWithBounds) {
+  refreshMenuButtons(
+    setShowAddBoxDialog: SelectionRegionOptions['setShowAddBoxDialog'],
+    newSubmapDataWithBounds?: SubmapDataWithBounds
+  ) {
     this.options.submapDataWithBounds = newSubmapDataWithBounds;
 
     // Remove all existing elements from this.overlayPane
     while (this.overlayPane.firstChild) {
-      this.overlayPane.removeChild(this.overlayPane.firstChild)
+      this.overlayPane.removeChild(this.overlayPane.firstChild);
     }
 
     /** Create a div to the overlayPane and hide it initially */
@@ -103,25 +113,33 @@ class SelectionRegionControl extends L.Control {
       as the parent container */
     const hamburgerMenuDiv = L.DomUtil.create('div', undefined, menuDiv);
     this.createHamburgerMenuButton(hamburgerMenuDiv);
-    
+
     /** Create a div for the menu options buttons to pass into createMenuOptionButtons
       as the parent container, and set it to be hidden initially */
-    const menuOptionsButtonsDiv = L.DomUtil.create('div', 'menu-btns-container', menuDiv);
+    const menuOptionsButtonsDiv = L.DomUtil.create(
+      'div',
+      'menu-btns-container',
+      menuDiv
+    );
     this.hideElement(menuOptionsButtonsDiv);
     // Pass the new endpoint stub to be used by the download buttons
-    this.createMenuOptionButtons(menuOptionsButtonsDiv, setShowAddBoxDialog, newSubmapDataWithBounds);
+    this.createMenuOptionButtons(
+      menuOptionsButtonsDiv,
+      setShowAddBoxDialog,
+      newSubmapDataWithBounds
+    );
 
     // Add click event to show/hide the container with the menu options buttons and
     // adjust the style of the hamburger menu accordingly
     this.hamburgerMenuButton.addEventListener('click', () => {
       if (menuOptionsButtonsDiv.style.display == 'none') {
-        this.showElement(menuOptionsButtonsDiv, 'flex')
-        this.hamburgerMenuButton.classList.add('menu-button-active')
+        this.showElement(menuOptionsButtonsDiv, 'flex');
+        this.hamburgerMenuButton.classList.add('menu-button-active');
       } else {
-        this.hideElement(menuOptionsButtonsDiv)
-        this.hamburgerMenuButton.classList.remove('menu-button-active')
+        this.hideElement(menuOptionsButtonsDiv);
+        this.hamburgerMenuButton.classList.remove('menu-button-active');
       }
-    })
+    });
   }
 
   /**
@@ -139,9 +157,13 @@ class SelectionRegionControl extends L.Control {
     buttonText: string | undefined,
     buttonContent: string | undefined
   ) {
-    const finalButtonContent = buttonContent ? buttonContent : buttonText ? buttonText : ''
+    const finalButtonContent = buttonContent
+      ? buttonContent
+      : buttonText
+        ? buttonText
+        : '';
     const button = L.DomUtil.create('button', className, container);
-    button.innerHTML = finalButtonContent
+    button.innerHTML = finalButtonContent;
     return button;
   }
 
@@ -155,7 +177,12 @@ class SelectionRegionControl extends L.Control {
   }
 
   private createHamburgerMenuButton(container: HTMLDivElement) {
-    this.hamburgerMenuButton = this.createButton(container, 'menu-button', undefined, menu);
+    this.hamburgerMenuButton = this.createButton(
+      container,
+      'menu-button',
+      undefined,
+      menu
+    );
   }
 
   /**
@@ -163,36 +190,49 @@ class SelectionRegionControl extends L.Control {
    * @param container The HTML container to append the buttons to
    * @param submapEndpointStub The endpoint stub used in the click events associated with the download buttons
    */
-  private createMenuOptionButtons(container: HTMLDivElement, setShowAddBoxDialog: SelectionRegionOptions['setShowAddBoxDialog'], submapDataWithBounds?: SubmapDataWithBounds) {
+  private createMenuOptionButtons(
+    container: HTMLDivElement,
+    setShowAddBoxDialog: SelectionRegionOptions['setShowAddBoxDialog'],
+    submapDataWithBounds?: SubmapDataWithBounds
+  ) {
     // Set to an empty array when invoked
     this.menuOptionButtons = [];
 
     // Create each "download" button and create a click event that will trigger the appropriate download
     // according to its display, extension, and endpoint stub
-    SUBMAP_DOWNLOAD_OPTIONS.forEach(option => {
-      const btn = this.createButton(container, 'area-select-button', `Download ${option.display}`, undefined);
-      btn.addEventListener(
-        'click',
-        () => {
-          if (submapDataWithBounds) {
-            downloadSubmap(submapDataWithBounds, option.ext)
-          }
+    SUBMAP_DOWNLOAD_OPTIONS.forEach((option) => {
+      const btn = this.createButton(
+        container,
+        'area-select-button',
+        `Download ${option.display}`,
+        undefined
+      );
+      btn.addEventListener('click', () => {
+        if (submapDataWithBounds) {
+          downloadSubmap(submapDataWithBounds, option.ext);
         }
-      )
+      });
       // Push each button onto the menuOptionButtons array
-      this.menuOptionButtons.push(btn)
-    })
+      this.menuOptionButtons.push(btn);
+    });
 
-    const addBoxBtn = this.createButton(container, 'area-select-button', 'Add as Box', undefined);
-    addBoxBtn.addEventListener(
-      'click',
-      () => setShowAddBoxDialog(true)
-    )
-    this.menuOptionButtons.push(addBoxBtn)
+    const addBoxBtn = this.createButton(
+      container,
+      'area-select-button',
+      'Add as Box',
+      undefined
+    );
+    addBoxBtn.addEventListener('click', () => setShowAddBoxDialog(true));
+    this.menuOptionButtons.push(addBoxBtn);
 
     /** Create a button that removes the selection region */
-    const remove_button = this.createButton(container, 'area-select-button', "Remove Region", undefined);
-    remove_button.addEventListener("click", () => {
+    const remove_button = this.createButton(
+      container,
+      'area-select-button',
+      'Remove Region',
+      undefined
+    );
+    remove_button.addEventListener('click', () => {
       (this.map as MapWithSelectionHandler).selection.reset();
       this.startButton.disabled = false;
       this.options.handleSelectionBounds(undefined);
@@ -203,21 +243,19 @@ class SelectionRegionControl extends L.Control {
     this.menuOptionButtons.push(remove_button);
   }
 
-  /** 
+  /**
    * Mutates the state of the overlay pane after a selected region is drawn.
    * More specifically, we:
    *  1.  Make the overlay pane visible
    *  2.  Calculate the position and size of the overlay pane wrt the bounds
    *      of the drawn region
-  */ 
+   */
   mutateStateAfterDrawing(bounds: L.LatLngBounds) {
     this.showElement(this.overlayPane);
-    const {
-      top,
-      left,
-      width,
-      height,
-    } = getControlPaneOffsets(this.map, bounds);
+    const { top, left, width, height } = getControlPaneOffsets(
+      this.map,
+      bounds
+    );
     this.overlayPane.style.top = top as string;
     this.overlayPane.style.left = left as string;
     this.overlayPane.style.width = width as string;
@@ -227,11 +265,13 @@ class SelectionRegionControl extends L.Control {
   onAdd(map: L.Map) {
     /* Map propagation and event addition */
     this.map = map;
-    this.map.addHandler("selection", SelectionRegionHandler);
+    this.map.addHandler('selection', SelectionRegionHandler);
 
     /* Create transparent overlay pane with a high z-index for the selected region's "control" elements,
       and begin with the overlay pane hidden */
-    this.overlayPane = map.createPane("region-controls-overlay") as HTMLDivElement;
+    this.overlayPane = map.createPane(
+      'region-controls-overlay'
+    ) as HTMLDivElement;
     this.overlayPane.style.zIndex = String(650);
     this.hideElement(this.overlayPane);
 
@@ -239,40 +279,40 @@ class SelectionRegionControl extends L.Control {
     // menu container
     this.overlayPane.addEventListener('mouseover', () => {
       if (
-        this.overlayPane.firstChild && 
+        this.overlayPane.firstChild &&
         this.overlayPane.firstChild instanceof HTMLDivElement
       ) {
         this.showElement(this.overlayPane.firstChild, 'flex');
       }
-    })
+    });
     this.overlayPane.addEventListener('mouseout', () => {
       if (
-        this.overlayPane.firstChild && 
+        this.overlayPane.firstChild &&
         this.overlayPane.firstChild instanceof HTMLDivElement
       ) {
         this.hideElement(this.overlayPane.firstChild);
       }
-    })
+    });
 
     /* Create container for "Select Region" control button */
     this.baseElement = L.DomUtil.create(
-      "div",
-      "leaflet-control-selection-region"
-  );
+      'div',
+      'leaflet-control-selection-region'
+    );
 
     /* Create start button and define its click event */
     this.startButton = this.createButton(
       this.baseElement,
       'start-button',
       undefined,
-      crop,
+      crop
     );
     this.startButton.setAttribute('title', 'Draw a region on the map');
-    this.startButton.addEventListener("click", () => {
+    this.startButton.addEventListener('click', () => {
       /* The selection will be disabled by the handler once complete. */
       (this.map as MapWithSelectionHandler).selection.enable();
       this.startButton.disabled = true;
-      this.map.getContainer().style.cursor = "crosshair";
+      this.map.getContainer().style.cursor = 'crosshair';
     });
 
     /* Add callback to event handler */
@@ -280,7 +320,8 @@ class SelectionRegionControl extends L.Control {
       (bounds: L.LatLngBounds) => {
         this.mutateStateAfterDrawing(bounds);
         this.options.handleSelectionBounds(bounds);
-    });
+      }
+    );
 
     return this.baseElement;
   }
@@ -293,10 +334,10 @@ class SelectionRegionHandler extends L.Handler {
   endPoint?: L.LatLng;
   rectangle?: L.Rectangle;
   vertices?: {
-    ne?: L.CircleMarker,
-    nw?: L.CircleMarker,
-    se?: L.CircleMarker,
-    sw?: L.CircleMarker,
+    ne?: L.CircleMarker;
+    nw?: L.CircleMarker;
+    se?: L.CircleMarker;
+    sw?: L.CircleMarker;
   };
   callback!: Function;
 
@@ -312,11 +353,21 @@ class SelectionRegionHandler extends L.Handler {
   }
 
   addHooks() {
-    L.DomEvent.on(this.container, "mousedown", this.onMouseDown as L.DomEvent.EventHandlerFn, this);
+    L.DomEvent.on(
+      this.container,
+      'mousedown',
+      this.onMouseDown as L.DomEvent.EventHandlerFn,
+      this
+    );
   }
 
   removeHooks() {
-    L.DomEvent.off(this.container, "mousedown", this.onMouseDown as L.DomEvent.EventHandlerFn, this);
+    L.DomEvent.off(
+      this.container,
+      'mousedown',
+      this.onMouseDown as L.DomEvent.EventHandlerFn,
+      this
+    );
   }
 
   private onMouseDown(event: MouseEvent) {
@@ -331,25 +382,33 @@ class SelectionRegionHandler extends L.Handler {
     );
 
     /* Create the rectangle. We will update it as we move the mouse. */
-    this.createRectangle(
-      new L.LatLngBounds(this.startPoint, this.startPoint)
-    );
+    this.createRectangle(new L.LatLngBounds(this.startPoint, this.startPoint));
 
     /* Add drag and stop event listeners */
-    L.DomEvent.on(this.container, "mousemove", this.onMouseMove as L.DomEvent.EventHandlerFn, this);
-    L.DomEvent.on(this.container, "mouseup", this.onMouseUp as L.DomEvent.EventHandlerFn, this);
+    L.DomEvent.on(
+      this.container,
+      'mousemove',
+      this.onMouseMove as L.DomEvent.EventHandlerFn,
+      this
+    );
+    L.DomEvent.on(
+      this.container,
+      'mouseup',
+      this.onMouseUp as L.DomEvent.EventHandlerFn,
+      this
+    );
   }
 
   private onMouseMove(event: MouseEvent) {
     if (!this.drawing) {
       console.log(
-        "This should never happen. Event handler for mouse move should never be called when not drawing"
+        'This should never happen. Event handler for mouse move should never be called when not drawing'
       );
     } else {
       const bounds = new L.LatLngBounds(
         this.startPoint!,
         this.map.containerPointToLatLng(new L.Point(event.x, event.y))
-      )
+      );
       this.updateRectangleBounds(bounds);
 
       if (this.vertices) {
@@ -362,15 +421,27 @@ class SelectionRegionHandler extends L.Handler {
     this.drawing = false;
 
     /* event.latlng seems to be undefined for some reason, so we need to convert manually. */
-    this.endPoint = this.map.containerPointToLatLng(new L.Point(event.x, event.y));
+    this.endPoint = this.map.containerPointToLatLng(
+      new L.Point(event.x, event.y)
+    );
 
-    L.DomEvent.off(this.container, "mousemove", this.onMouseMove as L.DomEvent.EventHandlerFn, this);
-    L.DomEvent.off(this.container, "mouseup", this.onMouseUp as L.DomEvent.EventHandlerFn, this);
+    L.DomEvent.off(
+      this.container,
+      'mousemove',
+      this.onMouseMove as L.DomEvent.EventHandlerFn,
+      this
+    );
+    L.DomEvent.off(
+      this.container,
+      'mouseup',
+      this.onMouseUp as L.DomEvent.EventHandlerFn,
+      this
+    );
 
     /* Resume messing with my map, dude! */
     this.map.dragging.enable();
     L.DomUtil.enableTextSelection();
-    this.map.getContainer().style.cursor = "";
+    this.map.getContainer().style.cursor = '';
 
     /* Remove myself. My job is done here. */
     (this.map as MapWithSelectionHandler).selection.disable();
@@ -382,16 +453,16 @@ class SelectionRegionHandler extends L.Handler {
   private createRectangle(bounds: L.LatLngBounds) {
     this.rectangle = new L.Rectangle(bounds);
     this.rectangle.setStyle({
-      'dashArray': '4',
-      'opacity': 0.7,
-      'weight': 2
-    })
+      dashArray: '4',
+      opacity: 0.7,
+      weight: 2,
+    });
     this.rectangle.addTo(this.map);
   }
 
   private updateRectangleBounds(bounds: L.LatLngBounds) {
     if (!this.rectangle) {
-      console.log("Rectangle not created, and you are trying to update it");
+      console.log('Rectangle not created, and you are trying to update it');
     } else {
       this.rectangle.setBounds(bounds);
     }
@@ -409,18 +480,18 @@ class SelectionRegionHandler extends L.Handler {
     this.callback = () => callback(this.rectangle!.getBounds());
   }
 
-  private createVertex(latlng: L.LatLng, options?: Omit<L.CircleOptions, 'radius'>) {
-    return new L.CircleMarker(
-        latlng,
-        {
-          ...options,
-          color: 'black',
-          fillOpacity: 1,
-          radius: 3,
-          weight: 2,
-          fillColor: 'white',
-        }
-      );
+  private createVertex(
+    latlng: L.LatLng,
+    options?: Omit<L.CircleOptions, 'radius'>
+  ) {
+    return new L.CircleMarker(latlng, {
+      ...options,
+      color: 'black',
+      fillOpacity: 1,
+      radius: 3,
+      weight: 2,
+      fillColor: 'white',
+    });
   }
 
   private handleResize(event: L.LeafletMouseEvent) {
@@ -451,8 +522,18 @@ class SelectionRegionHandler extends L.Handler {
     }
 
     /* Add drag and stop event listeners */
-    L.DomEvent.on(this.container, "mousemove", this.onMouseMove as L.DomEvent.EventHandlerFn, this);
-    L.DomEvent.on(this.container, "mouseup", this.onMouseUp as L.DomEvent.EventHandlerFn, this);
+    L.DomEvent.on(
+      this.container,
+      'mousemove',
+      this.onMouseMove as L.DomEvent.EventHandlerFn,
+      this
+    );
+    L.DomEvent.on(
+      this.container,
+      'mouseup',
+      this.onMouseUp as L.DomEvent.EventHandlerFn,
+      this
+    );
   }
 
   private finaliseRectangle() {
@@ -463,27 +544,35 @@ class SelectionRegionHandler extends L.Handler {
     if (!this.vertices) {
       /* Create circles at vertices */
       this.vertices = {
-        ne: this.createVertex(bounds.getNorthEast(), {className: 'vertex-ne'}),
-        nw: this.createVertex(bounds.getNorthWest(), {className: 'vertex-nw'}),
-        se: this.createVertex(bounds.getSouthEast(), {className: 'vertex-se'}),
-        sw: this.createVertex(bounds.getSouthWest(), {className: 'vertex-sw'}),
+        ne: this.createVertex(bounds.getNorthEast(), {
+          className: 'vertex-ne',
+        }),
+        nw: this.createVertex(bounds.getNorthWest(), {
+          className: 'vertex-nw',
+        }),
+        se: this.createVertex(bounds.getSouthEast(), {
+          className: 'vertex-se',
+        }),
+        sw: this.createVertex(bounds.getSouthWest(), {
+          className: 'vertex-sw',
+        }),
       };
-      Object.values(this.vertices).forEach(v => {
-        v.addEventListener('mousedown', this.handleResize, this)
-        v.addTo(this.map)
-      })
+      Object.values(this.vertices).forEach((v) => {
+        v.addEventListener('mousedown', this.handleResize, this);
+        v.addTo(this.map);
+      });
     } else {
       this.updateVertexPositions(bounds);
     }
 
     /* Set the style of the rectangle to something different so they know they've finished. */
-    this.rectangle!.setStyle({ color: "black", fill: false } as L.PathOptions);
+    this.rectangle!.setStyle({ color: 'black', fill: false } as L.PathOptions);
 
     if (this.callback) {
       this.callback();
     }
   }
-  
+
   reset() {
     if (this.rectangle) {
       this.rectangle.remove();
@@ -491,7 +580,7 @@ class SelectionRegionHandler extends L.Handler {
     }
 
     if (this.vertices) {
-      Object.values(this.vertices).forEach(v => v.remove());
+      Object.values(this.vertices).forEach((v) => v.remove());
       this.vertices = undefined;
     }
 
@@ -511,7 +600,7 @@ export const AreaSelectionControl = ({
 }: SelectionRegionOptions) => {
   /** Get a reference to the map so we can add the control to it */
   const map = useMap();
-  
+
   /** We're creating a reference to the control element so that we can sync it with
     changes to the submapEndpointStub */
   const controlRef = useRef<SelectionRegionControl | null>(null);
@@ -519,7 +608,7 @@ export const AreaSelectionControl = ({
   useEffect(() => {
     // Remove existing control before adding a new one
     if (controlRef.current) {
-      map.removeControl(controlRef.current)
+      map.removeControl(controlRef.current);
     }
 
     const control = new SelectionRegionControl({
@@ -538,28 +627,31 @@ export const AreaSelectionControl = ({
       if (controlRef.current) {
         map.removeControl(controlRef.current);
       }
-    }
-  }, [map, handleSelectionBounds])
+    };
+  }, [map, handleSelectionBounds]);
 
   useEffect(() => {
     // Invoke the SelectionRegionControl's refreshMenuButtons method
     // if/when the submapEndpointStub prop changes
     if (controlRef.current) {
-      controlRef.current.refreshMenuButtons(setShowAddBoxDialog, submapDataWithBounds)
+      controlRef.current.refreshMenuButtons(
+        setShowAddBoxDialog,
+        submapDataWithBounds
+      );
     }
-  }, [map, submapDataWithBounds, setShowAddBoxDialog])
+  }, [map, submapDataWithBounds, setShowAddBoxDialog]);
 
   useEffect(() => {
     if (controlRef.current && resetAreaSelection) {
       controlRef.current.startButton.disabled = false;
       controlRef.current.overlayPane.style.display = 'none';
-      (map as MapWithSelectionHandler).selection.reset()
-      setResetAreaSelection(false)
+      (map as MapWithSelectionHandler).selection.reset();
+      setResetAreaSelection(false);
     }
-  }, [map, resetAreaSelection])
+  }, [map, resetAreaSelection]);
 
-  return null
-}
+  return null;
+};
 
 type Props = {
   selectionBounds: L.LatLngBounds | undefined;
@@ -571,7 +663,7 @@ type Props = {
   submapData?: SubmapData;
   setBoxes: (boxes: Box[]) => void;
   setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
-}
+};
 
 export function AreaSelection({
   selectionBounds,
@@ -580,54 +672,48 @@ export function AreaSelection({
   setBoxes,
   setActiveBoxIds,
 }: Props) {
-  const [showAddBoxDialog, setShowAddBoxDialog] = useState(false)
-  const [boxName, setBoxName] = useState('')
-  const [boxDescription, setBoxDescription] = useState('')
-  const [resetAreaSelection, setResetAreaSelection] = useState(false)
+  const [showAddBoxDialog, setShowAddBoxDialog] = useState(false);
+  const [boxName, setBoxName] = useState('');
+  const [boxDescription, setBoxDescription] = useState('');
+  const [resetAreaSelection, setResetAreaSelection] = useState(false);
 
   const handleSubmit = useCallback(
     (e: FormEvent) => {
       // Return if we don't have any coords to send the server
       if (!selectionBounds) return;
 
-      const formData = new FormData(e.target as HTMLFormElement)
+      const formData = new FormData(e.target as HTMLFormElement);
       const params = new URLSearchParams();
 
-      formData.forEach(
-        (val, key) => {
-          params.append(key, val.toString());
-        }
-      )
+      formData.forEach((val, key) => {
+        params.append(key, val.toString());
+      });
 
-      const endpoint = `${SERVICE_URL}/highlights/boxes/new?${params.toString()}`
+      const endpoint = `${SERVICE_URL}/highlights/boxes/new?${params.toString()}`;
 
-      const { 
-        top, 
-        left, 
-        bottom, 
-        right 
-      } = getTopLeftBottomRightFromBounds(selectionBounds);
+      const { top, left, bottom, right } =
+        getTopLeftBottomRightFromBounds(selectionBounds);
 
-      const top_left = [left, top]
-      const bottom_right = [right, bottom]
+      const top_left = [left, top];
+      const bottom_right = [right, bottom];
 
       addSubmapAsBox(
         endpoint,
         top_left,
         bottom_right,
         setBoxes,
-        setActiveBoxIds,
-      )
+        setActiveBoxIds
+      );
 
       // Reset applicable state after adding a new submap box
-      handleSelectionBounds(undefined)
-      setResetAreaSelection(true)
-      setBoxName('')
-      setBoxDescription('')
+      handleSelectionBounds(undefined);
+      setResetAreaSelection(true);
+      setBoxName('');
+      setBoxDescription('');
       setShowAddBoxDialog(false);
-
-    }, [setShowAddBoxDialog, selectionBounds]
-  )
+    },
+    [setShowAddBoxDialog, selectionBounds]
+  );
 
   const submapDataWithBounds = useMemo(() => {
     if (!selectionBounds || !submapData) return;
@@ -635,13 +721,13 @@ export function AreaSelection({
     return {
       ...submapData,
       ...getTopLeftBottomRightFromBounds(selectionBounds),
-    }
-  }, [submapData, selectionBounds])
+    };
+  }, [submapData, selectionBounds]);
 
   return (
     <>
       <Dialog
-        dialogKey='add-box-dialog'
+        dialogKey="add-box-dialog"
         openDialog={showAddBoxDialog}
         setOpenDialog={setShowAddBoxDialog}
         headerText="Add New Box Layer"
@@ -653,29 +739,29 @@ export function AreaSelection({
           }}
         >
           <label>
-              Name
-              <input
-                name="name"
-                type="text"
-                value={boxName}
-                onChange={(e) => setBoxName(e.target.value)}
-                required
-              />
+            Name
+            <input
+              name="name"
+              type="text"
+              value={boxName}
+              onChange={(e) => setBoxName(e.target.value)}
+              required
+            />
           </label>
           <label>
-              Description
-              <textarea
-                name="description"
-                value={boxDescription}
-                onChange={(e) => setBoxDescription(e.target.value)}
-              />
+            Description
+            <textarea
+              name="description"
+              value={boxDescription}
+              onChange={(e) => setBoxDescription(e.target.value)}
+            />
           </label>
           <input type="submit" value="Add Box" />
         </form>
       </Dialog>
       <AreaSelectionControl
         // Sets the position of the "Select Region" control button to the top left of the map
-        position='topleft'
+        position="topleft"
         handleSelectionBounds={handleSelectionBounds}
         submapDataWithBounds={submapDataWithBounds}
         setShowAddBoxDialog={setShowAddBoxDialog}
@@ -683,5 +769,5 @@ export function AreaSelection({
         setResetAreaSelection={setResetAreaSelection}
       />
     </>
-  )
+  );
 }
