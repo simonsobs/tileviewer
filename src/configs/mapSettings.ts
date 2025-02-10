@@ -1,11 +1,11 @@
-import { CRS, MapOptions } from "leaflet";
+import { CRS, MapOptions } from 'leaflet';
 
 export const SERVICE_URL: string = window.location.origin || 'http://127.0.0.1:9191';
 
 export const mapOptions: MapOptions = {
-    center: [0.0, 0.0],
-    zoom: 3,
-    crs: CRS.EPSG4326,
+  center: [0.0, 0.0],
+  zoom: 3,
+  crs: CRS.EPSG4326,
 };
 
 export const DEFAULT_MIN_ZOOM = 0;
