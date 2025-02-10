@@ -30,26 +30,15 @@ function generateBoxContent(
   container: HTMLDivElement,
   name: string,
   description: string,
-  panePosition: { topLeft: L.Point; bottomRight: L.Point },
   hideBoxHandler: CustomBoxPaneProps['hideBoxHandler'],
   setBoxes: HighlightBoxLayerProps['setBoxes'],
   submapDataWithBounds: SubmapDataWithBounds
 ) {
-  const { topLeft, bottomRight } = panePosition;
-
-  const boxWidth = Math.abs(topLeft.x - bottomRight.x);
-  const boxHeight = Math.abs(topLeft.y - bottomRight.y);
-
   const boxContainer = container.firstChild as HTMLDivElement;
 
   while (boxContainer.firstChild) {
     boxContainer.removeChild(boxContainer.firstChild);
   }
-
-  boxContainer.style.top = topLeft.y + 'px';
-  boxContainer.style.left = topLeft.x + 'px';
-  boxContainer.style.minHeight = boxHeight + 'px';
-  boxContainer.style.minWidth = boxWidth < 200 ? `200px` : `${boxWidth}px`;
 
   const headerDiv = document.createElement('div');
   headerDiv.className = 'highlight-box-header';
@@ -155,17 +144,11 @@ export function CustomBoxPane({
       ...getTopLeftBottomRightFromBounds(bounds),
     };
 
-    const panePosition = {
-      topLeft: map.latLngToLayerPoint(bounds.getNorthWest()),
-      bottomRight: map.latLngToLayerPoint(bounds.getSouthEast()),
-    };
-
     generateBoxContent(
       box.id,
       pane as HTMLDivElement,
       box.name,
       box.description,
-      panePosition,
       hideBoxHandler,
       setBoxes,
       submapDataWithBounds
