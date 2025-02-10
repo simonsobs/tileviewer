@@ -32,6 +32,8 @@ function App() {
   const [selectionBounds, setSelectionBounds] = useState<LatLngBounds | undefined>(undefined);
   /** used to set the AstroScale component to the same width and interval as the graticule layer */
   const [graticuleDetails, setGraticuleDetails] = useState<undefined | GraticuleDetails>(undefined);
+  /** tracks highlight boxes that are "checked" and visible on the map  */
+  const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
 
   /**
    * On mount, fetch the maps and the map metadata in order to get the list of bands used as
@@ -224,6 +226,7 @@ function App() {
                   box={box}
                   submapData={submapData}
                   setBoxes={setHighlightBoxes}
+                  activeBoxIds={activeBoxIds}
                 />
               )
             )}
@@ -236,8 +239,15 @@ function App() {
             selectionBounds={selectionBounds}
             submapData={submapData}
             setBoxes={setHighlightBoxes}
+            setActiveBoxIds={setActiveBoxIds}
           />
-          <MapEvents onBaseLayerChange={onBaseLayerChange} selectionBounds={selectionBounds} boxes={highlightBoxes} />
+          <MapEvents
+            onBaseLayerChange={onBaseLayerChange}
+            selectionBounds={selectionBounds}
+            boxes={highlightBoxes}
+            activeBoxIds={activeBoxIds}
+            setActiveBoxIds={setActiveBoxIds}
+          />
         </MapContainer>
         {vmin !== undefined && vmax !== undefined && cmap && activeLayer && (
           <ColorMapControls
@@ -258,6 +268,8 @@ type MapEventsProps = {
   onBaseLayerChange: (newLayer: L.TileLayer) => void;
   selectionBounds?: L.LatLngBounds;
   boxes?: Box[]
+  activeBoxIds: number[];
+  setActiveBoxIds: (ids: number[]) => void;
 }
 
 function repositionBoxOverlays(map: L.Map, boxes: Box[]) {
@@ -290,12 +302,35 @@ function repositionBoxOverlays(map: L.Map, boxes: Box[]) {
   })
 }
 
+function handleAddOrDeleteBoxOverlay(
+  layer: L.Layer,
+  activeBoxIds: number[],
+  setActiveBoxIds: (ids: number[]) => void,
+) {
+  const paneName = layer.options.pane;
+  if (paneName && paneName.includes('highlight-boxes-pane')) {
+    const splitPaneName = paneName.split('-');
+    const boxId = Number(splitPaneName[splitPaneName.length - 1])
+    if (!activeBoxIds.includes(boxId)) {
+      setActiveBoxIds(activeBoxIds.concat(boxId))
+    } else {
+      setActiveBoxIds(activeBoxIds.filter(id => id !== boxId))
+    }
+  }
+}
+
 /**
  * Customizes Leaflet's generic map events
  * @param MapEventsProps
  * @returns null
  */
-function MapEvents({onBaseLayerChange, selectionBounds, boxes}: MapEventsProps) {
+function MapEvents({
+  onBaseLayerChange,
+  selectionBounds,
+  boxes,
+  activeBoxIds,
+  setActiveBoxIds,
+}: MapEventsProps) {
   const map = useMap();
   useMapEvents({
     baselayerchange: (e) => {
@@ -305,6 +340,12 @@ function MapEvents({onBaseLayerChange, selectionBounds, boxes}: MapEventsProps) 
       if (boxes) {
         repositionBoxOverlays(map, boxes)
       }
+    },
+    overlayadd: (e) => {
+      handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds)
+    },
+    overlayremove: (e) => {
+      handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds)
     },
     /** Resize the "select region" overlay if the map is zoomed while overlay is drawn */
     zoomend: () => {

@@ -561,19 +561,16 @@ export const AreaSelectionControl = ({
   return null
 }
 
-/**
-  * handleSelectionBounds: The handler to set the selection bounds in SelectionRegionControl,
-  *  which exists higher up the component order so we can recompute the selection region's
-  *  position when the map is zoomed.
-  * 
-  * submapEndpointStub: A stubbed string of the endpoint used to download submaps, which exists
-  *  higher up the component order because we need state at the map level to construct it
- */
 type Props = {
   selectionBounds: L.LatLngBounds | undefined;
+  /** The handler to set the selection bounds in SelectionRegionControl, which exists higher up the 
+    component order so we can recompute the selection region'sposition when the map is zoomed. */
   handleSelectionBounds: (bounds: L.LatLngBounds | undefined) => void;
+  /** The data we need for the download and "add box" endpoints, which exists higher up the component
+    order because we need stateat the map level */
   submapData?: SubmapData;
   setBoxes: (boxes: Box[]) => void;
+  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
 }
 
 export function AreaSelection({
@@ -581,6 +578,7 @@ export function AreaSelection({
   handleSelectionBounds,
   submapData,
   setBoxes,
+  setActiveBoxIds,
 }: Props) {
   const [showAddBoxDialog, setShowAddBoxDialog] = useState(false)
   const [boxName, setBoxName] = useState('')
@@ -618,8 +616,10 @@ export function AreaSelection({
         top_left,
         bottom_right,
         setBoxes,
+        setActiveBoxIds,
       )
 
+      // Reset applicable state after adding a new submap box
       handleSelectionBounds(undefined)
       setResetAreaSelection(true)
       setBoxName('')

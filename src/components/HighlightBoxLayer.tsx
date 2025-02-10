@@ -12,9 +12,10 @@ type HighlightBoxLayerProps = {
     box: Box;
     submapData: SubmapData;
     setBoxes: (boxes: Box[]) => void;
+    activeBoxIds: number[];
 }
 
-interface CustomBoxPaneProps extends HighlightBoxLayerProps {
+interface CustomBoxPaneProps extends Omit<HighlightBoxLayerProps, 'activeBoxIds'> {
     hideBoxHandler: () => void;
     bounds: L.LatLngBounds;
 }
@@ -170,6 +171,7 @@ export function HighlightBoxLayer({
     box, 
     submapData,
     setBoxes,
+    activeBoxIds,
 }: HighlightBoxLayerProps) {
     const map = useMap();
     const layer = useRef<L.Rectangle | null>(null);
@@ -203,6 +205,7 @@ export function HighlightBoxLayer({
         <LayersControl.Overlay
             key={box.id}
             name={box.name}
+            checked={activeBoxIds.includes(box.id)}
         >
             <CustomBoxPane
                 key={`custom-pane-${box.id}`}

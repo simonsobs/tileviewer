@@ -91,6 +91,7 @@ export async function addSubmapAsBox(
     top_left: number[],
     bottom_right: number[],
     setBoxes: (boxes: Box[]) => void,
+    setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>,
 ) {
     const requestBody = {
         top_left,
@@ -110,6 +111,11 @@ export async function addSubmapAsBox(
         )
 
         if (response.ok) {
+            const newBoxId = await response.json();
+            // Add the new box to the list of active boxes so that it appears as soon
+            // as we process the request
+            setActiveBoxIds((prevState: number[]) => [...prevState, newBoxId])
+
             const boxes = await fetchBoxes();
             setBoxes(boxes);
         }
