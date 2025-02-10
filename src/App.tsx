@@ -4,8 +4,6 @@ import {
   MapContainer,
   Popup,
   TileLayer,
-  useMap,
-  useMapEvents,
   CircleMarker,
   FeatureGroup,
 } from 'react-leaflet';
@@ -23,7 +21,7 @@ import {
   Box,
 } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
-import { getControlPaneOffsets } from './utils/paneUtils';
+import { MapEvents } from './components/MapEvents';
 import { ColorMapControls } from './components/ColorMapControls';
 import { CoordinatesDisplay } from './components/CoordinatesDisplay';
 import { AstroScale } from './components/AstroScale';
@@ -296,121 +294,6 @@ function App() {
       )}
     </>
   );
-}
-
-type MapEventsProps = {
-  onBaseLayerChange: (newLayer: L.TileLayer) => void;
-  selectionBounds?: L.LatLngBounds;
-  boxes?: Box[];
-  activeBoxIds: number[];
-  setActiveBoxIds: (ids: number[]) => void;
-};
-
-function repositionBoxOverlays(map: L.Map, boxes: Box[]) {
-  const panes = map.getPanes();
-  map.eachLayer((l) => {
-    if (
-      l.options.pane &&
-      l.options.pane.includes('highlight-boxes-pane') &&
-      panes[l.options.pane]
-    ) {
-      const splitPaneName = l.options.pane.split('-');
-      const boxId = Number(splitPaneName[splitPaneName.length - 1]);
-      const box = boxes.find((b) => b.id === boxId);
-
-      if (box) {
-        const bounds = latLngBounds(
-          latLng(box.top_left_dec, box.top_left_ra),
-          latLng(box.bottom_right_dec, box.bottom_right_ra)
-        );
-        const pane = panes[l.options.pane];
-        const overlayContainer = pane.firstChild as HTMLDivElement;
-
-        if (overlayContainer) {
-          const { top, left, width, height } = getControlPaneOffsets(
-            map,
-            bounds
-          );
-
-          overlayContainer.style.top = top as string;
-          overlayContainer.style.left = left as string;
-          overlayContainer.style.width = width as string;
-          overlayContainer.style.height = height as string;
-        }
-      }
-    }
-  });
-}
-
-function handleAddOrDeleteBoxOverlay(
-  layer: L.Layer,
-  activeBoxIds: number[],
-  setActiveBoxIds: (ids: number[]) => void
-) {
-  const paneName = layer.options.pane;
-  if (paneName && paneName.includes('highlight-boxes-pane')) {
-    const splitPaneName = paneName.split('-');
-    const boxId = Number(splitPaneName[splitPaneName.length - 1]);
-    if (!activeBoxIds.includes(boxId)) {
-      setActiveBoxIds(activeBoxIds.concat(boxId));
-    } else {
-      setActiveBoxIds(activeBoxIds.filter((id) => id !== boxId));
-    }
-  }
-}
-
-/**
- * Customizes Leaflet's generic map events
- * @param MapEventsProps
- * @returns null
- */
-function MapEvents({
-  onBaseLayerChange,
-  selectionBounds,
-  boxes,
-  activeBoxIds,
-  setActiveBoxIds,
-}: MapEventsProps) {
-  const map = useMap();
-  useMapEvents({
-    baselayerchange: (e) => {
-      onBaseLayerChange(e.layer as L.TileLayer);
-    },
-    moveend: () => {
-      if (boxes) {
-        repositionBoxOverlays(map, boxes);
-      }
-    },
-    overlayadd: (e) => {
-      handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds);
-    },
-    overlayremove: (e) => {
-      handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds);
-    },
-    /** Resize the "select region" overlay if the map is zoomed while overlay is drawn */
-    zoomend: () => {
-      const regionControlsOverlay = map.getPane('region-controls-overlay');
-      if (
-        regionControlsOverlay &&
-        regionControlsOverlay.style.display === 'block' &&
-        selectionBounds
-      ) {
-        const { top, left, width, height } = getControlPaneOffsets(
-          map,
-          selectionBounds
-        );
-        regionControlsOverlay.style.top = top as string;
-        regionControlsOverlay.style.left = left as string;
-        regionControlsOverlay.style.width = width as string;
-        regionControlsOverlay.style.height = height as string;
-      }
-
-      if (boxes) {
-        repositionBoxOverlays(map, boxes);
-      }
-    },
-  });
-  return null;
 }
 
 export default App;
