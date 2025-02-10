@@ -11,3 +11,17 @@ export function makeLayerName(band: Band) {
         (band.stokes_parameter ? ` ${band.stokes_parameter}` : '') + 
         (band.quantity ? ` ${band.quantity}` : '')
 }
+
+export function getTopLeftBottomRightFromBounds(bounds: L.LatLngBounds) {
+    const top = bounds.getNorth();
+    const left = bounds.getWest();
+    const bottom = bounds.getSouth();
+    const right = bounds.getEast();
+
+    return {
+        top,
+        left,
+        bottom,
+        right,
+    }
+}

@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayersControl, MapContainer, Popup, TileLayer, useMap, useMapEvents, CircleMarker, FeatureGroup } from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
 import { mapOptions, SERVICE_URL, DEFAULT_MIN_ZOOM } from './configs/mapSettings';
-import { GraticuleDetails, MapMetadataResponse, Band, SourceList } from './types/maps';
+import { GraticuleDetails, MapMetadataResponse, Band, SourceList, Box } from './types/maps';
 import { makeLayerName } from './utils/layerUtils';
 import { getControlPaneOffsets } from './utils/paneUtils';
 import { ColorMapControls } from './components/ColorMapControls';
@@ -10,7 +10,8 @@ import { CoordinatesDisplay } from './components/CoordinatesDisplay';
 import { AstroScale } from './components/AstroScale';
 import { AreaSelection } from './components/AreaSelection';
 import { GraticuleLayer } from './components/GraticuleLayer';
-import { fetchProducts } from './utils/fetchUtils';
+import { fetchBoxes, fetchProducts } from './utils/fetchUtils';
+import { HighlightBoxLayer } from './components/HighlightBoxLayer';
 
 function App() {
   /** vmin, vmax, and cmap are matplotlib parameters used in the histogram components
@@ -25,10 +26,14 @@ function App() {
   const [bands, setBands] = useState<Band[] | undefined>(undefined);
   /** sourceLists are used as FeatureGroups in the map, which can be toggled on/off in the map legend */
   const [sourceLists, setSourceLists] = useState<SourceList[] | undefined>(undefined);
+  /** highlightBoxes are regions user's have added to a map via the AreaSelection tooling */
+  const [highlightBoxes, setHighlightBoxes] = useState<Box[] | undefined>(undefined);
   /** sets the bounds of the rectangular "select region" box */
   const [selectionBounds, setSelectionBounds] = useState<LatLngBounds | undefined>(undefined);
   /** used to set the AstroScale component to the same width and interval as the graticule layer */
   const [graticuleDetails, setGraticuleDetails] = useState<undefined | GraticuleDetails>(undefined);
+  /** tracks highlight boxes that are "checked" and visible on the map  */
+  const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
 
   /**
    * On mount, fetch the maps and the map metadata in order to get the list of bands used as
@@ -96,6 +101,14 @@ function App() {
     getSourceLists()
   }, [])
 
+  useEffect(() => {
+    async function getHighlightBoxes() {
+      const boxes = await fetchBoxes()
+      setHighlightBoxes(boxes)
+    }
+    getHighlightBoxes()
+  }, [])
+
   /** 
    * Handler fires when user changes map layers. If the units of the new
    * layer are the same as the active layer, then we just set a new active
@@ -127,6 +140,24 @@ function App() {
     (cmap: string) => {
       setCmap(cmap)
     }, [setCmap]
+  )
+
+  /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
+    composed from state at this level, we must construct it here and pass it down to the AreaSelection and
+    HighlightBoxLayer components. */
+  const submapData = useMemo(
+    () => {
+      if (activeLayer) {
+        const {map_id: mapId, id: bandId } = activeLayer;
+        return {
+          mapId,
+          bandId,
+          vmin,
+          vmax,
+          cmap,
+        }
+      }
+    }, [activeLayer?.id, activeLayer?.map_id, vmin, vmax, cmap]
   )
 
   return (
@@ -188,12 +219,35 @@ function App() {
                 )
               }
             )}
+            {submapData && highlightBoxes?.map(
+              (box) => (
+                <HighlightBoxLayer
+                  key={`${box.name}-${box.id}`}
+                  box={box}
+                  submapData={submapData}
+                  setBoxes={setHighlightBoxes}
+                  activeBoxIds={activeBoxIds}
+                />
+              )
+            )}
           </LayersControl>
           <GraticuleLayer setGraticuleDetails={setGraticuleDetails} />
           <CoordinatesDisplay />
           {graticuleDetails && <AstroScale graticuleDetails={graticuleDetails} />}
-          <AreaSelection handleSelectionBounds={setSelectionBounds} />
-          <MapEvents onBaseLayerChange={onBaseLayerChange} selectionBounds={selectionBounds} />
+          <AreaSelection
+            handleSelectionBounds={setSelectionBounds}
+            selectionBounds={selectionBounds}
+            submapData={submapData}
+            setBoxes={setHighlightBoxes}
+            setActiveBoxIds={setActiveBoxIds}
+          />
+          <MapEvents
+            onBaseLayerChange={onBaseLayerChange}
+            selectionBounds={selectionBounds}
+            boxes={highlightBoxes}
+            activeBoxIds={activeBoxIds}
+            setActiveBoxIds={setActiveBoxIds}
+          />
         </MapContainer>
         {vmin !== undefined && vmax !== undefined && cmap && activeLayer && (
           <ColorMapControls
@@ -213,6 +267,60 @@ function App() {
 type MapEventsProps = {
   onBaseLayerChange: (newLayer: L.TileLayer) => void;
   selectionBounds?: L.LatLngBounds;
+  boxes?: Box[]
+  activeBoxIds: number[];
+  setActiveBoxIds: (ids: number[]) => void;
+}
+
+function repositionBoxOverlays(map: L.Map, boxes: Box[]) {
+  const panes = map.getPanes()
+  map.eachLayer((l) => {
+    if (l.options.pane && l.options.pane.includes('highlight-boxes-pane') && panes[l.options.pane]) {
+      const splitPaneName = l.options.pane.split('-');
+      const boxId = Number(splitPaneName[splitPaneName.length - 1])
+      const box = boxes.find(b => b.id === boxId)
+
+      if (box) {
+        const bounds = latLngBounds(
+          latLng(box.top_left_dec, box.top_left_ra),
+          latLng(box.bottom_right_dec, box.bottom_right_ra)
+        )
+        const pane = panes[l.options.pane]
+        const overlayContainer = pane.firstChild as HTMLDivElement
+
+        if (overlayContainer) {
+          const {
+            top,
+            left,
+            width,
+            height,
+          } = getControlPaneOffsets(map, bounds)
+
+          overlayContainer.style.top = top as string;
+          overlayContainer.style.left = left as string;
+          overlayContainer.style.width = width as string;
+          overlayContainer.style.height = height as string;
+        }
+      }
+    }
+  })
+}
+
+function handleAddOrDeleteBoxOverlay(
+  layer: L.Layer,
+  activeBoxIds: number[],
+  setActiveBoxIds: (ids: number[]) => void,
+) {
+  const paneName = layer.options.pane;
+  if (paneName && paneName.includes('highlight-boxes-pane')) {
+    const splitPaneName = paneName.split('-');
+    const boxId = Number(splitPaneName[splitPaneName.length - 1])
+    if (!activeBoxIds.includes(boxId)) {
+      setActiveBoxIds(activeBoxIds.concat(boxId))
+    } else {
+      setActiveBoxIds(activeBoxIds.filter(id => id !== boxId))
+    }
+  }
 }
 
 /**
@@ -220,11 +328,28 @@ type MapEventsProps = {
  * @param MapEventsProps
  * @returns null
  */
-function MapEvents({onBaseLayerChange, selectionBounds}: MapEventsProps) {
+function MapEvents({
+  onBaseLayerChange,
+  selectionBounds,
+  boxes,
+  activeBoxIds,
+  setActiveBoxIds,
+}: MapEventsProps) {
   const map = useMap();
   useMapEvents({
     baselayerchange: (e) => {
       onBaseLayerChange(e.layer as L.TileLayer)
+    },
+    moveend: () => {
+      if (boxes) {
+        repositionBoxOverlays(map, boxes)
+      }
+    },
+    overlayadd: (e) => {
+      handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds)
+    },
+    overlayremove: (e) => {
+      handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds)
     },
     /** Resize the "select region" overlay if the map is zoomed while overlay is drawn */
     zoomend: () => {
@@ -245,7 +370,11 @@ function MapEvents({onBaseLayerChange, selectionBounds}: MapEventsProps) {
         regionControlsOverlay.style.width = width as string;
         regionControlsOverlay.style.height = height as string;
       }
-    }
+
+      if (boxes) {
+        repositionBoxOverlays(map, boxes)
+      }
+    },
   })
   return null
 }
