@@ -1,6 +1,7 @@
 import { CRS, MapOptions } from 'leaflet';
 
-export const SERVICE_URL: string = window.location.origin || 'http://127.0.0.1:9191';
+export const SERVICE_URL: string =
+  window.location.href || 'http://127.0.0.1:9191';
 
 export const mapOptions: MapOptions = {
   center: [0.0, 0.0],
