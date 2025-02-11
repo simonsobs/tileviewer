@@ -9,6 +9,6 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 8080,
     },
-    base: mode === 'production' ? '/static' : '',
+    base: mode === 'production' ? './' : '',
   };
 });
