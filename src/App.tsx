@@ -238,7 +238,7 @@ function App() {
                       latLng(band.bounding_top, band.bounding_left),
                       latLng(band.bounding_bottom, band.bounding_right)
                     )}
-                    maxZoom={band.levels - 1}
+                    maxZoom={Math.max(...bands.map((b) => b.levels)) + 3}
                     maxNativeZoom={band.levels - 1}
                     tileSize={band.tile_size}
                   />
