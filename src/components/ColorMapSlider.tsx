@@ -7,7 +7,7 @@ import './styles/color-map-controls.css';
 interface ColorMapSlideProps
   extends Omit<
     ColorMapControlsProps,
-    'activeLayerId' | 'cmap' | 'onCmapChange'
+    'activeBaselayerId' | 'cmap' | 'onCmapChange'
   > {
   /** The URL to the color map image */
   cmapImage?: string;

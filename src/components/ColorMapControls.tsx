@@ -26,8 +26,8 @@ export type ColorMapControlsProps = {
   cmap: string;
   /** handler to set new color map */
   onCmapChange: (cmap: string) => void;
-  /** the id of the selected map layer */
-  activeLayerId: number;
+  /** the id of the selected map baselayer */
+  activeBaselayerId: number;
   /** the units to display in the histogram range */
   units?: string;
   /** the quantity to display in the histogram range */
@@ -47,7 +47,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
     onCmapValuesChange,
     cmap,
     onCmapChange,
-    activeLayerId,
+    activeBaselayerId,
     units,
     quantity,
   } = props;
@@ -72,13 +72,13 @@ export function ColorMapControls(props: ColorMapControlsProps) {
   useEffect(() => {
     async function getHistogramData() {
       const response = await fetch(
-        `${SERVICE_URL}/histograms/data/${activeLayerId}`
+        `${SERVICE_URL}/histograms/data/${activeBaselayerId}`
       );
       const data: HistogramResponse = await response.json();
       setHistogramData(data);
     }
     getHistogramData();
-  }, [activeLayerId, setHistogramData]);
+  }, [activeBaselayerId, setHistogramData]);
 
   /** Determines the min, max, and step attributes for the range slider. Min and max are
         found by comparing the user-controlled (or default) 'values' to the histogram's 'edges',
