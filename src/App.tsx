@@ -26,6 +26,7 @@ import { GraticuleLayer } from './components/GraticuleLayer';
 import { fetchBoxes, fetchProducts } from './utils/fetchUtils';
 import { HighlightBoxLayer } from './components/HighlightBoxLayer';
 import { getCustomCRS } from './configs/CustomCRS';
+import './components/styles/map-layers.css';
 
 function App() {
   /** vmin, vmax, and cmap are matplotlib parameters used in the histogram components
@@ -64,6 +65,10 @@ function App() {
   const [tileSize, setTileSize] = useState<number | undefined>(undefined);
   /** used as a hack to mount a new MapContainer when the tileSize changes in order to set a new custom CRS */
   const [mapKey, setMapKey] = useState(1);
+
+  const [mapBounds, setMapBounds] = useState<LatLngBounds | undefined>(
+    undefined
+  );
 
   /**
    * On mount, fetch the maps and the map metadata in order to get the list of bands used as
@@ -150,7 +155,7 @@ function App() {
    * TileLayer requests.
    */
   const onBaseLayerChange = useCallback(
-    (layer: L.TileLayer) => {
+    (layer: L.TileLayer, map: L.Map) => {
       const currentLayerUnits = activeBaselayer?.units;
       const newActiveBaselayer = bands?.find(
         (b) => b.id === Number(layer.options.id)
@@ -162,6 +167,7 @@ function App() {
       }
       setActiveBaselayer(newActiveBaselayer);
       if (newActiveBaselayer?.tile_size !== tileSize) {
+        setMapBounds(map.getBounds());
         setTileSize(newActiveBaselayer!.tile_size);
         setMapKey((prevKey) => ++prevKey);
       }
@@ -176,6 +182,7 @@ function App() {
       tileSize,
       setTileSize,
       setMapKey,
+      setMapBounds,
     ]
   );
 
@@ -216,9 +223,10 @@ function App() {
         <MapContainer
           id="map"
           key={mapKey}
-          center={[0.0, 0.0]}
-          zoom={0}
           crs={getCustomCRS(tileSize)}
+          bounds={mapBounds}
+          center={mapBounds ? undefined : [0, 0]}
+          zoom={mapBounds ? undefined : 0}
         >
           <LayersControl>
             {/** Set each band to be a baselayer and set up the TileLayer according to the band- and user-set attributes */}
@@ -231,6 +239,7 @@ function App() {
                 >
                   <TileLayer
                     id={String(band.id)}
+                    className="tile-baselayer"
                     url={`${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
                     tms
                     noWrap
