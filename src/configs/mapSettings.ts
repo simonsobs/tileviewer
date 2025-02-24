@@ -1,7 +1,9 @@
 import { CRS, MapOptions } from 'leaflet';
 
+// Uses a user-defined VITE_SERVICE_URL environment variable for development; otherwise
+// uses the window.location object's href string, minus the trailing forward slash
 export const SERVICE_URL: string =
-  window.location.href || 'http://127.0.0.1:9191';
+  import.meta.env.VITE_SERVICE_URL || window.location.href.slice(0, -1);
 
 export const mapOptions: MapOptions = {
   center: [0.0, 0.0],

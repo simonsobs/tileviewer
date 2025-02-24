@@ -2,6 +2,7 @@ import { useMap, useMapEvents } from 'react-leaflet';
 import { getControlPaneOffsets } from '../utils/paneUtils';
 import { Box } from '../types/maps';
 import L, { latLng, latLngBounds } from 'leaflet';
+import { useCallback } from 'react';
 
 type MapEventsProps = {
   /** A callback function that allows us to set state for the new baselayer */
@@ -88,25 +89,6 @@ function handleAddOrDeleteBoxOverlay(
   }
 }
 
-function positionBoxLayerPane(map: L.Map, layer: L.Layer, boxes?: Box[]) {
-  const boxId = getBoxIdFromLayer(layer);
-
-  if (!boxId) return;
-
-  const box = boxes?.find((b) => b.id === boxId);
-  if (box) {
-    const bounds = latLngBounds(
-      latLng(box.top_left_dec, box.top_left_ra),
-      latLng(box.bottom_right_dec, box.bottom_right_ra)
-    );
-
-    const overlayContainer = map.getPane(layer.options.pane!)
-      ?.firstChild as HTMLDivElement;
-
-    repositionOverlay(map, bounds, overlayContainer);
-  }
-}
-
 /**
  * Customizes Leaflet's generic map events
  * @param MapEventsProps
@@ -120,6 +102,30 @@ export function MapEvents({
   setActiveBoxIds,
 }: MapEventsProps) {
   const map = useMap();
+
+  const positionBoxLayerPane = useCallback(
+    (layer: L.Layer) => {
+      const boxId = getBoxIdFromLayer(layer);
+
+      if (!boxId) return;
+
+      const box = boxes?.find((b) => b.id === boxId);
+
+      if (box) {
+        const bounds = latLngBounds(
+          latLng(box.top_left_dec, box.top_left_ra),
+          latLng(box.bottom_right_dec, box.bottom_right_ra)
+        );
+
+        const overlayContainer = map.getPane(layer.options.pane!)
+          ?.firstChild as HTMLDivElement;
+
+        repositionOverlay(map, bounds, overlayContainer);
+      }
+    },
+    [map, boxes]
+  );
+
   useMapEvents({
     baselayerchange: (e) => {
       onBaseLayerChange(e.layer as L.TileLayer);
@@ -131,7 +137,7 @@ export function MapEvents({
     },
     overlayadd: (e) => {
       handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds);
-      positionBoxLayerPane(map, e.layer, boxes);
+      positionBoxLayerPane(e.layer);
     },
     overlayremove: (e) => {
       handleAddOrDeleteBoxOverlay(e.layer, activeBoxIds, setActiveBoxIds);
