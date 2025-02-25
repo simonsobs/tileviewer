@@ -1,3 +1,4 @@
+import { startTransition } from 'react';
 import { SERVICE_URL } from '../configs/mapSettings';
 import {
   Box,
@@ -103,12 +104,19 @@ export function downloadSubmap(
 }
 
 export async function addSubmapAsBox(
-  endpoint: string,
-  top_left: number[],
-  bottom_right: number[],
+  boxData: {
+    params: URLSearchParams;
+    top_left: number[];
+    bottom_right: number[];
+  },
   setBoxes: (boxes: Box[]) => void,
-  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>
+  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>,
+  addOptimisticHighlightBox: (action: Box) => void
 ) {
+  const { params, top_left, bottom_right } = boxData;
+
+  const endpoint = `${SERVICE_URL}/highlights/boxes/new?${params.toString()}`;
+
   const requestBody = {
     top_left,
     bottom_right,
@@ -125,6 +133,19 @@ export async function addSubmapAsBox(
 
     if (response.ok) {
       const newBoxId = await response.json();
+
+      startTransition(() => {
+        addOptimisticHighlightBox({
+          id: newBoxId,
+          name: params.get('name') ?? '',
+          description: params.get('description') ?? '',
+          top_left_ra: top_left[0],
+          top_left_dec: top_left[1],
+          bottom_right_ra: bottom_right[0],
+          bottom_right_dec: bottom_right[1],
+        });
+      });
+
       // Add the new box to the list of active boxes so that it appears as soon
       // as we process the request
       setActiveBoxIds((prevState: number[]) => [...prevState, newBoxId]);
@@ -139,7 +160,8 @@ export async function addSubmapAsBox(
 
 export async function deleteSubmapBox(
   boxId: number,
-  setBoxes: (boxes: Box[]) => void
+  setBoxes: (boxes: Box[]) => void,
+  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>
 ) {
   try {
     const response = await fetch(`${SERVICE_URL}/highlights/boxes/${boxId}`, {
@@ -149,6 +171,7 @@ export async function deleteSubmapBox(
     if (response.ok) {
       const boxes = await fetchBoxes();
       setBoxes(boxes);
+      setActiveBoxIds((prevState) => prevState.filter((id) => boxId !== id));
     }
   } catch (e) {
     console.error(e);

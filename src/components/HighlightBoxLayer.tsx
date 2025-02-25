@@ -17,6 +17,7 @@ type HighlightBoxLayerProps = {
   submapData: SubmapData;
   setBoxes: (boxes: Box[]) => void;
   activeBoxIds: number[];
+  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
 };
 
 interface CustomBoxPaneProps
@@ -33,7 +34,8 @@ function generateBoxContent(
   hideBoxHandler: CustomBoxPaneProps['hideBoxHandler'],
   setBoxes: HighlightBoxLayerProps['setBoxes'],
   submapDataWithBounds: SubmapDataWithBounds,
-  panePosition: { topLeft: L.Point; bottomRight: L.Point }
+  panePosition: { topLeft: L.Point; bottomRight: L.Point },
+  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>
 ) {
   const { topLeft, bottomRight } = panePosition;
   const boxWidth = Math.abs(topLeft.x - bottomRight.x);
@@ -104,7 +106,7 @@ function generateBoxContent(
     'delete-box-button'
   );
   deleteBtn.addEventListener('click', () => {
-    deleteSubmapBox(boxId, setBoxes);
+    deleteSubmapBox(boxId, setBoxes, setActiveBoxIds);
     container.remove();
   });
   menuBtns.push(deleteBtn);
@@ -122,6 +124,7 @@ export function CustomBoxPane({
   bounds,
   setBoxes,
   hideBoxHandler,
+  setActiveBoxIds,
 }: CustomBoxPaneProps) {
   const map = useMap();
   const paneName = `highlight-boxes-pane-${box.id}`;
@@ -167,7 +170,8 @@ export function CustomBoxPane({
       hideBoxHandler,
       setBoxes,
       submapDataWithBounds,
-      panePosition
+      panePosition,
+      setActiveBoxIds
     );
   }, [map, submapData, bounds]);
 
@@ -179,6 +183,7 @@ export function HighlightBoxLayer({
   submapData,
   setBoxes,
   activeBoxIds,
+  setActiveBoxIds,
 }: HighlightBoxLayerProps) {
   const map = useMap();
   const layer = useRef<L.Rectangle | null>(null);
@@ -228,6 +233,7 @@ export function HighlightBoxLayer({
         setBoxes={setBoxes}
         submapData={submapData}
         bounds={bounds}
+        setActiveBoxIds={setActiveBoxIds}
       />
       <Rectangle
         key={`rectangle-${box.id}`}

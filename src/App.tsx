@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useOptimistic,
+} from 'react';
 import {
   LayersControl,
   MapContainer,
@@ -59,6 +65,17 @@ function App() {
   >(undefined);
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
+
+  const [optimisticHighlightBoxes, addOptimisticHighlightBox] = useOptimistic(
+    highlightBoxes,
+    (state, newHighlightBox: Box) => {
+      if (state) {
+        return [...state, newHighlightBox];
+      } else {
+        return [newHighlightBox];
+      }
+    }
+  );
 
   /**
    * On mount, fetch the maps and the map metadata in order to get the list of bands used as
@@ -253,13 +270,14 @@ function App() {
             );
           })}
           {submapData &&
-            highlightBoxes?.map((box) => (
+            optimisticHighlightBoxes?.map((box) => (
               <HighlightBoxLayer
                 key={`${box.name}-${box.id}`}
                 box={box}
                 submapData={submapData}
                 setBoxes={setHighlightBoxes}
                 activeBoxIds={activeBoxIds}
+                setActiveBoxIds={setActiveBoxIds}
               />
             ))}
         </LayersControl>
@@ -272,6 +290,7 @@ function App() {
           submapData={submapData}
           setBoxes={setHighlightBoxes}
           setActiveBoxIds={setActiveBoxIds}
+          addOptimisticHighlightBox={addOptimisticHighlightBox}
         />
         <MapEvents
           onBaseLayerChange={onBaseLayerChange}
