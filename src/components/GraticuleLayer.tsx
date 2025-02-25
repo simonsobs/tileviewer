@@ -40,6 +40,6 @@ export function GraticuleLayer({ setGraticuleDetails }: Props) {
     return () => {
       map.removeLayer(graticule);
     };
-  }, [map]);
+  }, [map, setGraticuleDetails]);
   return null;
 }

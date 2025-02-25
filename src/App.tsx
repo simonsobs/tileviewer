@@ -105,21 +105,10 @@ function App() {
 
       // Default the active layer to be the first band of finalBands and set
       // the color map properties to its recommended values
-      if (!activeLayer) {
-        setActiveLayer(finalBands[0]);
-        setVMin(finalBands[0].recommended_cmap_min);
-        setVMax(finalBands[0].recommended_cmap_max);
-        setCmap(finalBands[0].recommended_cmap);
-      } else {
-        // If somehow activeLayer is truthy, sync up the color map properties
-        // to the active band's recommendations
-        const activeBand = finalBands.find(
-          (band) => band.id === activeLayer.id
-        );
-        setVMin(activeBand!.recommended_cmap_min);
-        setVMin(activeBand!.recommended_cmap_max);
-        setCmap(activeBand!.recommended_cmap);
-      }
+      setActiveLayer(finalBands[0]);
+      setVMin(finalBands[0].recommended_cmap_min);
+      setVMax(finalBands[0].recommended_cmap_max);
+      setCmap(finalBands[0].recommended_cmap);
     }
     getMapsAndMetadata();
   }, []);
@@ -204,7 +193,7 @@ function App() {
         cmap,
       };
     }
-  }, [activeLayer?.id, activeLayer?.map_id, vmin, vmax, cmap]);
+  }, [activeLayer, vmin, vmax, cmap]);
 
   return (
     <>

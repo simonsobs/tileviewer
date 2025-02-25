@@ -28,14 +28,7 @@ import { menu } from '../icons/menu';
 import { Dialog } from './Dialog';
 import { getTopLeftBottomRightFromBounds } from '../utils/layerUtils';
 import { Box } from '../types/maps';
-
-/** Literal type of possible submap file extensions */
-export type SubmapFileExtensions = 'fits' | 'jpg' | 'png' | 'webp';
-
-export type SubmapDownloadOption = {
-  display: string;
-  ext: SubmapFileExtensions;
-};
+import { SUBMAP_DOWNLOAD_OPTIONS } from '../configs/submapConfigs';
 
 export type SubmapData = {
   mapId: number;
@@ -51,14 +44,6 @@ export type SubmapDataWithBounds = SubmapData & {
   bottom: number;
   left: number;
 };
-
-/** An array of download options used to create the buttons and the click events that download submaps */
-export const SUBMAP_DOWNLOAD_OPTIONS: SubmapDownloadOption[] = [
-  { display: 'FITS', ext: 'fits' },
-  { display: 'PNG', ext: 'png' },
-  { display: 'JPG', ext: 'jpg' },
-  { display: 'WebP', ext: 'webp' },
-];
 
 interface SelectionRegionOptions extends L.ControlOptions {
   position: L.ControlPosition;
@@ -338,7 +323,7 @@ class SelectionRegionHandler extends L.Handler {
     se?: L.CircleMarker;
     sw?: L.CircleMarker;
   };
-  callback!: Function;
+  callback!: () => void;
 
   private map: L.Map;
   private container: HTMLElement;
@@ -475,7 +460,7 @@ class SelectionRegionHandler extends L.Handler {
   }
 
   /* Register the callback with the handler. This will be called once the user has finished drawing. */
-  registerCallback(callback: Function) {
+  registerCallback(callback: (bounds: L.LatLngBounds) => void) {
     this.callback = () => callback(this.rectangle!.getBounds());
   }
 
@@ -627,6 +612,9 @@ export const AreaSelectionControl = ({
         map.removeControl(controlRef.current);
       }
     };
+    // NOTE: dependency array is fragile and the desired behavior only seems to work by explicitly responding
+    // to changes in handleSelectionBounds
+    // eslint-disable-next-line
   }, [map, handleSelectionBounds]);
 
   useEffect(() => {
@@ -647,7 +635,7 @@ export const AreaSelectionControl = ({
       (map as MapWithSelectionHandler).selection.reset();
       setResetAreaSelection(false);
     }
-  }, [map, resetAreaSelection]);
+  }, [map, resetAreaSelection, setResetAreaSelection]);
 
   return null;
 };
@@ -716,7 +704,14 @@ export function AreaSelection({
       setBoxDescription('');
       setShowAddBoxDialog(false);
     },
-    [setShowAddBoxDialog, selectionBounds]
+    [
+      setShowAddBoxDialog,
+      selectionBounds,
+      addOptimisticHighlightBox,
+      handleSelectionBounds,
+      setActiveBoxIds,
+      setBoxes,
+    ]
   );
 
   const submapDataWithBounds = useMemo(() => {

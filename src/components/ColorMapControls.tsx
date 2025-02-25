@@ -95,7 +95,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
       (Math.abs(histogramMin) + Math.abs(histogramMax)) / STEPS_DIVISOR;
     const step = stepCalc >= 1 ? Math.floor(stepCalc) : stepCalc;
     return { min, max, step };
-  }, [histogramData, values[0], values[1]]);
+  }, [histogramData, values]);
 
   /** Displays a <select> element for the color map when a user hovers over the histogram */
   const onMouseEnter: MouseEventHandler = useCallback(() => {
