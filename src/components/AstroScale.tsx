@@ -8,9 +8,13 @@ interface AstroScaleOptions extends L.ControlOptions {
   graticuleDetails: GraticuleDetails;
 }
 
+interface AstroScale extends L.Control.Scale {
+  _mScale: HTMLDivElement;
+}
+
 const AstroControl = L.Control.Scale.extend({
   ...L.Control.Scale.prototype,
-  _updateMetric: function () {
+  _updateMetric: function (this: AstroScale) {
     const degrees = (this.options as AstroScaleOptions).graticuleDetails
       .interval;
     const scaleWidth = (this.options as AstroScaleOptions).graticuleDetails
@@ -25,8 +29,8 @@ const AstroControl = L.Control.Scale.extend({
       value = degrees * 60;
       unitName = 'arcmin';
     }
-    (this as any)._mScale.style.width = scaleWidth + 'px';
-    (this as any)._mScale.innerHTML = value + ' ' + unitName;
+    this._mScale.style.width = scaleWidth + 'px';
+    this._mScale.innerHTML = value + ' ' + unitName;
   },
 });
 

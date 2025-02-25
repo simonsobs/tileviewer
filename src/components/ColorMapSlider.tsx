@@ -19,21 +19,24 @@ interface ColorMapSlideProps
 const regexToFindPercents = /\b\d+(\.\d+)?%/g;
 
 export function ColorMapSlider(props: ColorMapSlideProps) {
+  const {
+    cmapImage,
+    onCmapValuesChange,
+    units,
+    sliderAttributes,
+    quantity,
+    values,
+  } = props;
   /**
    * Create temporary values for range slider min/max to maintain component state without setting the global state;
    * the RangeSlider has an onFinalChange handler that will set the global state once a user releases the slider handle
    */
-  const [tempValues, setTempValues] = useState([
-    props.values[0],
-    props.values[1],
-  ]);
-  const { cmapImage, onCmapValuesChange, units, sliderAttributes, quantity } =
-    props;
+  const [tempValues, setTempValues] = useState([values[0], values[1]]);
 
   /** Sync the temp values  */
   useEffect(() => {
-    setTempValues([props.values[0], props.values[1]]);
-  }, [props.values[0], props.values[1]]);
+    setTempValues([values[0], values[1]]);
+  }, [values]);
 
   /**
    * The getTrackBackground react-range function returns a string with a CSS gradient that

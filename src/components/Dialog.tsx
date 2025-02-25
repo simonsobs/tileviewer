@@ -18,13 +18,14 @@ export function Dialog({
   const ref = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {
+    const dialogRef = ref.current;
     if (openDialog) {
-      ref.current?.showModal();
+      dialogRef?.showModal();
     } else {
-      ref.current?.close();
+      dialogRef?.close();
     }
 
-    return () => ref.current?.close();
+    return () => dialogRef?.close();
   }, [openDialog]);
 
   return (

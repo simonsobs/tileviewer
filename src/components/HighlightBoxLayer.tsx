@@ -3,14 +3,11 @@ import L, { latLng, latLngBounds } from 'leaflet';
 import { Box } from '../types/maps';
 import { useCallback, useEffect, useRef, useMemo } from 'react';
 import './styles/highlight-controls.css';
-import {
-  SUBMAP_DOWNLOAD_OPTIONS,
-  SubmapData,
-  SubmapDataWithBounds,
-} from './AreaSelection';
+import { SubmapData, SubmapDataWithBounds } from './AreaSelection';
 import { deleteSubmapBox, downloadSubmap } from '../utils/fetchUtils';
 import { menu } from '../icons/menu';
 import { getTopLeftBottomRightFromBounds } from '../utils/layerUtils';
+import { SUBMAP_DOWNLOAD_OPTIONS } from '../configs/submapConfigs';
 
 type HighlightBoxLayerProps = {
   box: Box;
@@ -173,7 +170,16 @@ export function CustomBoxPane({
       panePosition,
       setActiveBoxIds
     );
-  }, [map, submapData, bounds]);
+  }, [
+    map,
+    submapData,
+    bounds,
+    box,
+    hideBoxHandler,
+    paneName,
+    setActiveBoxIds,
+    setBoxes,
+  ]);
 
   return null;
 }
@@ -211,7 +217,7 @@ export function HighlightBoxLayer({
       }
       map.removeLayer(layer.current);
     }
-  }, [map, layer]);
+  }, [map, layer, box.id]);
 
   const bounds = useMemo(() => {
     return latLngBounds(

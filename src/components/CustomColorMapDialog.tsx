@@ -56,7 +56,15 @@ export function CustomColorMapDialog({
       setCmapOptions(cmapOptions.concat(tempCmap));
     }
     closeModal();
-  }, [onCmapChange, tempCmap, onCmapValuesChange, tempValues, closeModal]);
+  }, [
+    onCmapChange,
+    tempCmap,
+    onCmapValuesChange,
+    tempValues,
+    closeModal,
+    cmapOptions,
+    setCmapOptions,
+  ]);
 
   return (
     <Dialog
