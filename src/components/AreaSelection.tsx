@@ -25,7 +25,6 @@ import { useMap } from 'react-leaflet';
 import { downloadSubmap, addSubmapAsBox } from '../utils/fetchUtils';
 import { crop } from '../icons/crop';
 import { menu } from '../icons/menu';
-import { SERVICE_URL } from '../configs/mapSettings';
 import { Dialog } from './Dialog';
 import { getTopLeftBottomRightFromBounds } from '../utils/layerUtils';
 import { Box } from '../types/maps';
@@ -663,6 +662,7 @@ type Props = {
   submapData?: SubmapData;
   setBoxes: (boxes: Box[]) => void;
   setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
+  addOptimisticHighlightBox: (action: Box) => void;
 };
 
 export function AreaSelection({
@@ -671,6 +671,7 @@ export function AreaSelection({
   submapData,
   setBoxes,
   setActiveBoxIds,
+  addOptimisticHighlightBox,
 }: Props) {
   const [showAddBoxDialog, setShowAddBoxDialog] = useState(false);
   const [boxName, setBoxName] = useState('');
@@ -689,20 +690,23 @@ export function AreaSelection({
         params.append(key, val.toString());
       });
 
-      const endpoint = `${SERVICE_URL}/highlights/boxes/new?${params.toString()}`;
-
       const { top, left, bottom, right } =
         getTopLeftBottomRightFromBounds(selectionBounds);
 
       const top_left = [left, top];
       const bottom_right = [right, bottom];
 
-      addSubmapAsBox(
-        endpoint,
+      const boxData = {
+        params,
         top_left,
         bottom_right,
+      };
+
+      addSubmapAsBox(
+        boxData,
         setBoxes,
-        setActiveBoxIds
+        setActiveBoxIds,
+        addOptimisticHighlightBox
       );
 
       // Reset applicable state after adding a new submap box
