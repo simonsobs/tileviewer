@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
-import '../plugins/leaflet.latlng-graticule.js';
-import { GraticuleDetails } from '../types/maps.js';
+import '../../plugins/leaflet.latlng-graticule.js';
+import { GraticuleDetails } from '../../types/maps.js';
 
 type Props = {
   setGraticuleDetails: (details: GraticuleDetails) => void;

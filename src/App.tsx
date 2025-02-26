@@ -5,16 +5,9 @@ import {
   useState,
   useOptimistic,
 } from 'react';
-import {
-  LayersControl,
-  MapContainer,
-  Popup,
-  TileLayer,
-  CircleMarker,
-  FeatureGroup,
-} from 'react-leaflet';
-import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
-import { mapOptions, SERVICE_URL } from './configs/mapSettings';
+import { LayersControl, MapContainer } from 'react-leaflet';
+import { LatLngBounds } from 'leaflet';
+import { mapOptions } from './configs/mapSettings';
 import {
   GraticuleDetails,
   MapMetadataResponse,
@@ -22,16 +15,16 @@ import {
   SourceList,
   Box,
 } from './types/maps';
-import { makeLayerName } from './utils/layerUtils';
 import { MapEvents } from './components/MapEvents';
 import { ColorMapControls } from './components/ColorMapControls';
 import { CoordinatesDisplay } from './components/CoordinatesDisplay';
 import { AstroScale } from './components/AstroScale';
 import { AreaSelection } from './components/AreaSelection';
-import { GraticuleLayer } from './components/GraticuleLayer';
+import { GraticuleLayer } from './components/layers/GraticuleLayer';
 import { fetchBoxes, fetchProducts } from './utils/fetchUtils';
-import { HighlightBoxLayer } from './components/HighlightBoxLayer';
-import './components/styles/map-baselayers.css';
+import { HighlightBoxLayer } from './components/layers/HighlightBoxLayer';
+import { SourceListOverlays } from './components/layers/SourceListOverlays';
+import { MapBaselayers } from './components/layers/MapBaselayers';
 
 function App() {
   /** vmin, vmax, and cmap are matplotlib parameters used in the histogram components
@@ -198,64 +191,16 @@ function App() {
     <>
       <MapContainer id="map" {...mapOptions}>
         <LayersControl>
-          {/** Set each band to be a baselayer and set up the TileLayer according to the band- and user-set attributes */}
-          {bands?.map((band) => {
-            return (
-              <LayersControl.BaseLayer
-                key={`${band.map_name}-${band.id}`}
-                checked={band.id === activeBaselayer?.id}
-                name={makeLayerName(band)}
-              >
-                <TileLayer
-                  id={String(band.id)}
-                  className="tile-baselayer"
-                  url={`${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
-                  tms
-                  noWrap
-                  bounds={latLngBounds(
-                    latLng(band.bounding_top, band.bounding_left),
-                    latLng(band.bounding_bottom, band.bounding_right)
-                  )}
-                  maxZoom={Math.max(...bands.map((b) => b.levels)) + 3}
-                  maxNativeZoom={band.levels - 1}
-                />
-              </LayersControl.BaseLayer>
-            );
-          })}
-          {/** Set each sourceList as an overlay, with each of its sources contained within a FeatureGroup and displayed as a 
-              circle that, when clicked, shows a popup with the source details */}
-          {sourceLists?.map((sourceList) => {
-            return (
-              <LayersControl.Overlay
-                key={`${sourceList.name}-${sourceList.id}`}
-                name={sourceList.name}
-              >
-                <FeatureGroup>
-                  {sourceList.sources.map((source) => {
-                    return (
-                      <CircleMarker
-                        key={`marker-${sourceList.id}-${source.id}`}
-                        center={[source.dec, source.ra]}
-                        radius={5}
-                      >
-                        <Popup>
-                          <div className="source-popup">
-                            {source.name ? <h3>{source.name}</h3> : null}
-                            <p>
-                              <span>RA, Dec:</span> ({source.ra}, {source.dec})
-                            </p>
-                            <p>
-                              <span>Flux:</span> {source.flux}
-                            </p>
-                          </div>
-                        </Popup>
-                      </CircleMarker>
-                    );
-                  })}
-                </FeatureGroup>
-              </LayersControl.Overlay>
-            );
-          })}
+          {bands && (
+            <MapBaselayers
+              bands={bands}
+              activeBaselayerId={activeBaselayer?.id}
+              cmap={cmap}
+              vmin={vmin}
+              vmax={vmax}
+            />
+          )}
+          {sourceLists && <SourceListOverlays sources={sourceLists} />}
           {submapData &&
             optimisticHighlightBoxes?.map((box) => (
               <HighlightBoxLayer
