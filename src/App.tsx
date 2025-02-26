@@ -31,6 +31,7 @@ import { AreaSelection } from './components/AreaSelection';
 import { GraticuleLayer } from './components/GraticuleLayer';
 import { fetchBoxes, fetchProducts } from './utils/fetchUtils';
 import { HighlightBoxLayer } from './components/HighlightBoxLayer';
+import './components/styles/map-baselayers.css';
 
 function App() {
   /** vmin, vmax, and cmap are matplotlib parameters used in the histogram components
@@ -207,6 +208,7 @@ function App() {
               >
                 <TileLayer
                   id={String(band.id)}
+                  className="tile-baselayer"
                   url={`${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
                   tms
                   noWrap
