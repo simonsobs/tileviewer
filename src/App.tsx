@@ -14,11 +14,7 @@ import {
   FeatureGroup,
 } from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
-import {
-  mapOptions,
-  SERVICE_URL,
-  DEFAULT_MIN_ZOOM,
-} from './configs/mapSettings';
+import { mapOptions, SERVICE_URL } from './configs/mapSettings';
 import {
   GraticuleDetails,
   MapMetadataResponse,
@@ -35,6 +31,7 @@ import { AreaSelection } from './components/AreaSelection';
 import { GraticuleLayer } from './components/GraticuleLayer';
 import { fetchBoxes, fetchProducts } from './utils/fetchUtils';
 import { HighlightBoxLayer } from './components/HighlightBoxLayer';
+import './components/styles/map-baselayers.css';
 
 function App() {
   /** vmin, vmax, and cmap are matplotlib parameters used in the histogram components
@@ -44,7 +41,9 @@ function App() {
   const [cmap, setCmap] = useState<string | undefined>(undefined);
 
   /** the active baselayer selected in the map's legend */
-  const [activeLayer, setActiveLayer] = useState<Band | undefined>(undefined);
+  const [activeBaselayer, setActiveBaselayer] = useState<Band | undefined>(
+    undefined
+  );
   /** bands are used as the baselayers of the map */
   const [bands, setBands] = useState<Band[] | undefined>(undefined);
   /** sourceLists are used as FeatureGroups in the map, which can be toggled on/off in the map legend */
@@ -105,7 +104,7 @@ function App() {
 
       // Default the active layer to be the first band of finalBands and set
       // the color map properties to its recommended values
-      setActiveLayer(finalBands[0]);
+      setActiveBaselayer(finalBands[0]);
       setVMin(finalBands[0].recommended_cmap_min);
       setVMax(finalBands[0].recommended_cmap_max);
       setCmap(finalBands[0].recommended_cmap);
@@ -150,7 +149,7 @@ function App() {
    */
   const onBaseLayerChange = useCallback(
     (layer: L.TileLayer) => {
-      const currentLayerUnits = activeLayer?.units;
+      const currentLayerUnits = activeBaselayer?.units;
       const newActiveLayer = bands?.find(
         (b) => b.id === Number(layer.options.id)
       );
@@ -159,9 +158,9 @@ function App() {
         setVMax(newActiveLayer?.recommended_cmap_max);
         setCmap(newActiveLayer?.recommended_cmap);
       }
-      setActiveLayer(newActiveLayer);
+      setActiveBaselayer(newActiveLayer);
     },
-    [bands, setActiveLayer, activeLayer, setVMin, setVMax, setCmap]
+    [bands, setActiveBaselayer, activeBaselayer, setVMin, setVMax, setCmap]
   );
 
   const onCmapValuesChange = useCallback(
@@ -183,8 +182,8 @@ function App() {
     composed from state at this level, we must construct it here and pass it down to the AreaSelection and
     HighlightBoxLayer components. */
   const submapData = useMemo(() => {
-    if (activeLayer) {
-      const { map_id: mapId, id: bandId } = activeLayer;
+    if (activeBaselayer) {
+      const { map_id: mapId, id: bandId } = activeBaselayer;
       return {
         mapId,
         bandId,
@@ -193,7 +192,7 @@ function App() {
         cmap,
       };
     }
-  }, [activeLayer, vmin, vmax, cmap]);
+  }, [activeBaselayer, vmin, vmax, cmap]);
 
   return (
     <>
@@ -204,11 +203,12 @@ function App() {
             return (
               <LayersControl.BaseLayer
                 key={`${band.map_name}-${band.id}`}
-                checked={band.id === activeLayer?.id}
+                checked={band.id === activeBaselayer?.id}
                 name={makeLayerName(band)}
               >
                 <TileLayer
                   id={String(band.id)}
+                  className="tile-baselayer"
                   url={`${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
                   tms
                   noWrap
@@ -216,9 +216,7 @@ function App() {
                     latLng(band.bounding_top, band.bounding_left),
                     latLng(band.bounding_bottom, band.bounding_right)
                   )}
-                  minZoom={DEFAULT_MIN_ZOOM}
-                  maxZoom={band.levels + 3}
-                  minNativeZoom={band.levels - 4}
+                  maxZoom={Math.max(...bands.map((b) => b.levels)) + 3}
                   maxNativeZoom={band.levels - 1}
                 />
               </LayersControl.BaseLayer>
@@ -289,15 +287,15 @@ function App() {
           setActiveBoxIds={setActiveBoxIds}
         />
       </MapContainer>
-      {vmin !== undefined && vmax !== undefined && cmap && activeLayer && (
+      {vmin !== undefined && vmax !== undefined && cmap && activeBaselayer && (
         <ColorMapControls
           values={[vmin, vmax]}
           onCmapValuesChange={onCmapValuesChange}
           cmap={cmap}
           onCmapChange={onCmapChange}
-          activeLayerId={activeLayer.id}
-          units={activeLayer.units}
-          quantity={activeLayer.quantity}
+          activeBaselayerId={activeBaselayer.id}
+          units={activeBaselayer.units}
+          quantity={activeBaselayer.quantity}
         />
       )}
     </>
