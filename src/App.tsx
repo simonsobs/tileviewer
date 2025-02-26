@@ -14,11 +14,7 @@ import {
   FeatureGroup,
 } from 'react-leaflet';
 import { latLng, LatLngBounds, latLngBounds } from 'leaflet';
-import {
-  mapOptions,
-  SERVICE_URL,
-  DEFAULT_MIN_ZOOM,
-} from './configs/mapSettings';
+import { mapOptions, SERVICE_URL } from './configs/mapSettings';
 import {
   GraticuleDetails,
   MapMetadataResponse,
@@ -218,9 +214,7 @@ function App() {
                     latLng(band.bounding_top, band.bounding_left),
                     latLng(band.bounding_bottom, band.bounding_right)
                   )}
-                  minZoom={DEFAULT_MIN_ZOOM}
-                  maxZoom={band.levels + 3}
-                  minNativeZoom={band.levels - 4}
+                  maxZoom={Math.max(...bands.map((b) => b.levels)) + 3}
                   maxNativeZoom={band.levels - 1}
                 />
               </LayersControl.BaseLayer>
