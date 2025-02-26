@@ -7,7 +7,10 @@ import {
 } from 'react';
 import { LayersControl, MapContainer } from 'react-leaflet';
 import { LatLngBounds } from 'leaflet';
-import { mapOptions } from './configs/mapSettings';
+import {
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_ZOOM_LEVEL,
+} from './configs/mapSettings';
 import {
   GraticuleDetails,
   MapMetadataResponse,
@@ -25,6 +28,7 @@ import { fetchBoxes, fetchProducts } from './utils/fetchUtils';
 import { HighlightBoxLayer } from './components/layers/HighlightBoxLayer';
 import { SourceListOverlays } from './components/layers/SourceListOverlays';
 import { MapBaselayers } from './components/layers/MapBaselayers';
+import { getCustomCRS } from './configs/CustomCRS';
 
 function App() {
   /** vmin, vmax, and cmap are matplotlib parameters used in the histogram components
@@ -58,6 +62,7 @@ function App() {
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
 
+  /** wrap highlightBoxes state in a useOptimistic hook so we can optimistically render new boxes */
   const [optimisticHighlightBoxes, addOptimisticHighlightBox] = useOptimistic(
     highlightBoxes,
     (state, newHighlightBox: Box) => {
@@ -67,6 +72,17 @@ function App() {
         return [newHighlightBox];
       }
     }
+  );
+
+  /** used as a hack to mount a new MapContainer when the tileSize changes in order to set a new custom CRS */
+  const [mapKey, setMapKey] = useState<number>(1);
+  /** tracks the tileSize defined by tilemaker for the active baselayer so we can reset the MapContainer in the
+    event it changes, thus needed to "refresh" the custom CRS with the new tileSize */
+  const [tileSize, setTileSize] = useState<number | undefined>(undefined);
+  /** tracks the map's viewport bounds before unmounting the MapContainer so that we can try to preserve the viewport
+    as best as possible when we mount a new MapContainer */
+  const [mapBounds, setMapBounds] = useState<LatLngBounds | undefined>(
+    undefined
   );
 
   /**
@@ -101,6 +117,7 @@ function App() {
       setVMin(finalBands[0].recommended_cmap_min);
       setVMax(finalBands[0].recommended_cmap_max);
       setCmap(finalBands[0].recommended_cmap);
+      setTileSize(finalBands[0].tile_size);
     }
     getMapsAndMetadata();
   }, []);
@@ -141,19 +158,27 @@ function App() {
    * TileLayer requests.
    */
   const onBaseLayerChange = useCallback(
-    (layer: L.TileLayer) => {
-      const currentLayerUnits = activeBaselayer?.units;
-      const newActiveLayer = bands?.find(
+    (layer: L.TileLayer, map: L.Map) => {
+      const currentBaselayerUnits = activeBaselayer?.units;
+      const newActiveBaselayer = bands?.find(
         (b) => b.id === Number(layer.options.id)
       );
-      if (currentLayerUnits != newActiveLayer?.units) {
-        setVMin(newActiveLayer?.recommended_cmap_min);
-        setVMax(newActiveLayer?.recommended_cmap_max);
-        setCmap(newActiveLayer?.recommended_cmap);
+
+      if (currentBaselayerUnits != newActiveBaselayer?.units) {
+        setVMin(newActiveBaselayer?.recommended_cmap_min);
+        setVMax(newActiveBaselayer?.recommended_cmap_max);
+        setCmap(newActiveBaselayer?.recommended_cmap);
       }
-      setActiveBaselayer(newActiveLayer);
+
+      if (newActiveBaselayer?.tile_size !== tileSize) {
+        setMapBounds(map.getBounds());
+        setTileSize(newActiveBaselayer!.tile_size);
+        setMapKey((prevKey) => ++prevKey);
+      }
+
+      setActiveBaselayer(newActiveBaselayer);
     },
-    [bands, setActiveBaselayer, activeBaselayer, setVMin, setVMax, setCmap]
+    [bands, activeBaselayer, tileSize]
   );
 
   const onCmapValuesChange = useCallback(
@@ -189,49 +214,60 @@ function App() {
 
   return (
     <>
-      <MapContainer id="map" {...mapOptions}>
-        <LayersControl>
-          {bands && (
-            <MapBaselayers
-              bands={bands}
-              activeBaselayerId={activeBaselayer?.id}
-              cmap={cmap}
-              vmin={vmin}
-              vmax={vmax}
-            />
-          )}
-          {sourceLists && <SourceListOverlays sources={sourceLists} />}
-          {submapData &&
-            optimisticHighlightBoxes?.map((box) => (
-              <HighlightBoxLayer
-                key={`${box.name}-${box.id}`}
-                box={box}
-                submapData={submapData}
-                setBoxes={setHighlightBoxes}
-                activeBoxIds={activeBoxIds}
-                setActiveBoxIds={setActiveBoxIds}
+      {tileSize && (
+        <MapContainer
+          id="map"
+          key={mapKey}
+          crs={getCustomCRS(tileSize)}
+          bounds={mapBounds}
+          center={mapBounds ? undefined : DEFAULT_MAP_CENTER}
+          zoom={mapBounds ? undefined : DEFAULT_MAP_ZOOM_LEVEL}
+        >
+          <LayersControl>
+            {bands && (
+              <MapBaselayers
+                bands={bands}
+                activeBaselayerId={activeBaselayer?.id}
+                cmap={cmap}
+                vmin={vmin}
+                vmax={vmax}
               />
-            ))}
-        </LayersControl>
-        <GraticuleLayer setGraticuleDetails={setGraticuleDetails} />
-        <CoordinatesDisplay />
-        {graticuleDetails && <AstroScale graticuleDetails={graticuleDetails} />}
-        <AreaSelection
-          handleSelectionBounds={setSelectionBounds}
-          selectionBounds={selectionBounds}
-          submapData={submapData}
-          setBoxes={setHighlightBoxes}
-          setActiveBoxIds={setActiveBoxIds}
-          addOptimisticHighlightBox={addOptimisticHighlightBox}
-        />
-        <MapEvents
-          onBaseLayerChange={onBaseLayerChange}
-          selectionBounds={selectionBounds}
-          boxes={highlightBoxes}
-          activeBoxIds={activeBoxIds}
-          setActiveBoxIds={setActiveBoxIds}
-        />
-      </MapContainer>
+            )}
+            {sourceLists && <SourceListOverlays sources={sourceLists} />}
+            {submapData &&
+              optimisticHighlightBoxes?.map((box) => (
+                <HighlightBoxLayer
+                  key={`${box.name}-${box.id}`}
+                  box={box}
+                  submapData={submapData}
+                  setBoxes={setHighlightBoxes}
+                  activeBoxIds={activeBoxIds}
+                  setActiveBoxIds={setActiveBoxIds}
+                />
+              ))}
+          </LayersControl>
+          <GraticuleLayer setGraticuleDetails={setGraticuleDetails} />
+          <CoordinatesDisplay />
+          {graticuleDetails && (
+            <AstroScale graticuleDetails={graticuleDetails} />
+          )}
+          <AreaSelection
+            handleSelectionBounds={setSelectionBounds}
+            selectionBounds={selectionBounds}
+            submapData={submapData}
+            setBoxes={setHighlightBoxes}
+            setActiveBoxIds={setActiveBoxIds}
+            addOptimisticHighlightBox={addOptimisticHighlightBox}
+          />
+          <MapEvents
+            onBaseLayerChange={onBaseLayerChange}
+            selectionBounds={selectionBounds}
+            boxes={highlightBoxes}
+            activeBoxIds={activeBoxIds}
+            setActiveBoxIds={setActiveBoxIds}
+          />
+        </MapContainer>
+      )}
       {vmin !== undefined && vmax !== undefined && cmap && activeBaselayer && (
         <ColorMapControls
           values={[vmin, vmax]}
