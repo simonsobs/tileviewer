@@ -49,6 +49,7 @@ export function MapBaselayers({
           )}
           maxZoom={Math.max(...bands.map((b) => b.levels)) + 3}
           maxNativeZoom={band.levels - 1}
+          tileSize={band.tile_size}
         />
       </LayersControl.BaseLayer>
     );

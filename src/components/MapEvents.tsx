@@ -6,7 +6,7 @@ import { useCallback } from 'react';
 
 type MapEventsProps = {
   /** A callback function that allows us to set state for the new baselayer */
-  onBaseLayerChange: (newLayer: L.TileLayer) => void;
+  onBaseLayerChange: (newLayer: L.TileLayer, map: L.Map) => void;
   /** The bounds of the "select area" functionality */
   selectionBounds?: L.LatLngBounds;
   /** The "highlight" boxes available in the map legend */
@@ -128,7 +128,7 @@ export function MapEvents({
 
   useMapEvents({
     baselayerchange: (e) => {
-      onBaseLayerChange(e.layer as L.TileLayer);
+      onBaseLayerChange(e.layer as L.TileLayer, map);
     },
     moveend: () => {
       if (boxes) {
