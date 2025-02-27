@@ -1,4 +1,4 @@
-import { Band } from '../../types/maps';
+import { Band, BaselayerState } from '../../types/maps';
 import { LayersControl, TileLayer } from 'react-leaflet';
 import { latLngBounds, latLng } from 'leaflet';
 import { makeLayerName } from '../../utils/layerUtils';
@@ -8,14 +8,8 @@ import '../styles/map-baselayers.css';
 type Props = {
   /** array of Band objects that contains a baselayer's data */
   bands: Band[];
-  /** the Band id that represents the selected baselayer; higher-up, activeBaselayer defaults to first band returned by server */
-  activeBaselayerId?: number;
-  /** the cmap used in the tile server request */
-  cmap?: string;
-  /** the vmin used in the tile server request */
-  vmin?: number;
-  /** the vmax used in the tile server request */
-  vmax?: number;
+
+  baselayerState: BaselayerState;
 };
 
 /**
@@ -23,24 +17,20 @@ type Props = {
  * @param {Props} props Refer to the props definition
  * @returns The baselayers for the Leaflet map
  */
-export function MapBaselayers({
-  bands,
-  activeBaselayerId,
-  cmap,
-  vmin,
-  vmax,
-}: Props) {
+export function MapBaselayers({ bands, baselayerState }: Props) {
+  const { activeBaselayer, cmap, cmapValues } = baselayerState;
   return bands.map((band) => {
     return (
       <LayersControl.BaseLayer
         key={`${band.map_name}-${band.id}`}
-        checked={band.id === activeBaselayerId}
+        checked={band.id === activeBaselayer!.id}
         name={makeLayerName(band)}
       >
         <TileLayer
           id={String(band.id)}
+          key={`tilelayer-${band.map_name}-${band.id}`}
           className="tile-baselayer"
-          url={`${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`}
+          url={`${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues!.min}&vmax=${cmapValues!.max}`}
           tms
           noWrap
           bounds={latLngBounds(
