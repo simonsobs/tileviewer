@@ -7,10 +7,8 @@ import {
   Source,
   SourceListResponse,
 } from '../types/maps';
-import {
-  SubmapDataWithBounds,
-  SubmapFileExtensions,
-} from '../components/AreaSelection';
+import { SubmapDataWithBounds } from '../components/AreaSelection';
+import { SubmapFileExtensions } from '../configs/submapConfigs';
 
 type SourcesResponse = {
   catalogs: SourceListResponse[];
