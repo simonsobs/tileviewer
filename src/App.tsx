@@ -37,6 +37,7 @@ import {
   CHANGE_CMAP_VALUES,
   initialBaselayerState,
 } from './reducers/baselayerReducer';
+import { useQuery } from './hooks/useQuery';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
@@ -46,12 +47,59 @@ function App() {
   );
 
   /** bands are used as the baselayers of the map */
-  const [bands, setBands] = useState<Band[] | undefined>(undefined);
+  const { data: bands } = useQuery<Band[] | undefined>({
+    initialData: undefined,
+    queryKey: [],
+    queryFn: async () => {
+      // Fetch the maps and the map metadata in order to get the list of bands used as
+      // map baselayers
+      const mapsMetadata = await fetchProducts('maps');
+
+      // Loop through each map's metadata and reduce the map's bands
+      // into a single array
+      const finalBands = mapsMetadata.reduce(
+        (prev: Band[], curr: MapMetadataResponse) => {
+          if (curr.bands.length) {
+            return prev.concat(curr.bands);
+          } else {
+            return prev;
+          }
+        },
+        []
+      );
+
+      // If we end up with no bands for some reason, return early
+      if (!finalBands.length) return;
+
+      // Default the active layer to be the first band of finalBands
+      dispatch({
+        type: CHANGE_BASELAYER,
+        newBaselayer: finalBands[0],
+      });
+
+      return finalBands;
+    },
+  });
 
   /** sourceLists are used as FeatureGroups in the map, which can be toggled on/off in the map legend */
-  const [sourceLists, setSourceLists] = useState<SourceList[] | undefined>(
-    undefined
-  );
+  const { data: sourceLists } = useQuery<SourceList[] | undefined>({
+    initialData: undefined,
+    queryKey: [],
+    queryFn: async () => {
+      // Fetch the source catalogs and sources
+      const { catalogs, sources } = await fetchProducts('sources');
+
+      // Map through the source catalogs in order to link the appropriate sources
+      // to each catalog
+      const finalSourceLists: SourceList[] = catalogs.map((catalog) => ({
+        ...catalog,
+        // Create a sources attribute that consists of sources associated with the catalog
+        sources: sources.filter((src) => src.source_list_id == catalog.id),
+      }));
+
+      return finalSourceLists;
+    },
+  });
 
   /** highlightBoxes are regions user's have added to a map via the AreaSelection tooling */
   const [highlightBoxes, setHighlightBoxes] = useState<Box[] | undefined>(
@@ -91,61 +139,6 @@ function App() {
   const [mapBounds, setMapBounds] = useState<LatLngBounds | undefined>(
     undefined
   );
-
-  /**
-   * On mount, fetch the maps and the map metadata in order to get the list of bands used as
-   * map baselayers. Also, set the first band, if any exist, as the activeLayer and set the
-   * color map attributes according to its recommended properties.
-   */
-  useEffect(() => {
-    async function getMapsAndMetadata() {
-      const mapsMetadata = await fetchProducts('maps');
-
-      // Loop through each map's metadata and reduce the map's bands
-      // into a single array
-      const finalBands = mapsMetadata.reduce(
-        (prev: Band[], curr: MapMetadataResponse) => {
-          if (curr.bands.length) {
-            return prev.concat(curr.bands);
-          } else {
-            return prev;
-          }
-        },
-        []
-      );
-      setBands(finalBands);
-
-      // If we end up with no bands for some reason, return early
-      if (!finalBands.length) return;
-
-      // Default the active layer to be the first band of finalBands
-      dispatch({
-        type: CHANGE_BASELAYER,
-        newBaselayer: finalBands[0],
-      });
-    }
-    getMapsAndMetadata();
-  }, []);
-
-  /**
-   * On mount, fetch the source catalogs and each catalog's source in order to
-   * set the sourceLists state
-   */
-  useEffect(() => {
-    async function getSourceLists() {
-      const { catalogs, sources } = await fetchProducts('sources');
-
-      // Map through the source catalogs in order to link the appropriate sources
-      // to each catalog
-      const finalSourceLists: SourceList[] = catalogs.map((catalog) => ({
-        ...catalog,
-        // create a sources attribute that consists of sources associated with the catalog
-        sources: sources.filter((src) => src.source_list_id == catalog.id),
-      }));
-      setSourceLists(finalSourceLists);
-    }
-    getSourceLists();
-  }, []);
 
   useEffect(() => {
     async function getHighlightBoxes() {
