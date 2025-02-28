@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useOptimistic,
-  useReducer,
-} from 'react';
+import { useCallback, useMemo, useState, useReducer } from 'react';
 import { LayersControl, MapContainer } from 'react-leaflet';
 import { LatLngBounds } from 'leaflet';
 import {
@@ -17,7 +10,6 @@ import {
   MapMetadataResponse,
   Band,
   SourceList,
-  Box,
 } from './types/maps';
 import { MapEvents } from './components/MapEvents';
 import { ColorMapControls } from './components/ColorMapControls';
@@ -25,7 +17,7 @@ import { CoordinatesDisplay } from './components/CoordinatesDisplay';
 import { AstroScale } from './components/AstroScale';
 import { AreaSelection } from './components/AreaSelection';
 import { GraticuleLayer } from './components/layers/GraticuleLayer';
-import { fetchBoxes, fetchProducts } from './utils/fetchUtils';
+import { fetchProducts } from './utils/fetchUtils';
 import { HighlightBoxLayer } from './components/layers/HighlightBoxLayer';
 import { SourceListOverlays } from './components/layers/SourceListOverlays';
 import { MapBaselayers } from './components/layers/MapBaselayers';
@@ -37,6 +29,8 @@ import {
   CHANGE_CMAP_VALUES,
   initialBaselayerState,
 } from './reducers/baselayerReducer';
+import { useQuery } from './hooks/useQuery';
+import { useHighlightBoxes } from './hooks/useHighlightBoxes';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
@@ -46,59 +40,12 @@ function App() {
   );
 
   /** bands are used as the baselayers of the map */
-  const [bands, setBands] = useState<Band[] | undefined>(undefined);
-
-  /** sourceLists are used as FeatureGroups in the map, which can be toggled on/off in the map legend */
-  const [sourceLists, setSourceLists] = useState<SourceList[] | undefined>(
-    undefined
-  );
-
-  /** highlightBoxes are regions user's have added to a map via the AreaSelection tooling */
-  const [highlightBoxes, setHighlightBoxes] = useState<Box[] | undefined>(
-    undefined
-  );
-
-  /** sets the bounds of the rectangular "select region" box */
-  const [selectionBounds, setSelectionBounds] = useState<
-    LatLngBounds | undefined
-  >(undefined);
-
-  /** used to set the AstroScale component to the same width and interval as the graticule layer */
-  const [graticuleDetails, setGraticuleDetails] = useState<
-    undefined | GraticuleDetails
-  >(undefined);
-
-  /** tracks highlight boxes that are "checked" and visible on the map  */
-  const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
-
-  /** wrap highlightBoxes state in a useOptimistic hook so we can optimistically render new boxes */
-  const [optimisticHighlightBoxes, addOptimisticHighlightBox] = useOptimistic(
-    highlightBoxes,
-    (state, newHighlightBox: Box) => {
-      if (state) {
-        return [...state, newHighlightBox];
-      } else {
-        return [newHighlightBox];
-      }
-    }
-  );
-
-  /** used as a hack to mount a new MapContainer when the tileSize changes in order to set a new custom CRS */
-  const [mapKey, setMapKey] = useState<number>(1);
-
-  /** tracks the map's viewport bounds before unmounting the MapContainer so that we can try to preserve the viewport
-    as best as possible when we mount a new MapContainer */
-  const [mapBounds, setMapBounds] = useState<LatLngBounds | undefined>(
-    undefined
-  );
-
-  /**
-   * On mount, fetch the maps and the map metadata in order to get the list of bands used as
-   * map baselayers. Also, set the first band, if any exist, as the activeLayer and set the
-   * color map attributes according to its recommended properties.
-   */
-  useEffect(() => {
-    async function getMapsAndMetadata() {
+  const { data: bands } = useQuery<Band[] | undefined>({
+    initialData: undefined,
+    queryKey: [],
+    queryFn: async () => {
+      // Fetch the maps and the map metadata in order to get the list of bands used as
+      // map baselayers
       const mapsMetadata = await fetchProducts('maps');
 
       // Loop through each map's metadata and reduce the map's bands
@@ -113,7 +60,6 @@ function App() {
         },
         []
       );
-      setBands(finalBands);
 
       // If we end up with no bands for some reason, return early
       if (!finalBands.length) return;
@@ -123,37 +69,61 @@ function App() {
         type: CHANGE_BASELAYER,
         newBaselayer: finalBands[0],
       });
-    }
-    getMapsAndMetadata();
-  }, []);
 
-  /**
-   * On mount, fetch the source catalogs and each catalog's source in order to
-   * set the sourceLists state
-   */
-  useEffect(() => {
-    async function getSourceLists() {
+      return finalBands;
+    },
+  });
+
+  /** sourceLists are used as FeatureGroups in the map, which can be toggled on/off in the map legend */
+  const { data: sourceLists } = useQuery<SourceList[] | undefined>({
+    initialData: undefined,
+    queryKey: [],
+    queryFn: async () => {
+      // Fetch the source catalogs and sources
       const { catalogs, sources } = await fetchProducts('sources');
 
       // Map through the source catalogs in order to link the appropriate sources
       // to each catalog
       const finalSourceLists: SourceList[] = catalogs.map((catalog) => ({
         ...catalog,
-        // create a sources attribute that consists of sources associated with the catalog
+        // Create a sources attribute that consists of sources associated with the catalog
         sources: sources.filter((src) => src.source_list_id == catalog.id),
       }));
-      setSourceLists(finalSourceLists);
-    }
-    getSourceLists();
-  }, []);
 
-  useEffect(() => {
-    async function getHighlightBoxes() {
-      const boxes = await fetchBoxes();
-      setHighlightBoxes(boxes);
-    }
-    getHighlightBoxes();
-  }, []);
+      return finalSourceLists;
+    },
+  });
+
+  const {
+    // Regions users have added to a map
+    highlightBoxes,
+    updateHighlightBoxes,
+    // The optimistic version of highlightBoxes for when we add boxes in the UI
+    optimisticHighlightBoxes,
+    addOptimisticHighlightBox,
+  } = useHighlightBoxes();
+
+  /** sets the bounds of the rectangular "select region" box */
+  const [selectionBounds, setSelectionBounds] = useState<
+    LatLngBounds | undefined
+  >(undefined);
+
+  /** used to set the AstroScale component to the same width and interval as the graticule layer */
+  const [graticuleDetails, setGraticuleDetails] = useState<
+    undefined | GraticuleDetails
+  >(undefined);
+
+  /** tracks highlight boxes that are "checked" and visible on the map  */
+  const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
+
+  /** used as a hack to mount a new MapContainer when the tileSize changes in order to set a new custom CRS */
+  const [mapKey, setMapKey] = useState<number>(1);
+
+  /** tracks the map's viewport bounds before unmounting the MapContainer so that we can try to preserve the viewport
+    as best as possible when we mount a new MapContainer */
+  const [mapBounds, setMapBounds] = useState<LatLngBounds | undefined>(
+    undefined
+  );
 
   /**
    * Handler fires when user changes map layers. If the units of the new
@@ -250,7 +220,7 @@ function App() {
                     key={`${box.name}-${box.id}`}
                     box={box}
                     submapData={submapData}
-                    setBoxes={setHighlightBoxes}
+                    setBoxes={updateHighlightBoxes}
                     activeBoxIds={activeBoxIds}
                     setActiveBoxIds={setActiveBoxIds}
                   />
@@ -265,7 +235,7 @@ function App() {
               handleSelectionBounds={setSelectionBounds}
               selectionBounds={selectionBounds}
               submapData={submapData}
-              setBoxes={setHighlightBoxes}
+              setBoxes={updateHighlightBoxes}
               setActiveBoxIds={setActiveBoxIds}
               addOptimisticHighlightBox={addOptimisticHighlightBox}
             />
