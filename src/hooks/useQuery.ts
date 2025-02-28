@@ -24,9 +24,12 @@ export function useQuery<T>({
 
       try {
         const result = await queryFn();
-        setData(result);
+        if (doSetValue) setData(result);
       } catch (e) {
-        setIsError(true);
+        if (doSetValue) {
+          setIsError(true);
+          console.error(String(e));
+        }
       }
       setIsLoading(false);
     };
