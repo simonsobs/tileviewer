@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useOptimistic,
-  useReducer,
-} from 'react';
+import { useCallback, useMemo, useState, useReducer } from 'react';
 import { LayersControl, MapContainer } from 'react-leaflet';
 import { LatLngBounds } from 'leaflet';
 import {
@@ -17,7 +10,6 @@ import {
   MapMetadataResponse,
   Band,
   SourceList,
-  Box,
 } from './types/maps';
 import { MapEvents } from './components/MapEvents';
 import { ColorMapControls } from './components/ColorMapControls';
@@ -25,7 +17,7 @@ import { CoordinatesDisplay } from './components/CoordinatesDisplay';
 import { AstroScale } from './components/AstroScale';
 import { AreaSelection } from './components/AreaSelection';
 import { GraticuleLayer } from './components/layers/GraticuleLayer';
-import { fetchBoxes, fetchProducts } from './utils/fetchUtils';
+import { fetchProducts } from './utils/fetchUtils';
 import { HighlightBoxLayer } from './components/layers/HighlightBoxLayer';
 import { SourceListOverlays } from './components/layers/SourceListOverlays';
 import { MapBaselayers } from './components/layers/MapBaselayers';
@@ -38,6 +30,7 @@ import {
   initialBaselayerState,
 } from './reducers/baselayerReducer';
 import { useQuery } from './hooks/useQuery';
+import { useHighlightBoxes } from './hooks/useHighlightBoxes';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
@@ -101,10 +94,14 @@ function App() {
     },
   });
 
-  /** highlightBoxes are regions user's have added to a map via the AreaSelection tooling */
-  const [highlightBoxes, setHighlightBoxes] = useState<Box[] | undefined>(
-    undefined
-  );
+  const {
+    // Regions users have added to a map
+    highlightBoxes,
+    updateHighlightBoxes,
+    // The optimistic version of highlightBoxes for when we add boxes in the UI
+    optimisticHighlightBoxes,
+    addOptimisticHighlightBox,
+  } = useHighlightBoxes();
 
   /** sets the bounds of the rectangular "select region" box */
   const [selectionBounds, setSelectionBounds] = useState<
@@ -119,18 +116,6 @@ function App() {
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
 
-  /** wrap highlightBoxes state in a useOptimistic hook so we can optimistically render new boxes */
-  const [optimisticHighlightBoxes, addOptimisticHighlightBox] = useOptimistic(
-    highlightBoxes,
-    (state, newHighlightBox: Box) => {
-      if (state) {
-        return [...state, newHighlightBox];
-      } else {
-        return [newHighlightBox];
-      }
-    }
-  );
-
   /** used as a hack to mount a new MapContainer when the tileSize changes in order to set a new custom CRS */
   const [mapKey, setMapKey] = useState<number>(1);
 
@@ -139,14 +124,6 @@ function App() {
   const [mapBounds, setMapBounds] = useState<LatLngBounds | undefined>(
     undefined
   );
-
-  useEffect(() => {
-    async function getHighlightBoxes() {
-      const boxes = await fetchBoxes();
-      setHighlightBoxes(boxes);
-    }
-    getHighlightBoxes();
-  }, []);
 
   /**
    * Handler fires when user changes map layers. If the units of the new
@@ -243,7 +220,7 @@ function App() {
                     key={`${box.name}-${box.id}`}
                     box={box}
                     submapData={submapData}
-                    setBoxes={setHighlightBoxes}
+                    setBoxes={updateHighlightBoxes}
                     activeBoxIds={activeBoxIds}
                     setActiveBoxIds={setActiveBoxIds}
                   />
@@ -258,7 +235,7 @@ function App() {
               handleSelectionBounds={setSelectionBounds}
               selectionBounds={selectionBounds}
               submapData={submapData}
-              setBoxes={setHighlightBoxes}
+              setBoxes={updateHighlightBoxes}
               setActiveBoxIds={setActiveBoxIds}
               addOptimisticHighlightBox={addOptimisticHighlightBox}
             />
