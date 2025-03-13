@@ -27,7 +27,7 @@ npm install
      add_cors: bool = True
    ```
 
-   - Run the tile server locally via `uvicorn tilemaker.server:app --port=9191 --reload`
+   - Run the tile server locally via `tilemaker serve --port=9191` (if you set a different port in the `.env.development` file, then match it accordingly)
 
    3B. If using your own tile server:
 
