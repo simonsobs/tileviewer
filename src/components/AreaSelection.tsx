@@ -299,6 +299,15 @@ class SelectionRegionControl extends L.Control {
       this.map.getContainer().style.cursor = 'crosshair';
     });
 
+    document.addEventListener('keydown', (e) => {
+      if (this.startButton.disabled === true && e.key === 'Escape') {
+        (this.map as MapWithSelectionHandler).selection.reset();
+        this.startButton.disabled = false;
+        this.options.handleSelectionBounds(undefined);
+        this.hideElement(this.overlayPane);
+      }
+    });
+
     /* Add callback to event handler */
     (this.map as MapWithSelectionHandler).selection.registerCallback(
       (bounds: L.LatLngBounds) => {
