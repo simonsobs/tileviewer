@@ -86,6 +86,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
         />
       )}
       <RangeSlider
+        draggableTrack
         min={sliderAttributes.min}
         max={sliderAttributes.max}
         step={sliderAttributes.step}
