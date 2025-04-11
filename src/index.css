@@ -62,6 +62,10 @@ body {
     sans-serif;
 }
 
+.source-markers {
+  stroke-width: 5px;
+}
+
 .source-popup > h3 {
   margin: 0.5em 0;
 }
