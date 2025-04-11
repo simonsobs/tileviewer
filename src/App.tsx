@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useReducer } from 'react';
+import { useCallback, useMemo, useState, useReducer, ChangeEvent } from 'react';
 import { LayersControl, MapContainer } from 'react-leaflet';
 import { LatLngBounds } from 'leaflet';
 import {
@@ -31,6 +31,7 @@ import {
 } from './reducers/baselayerReducer';
 import { useQuery } from './hooks/useQuery';
 import { useHighlightBoxes } from './hooks/useHighlightBoxes';
+import { OpenLayersMap } from './components/OpenLayersMap';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
@@ -116,14 +117,7 @@ function App() {
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
 
-  /** used as a hack to mount a new MapContainer when the tileSize changes in order to set a new custom CRS */
-  const [mapKey, setMapKey] = useState<number>(1);
-
-  /** tracks the map's viewport bounds before unmounting the MapContainer so that we can try to preserve the viewport
-    as best as possible when we mount a new MapContainer */
-  const [mapBounds, setMapBounds] = useState<LatLngBounds | undefined>(
-    undefined
-  );
+  const [activeSourceListIds, setActiveSourceListIds] = useState<number[]>([]);
 
   /**
    * Handler fires when user changes map layers. If the units of the new
@@ -133,20 +127,12 @@ function App() {
    * TileLayer requests.
    */
   const onBaseLayerChange = useCallback(
-    (layer: L.TileLayer, map: L.Map) => {
+    (selectedBaselayerId: number) => {
       const newActiveBaselayer = bands?.find(
-        (b) => b.id === Number(layer.options.id)
+        (b) => b.id === selectedBaselayerId
       );
 
       if (!newActiveBaselayer) return;
-
-      if (
-        newActiveBaselayer.tile_size !==
-        baselayerState.activeBaselayer?.tile_size
-      ) {
-        setMapBounds(map.getBounds());
-        setMapKey((prevKey) => ++prevKey);
-      }
 
       dispatch({
         type: CHANGE_BASELAYER,
@@ -154,6 +140,22 @@ function App() {
       });
     },
     [bands, baselayerState]
+  );
+
+  const onSelectedSourceListsChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      if (!sourceLists) return;
+      if (e.target.checked) {
+        setActiveSourceListIds((prevState) =>
+          prevState.concat(Number(e.target.value))
+        );
+      } else {
+        setActiveSourceListIds((prevState) =>
+          prevState.filter((id) => id !== Number(e.target.value))
+        );
+      }
+    },
+    [sourceLists]
   );
 
   const onCmapValuesChange = useCallback((values: number[]) => {
@@ -200,7 +202,17 @@ function App() {
     const { activeBaselayer, cmap, cmapValues } = baselayerState;
     return (
       <>
-        {baselayerState.activeBaselayer && (
+        {baselayerState.activeBaselayer && bands && (
+          <OpenLayersMap
+            bands={bands}
+            baselayerState={baselayerState}
+            onBaseLayerChange={onBaseLayerChange}
+            sourceLists={sourceLists}
+            activeSourceListIds={activeSourceListIds}
+            onSelectedSourceListsChange={onSelectedSourceListsChange}
+          />
+        )}
+        {/* {baselayerState.activeBaselayer && (
           <MapContainer
             id="map"
             key={mapKey}
@@ -247,7 +259,7 @@ function App() {
               setActiveBoxIds={setActiveBoxIds}
             />
           </MapContainer>
-        )}
+        )} */}
         <ColorMapControls
           values={[cmapValues.min, cmapValues.max]}
           onCmapValuesChange={onCmapValuesChange}
