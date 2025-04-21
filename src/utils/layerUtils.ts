@@ -27,3 +27,16 @@ export function getTopLeftBottomRightFromBounds(bounds: L.LatLngBounds) {
     right,
   };
 }
+
+export function handleSelectChange(
+  event: React.ChangeEvent<HTMLInputElement>,
+  setter: (value: React.SetStateAction<number[]>) => void
+) {
+  if (event.target.checked) {
+    setter((prevState) => prevState.concat(Number(event.target.value)));
+  } else {
+    setter((prevState) =>
+      prevState.filter((id) => id !== Number(event.target.value))
+    );
+  }
+}

@@ -32,6 +32,7 @@ import {
 import { useQuery } from './hooks/useQuery';
 import { useHighlightBoxes } from './hooks/useHighlightBoxes';
 import { OpenLayersMap } from './components/OpenLayersMap';
+import { handleSelectChange } from './utils/layerUtils';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
@@ -145,17 +146,17 @@ function App() {
   const onSelectedSourceListsChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       if (!sourceLists) return;
-      if (e.target.checked) {
-        setActiveSourceListIds((prevState) =>
-          prevState.concat(Number(e.target.value))
-        );
-      } else {
-        setActiveSourceListIds((prevState) =>
-          prevState.filter((id) => id !== Number(e.target.value))
-        );
-      }
+      handleSelectChange(e, setActiveSourceListIds);
     },
     [sourceLists]
+  );
+
+  const onSelectedHighlightBoxChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      if (!highlightBoxes) return;
+      handleSelectChange(e, setActiveBoxIds);
+    },
+    [highlightBoxes]
   );
 
   const onCmapValuesChange = useCallback((values: number[]) => {
@@ -210,6 +211,9 @@ function App() {
             sourceLists={sourceLists}
             activeSourceListIds={activeSourceListIds}
             onSelectedSourceListsChange={onSelectedSourceListsChange}
+            highlightBoxes={highlightBoxes}
+            activeBoxIds={activeBoxIds}
+            onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
           />
         )}
         {/* {baselayerState.activeBaselayer && (

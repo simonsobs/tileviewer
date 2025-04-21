@@ -3,7 +3,7 @@ import { TileGrid } from 'ol/tilegrid';
 import { Tile as TileLayer, Graticule } from 'ol/layer';
 import { XYZ } from 'ol/source';
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Band, BaselayerState, Source, SourceList } from '../types/maps';
+import { Band, BaselayerState, Box, Source, SourceList } from '../types/maps';
 import { SERVICE_URL } from '../configs/mapSettings';
 import 'ol/ol.css';
 import Stroke from 'ol/style/Stroke.js';
@@ -16,6 +16,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Select from 'ol/interaction/Select.js';
 import { click } from 'ol/events/condition';
+import { fromExtent } from 'ol/geom/Polygon.js';
 
 export type MapProps = {
   bands: Band[];
@@ -24,6 +25,9 @@ export type MapProps = {
   sourceLists?: SourceList[];
   activeSourceListIds: number[];
   onSelectedSourceListsChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  highlightBoxes: Box[] | undefined;
+  activeBoxIds: number[];
+  onSelectedHighlightBoxChange: (e: ChangeEvent<HTMLInputElement>) => void;
 };
 
 export function OpenLayersMap({
@@ -33,6 +37,9 @@ export function OpenLayersMap({
   sourceLists = [],
   onSelectedSourceListsChange,
   activeSourceListIds,
+  highlightBoxes,
+  activeBoxIds,
+  onSelectedHighlightBoxChange,
 }: MapProps) {
   const mapRef = useRef<Map | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
@@ -75,12 +82,16 @@ export function OpenLayersMap({
         color: 'rgba(198,198,198,0.5)',
         width: 2,
       }),
+      zIndex: 1000,
       showLabels: true,
       lonLabelPosition: 0,
       latLabelPosition: 0.999,
       latLabelFormatter: (lat) => String(lat),
       lonLabelFormatter: (lon) => String(lon),
       wrapX: false,
+      properties: {
+        id: 'graticule-1',
+      },
     });
   }, []);
 
@@ -90,12 +101,16 @@ export function OpenLayersMap({
         color: 'rgba(198,198,198,0.5)',
         width: 2,
       }),
+      zIndex: 1000,
       showLabels: true,
       lonLabelPosition: 1,
       latLabelPosition: 0.012,
       latLabelFormatter: (lat) => String(lat),
       lonLabelFormatter: (lon) => String(lon),
       wrapX: false,
+      properties: {
+        id: 'graticule-2',
+      },
     });
   }, []);
 
@@ -108,7 +123,7 @@ export function OpenLayersMap({
         resolutions.push(resolutionZ0 / 2 ** i);
       }
       return new TileLayer({
-        properties: { id: band.id },
+        properties: { id: 'baselayer-' + band.id },
         source: new XYZ({
           url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}`,
           tileGrid: new TileGrid({
@@ -153,9 +168,37 @@ export function OpenLayersMap({
                 },
               }),
             ],
+            zIndex: 500,
           })
       );
   }, [sourceLists, activeSourceListIds]);
+
+  const highlightBoxOverlays = useMemo(() => {
+    if (!highlightBoxes) return [];
+    return highlightBoxes
+      .filter((box) => activeBoxIds.includes(box.id))
+      .map(
+        (box) =>
+          new VectorLayer({
+            properties: {
+              id: 'highlight-box-' + box.id,
+            },
+            source: new VectorSource({
+              features: [
+                new Feature(
+                  fromExtent([
+                    box.top_left_ra,
+                    box.bottom_right_dec,
+                    box.bottom_right_ra,
+                    box.top_left_dec,
+                  ]) // minX, minY, maxX, maxY
+                ),
+              ],
+            }),
+            zIndex: 500,
+          })
+      );
+  }, [highlightBoxes, activeBoxIds]);
 
   useEffect(() => {
     const stableMapRef = mapRef.current;
@@ -173,9 +216,13 @@ export function OpenLayersMap({
 
   useEffect(() => {
     if (mapRef.current && activeBaselayer) {
-      mapRef.current
-        .getAllLayers()
-        .forEach((layer) => mapRef.current?.removeLayer(layer));
+      mapRef.current.getAllLayers().forEach((layer) => {
+        const layerId = layer.get('id');
+        if (!layerId) return;
+        if (layerId.includes('baselayer') || layerId.includes('graticule')) {
+          mapRef.current?.removeLayer(layer);
+        }
+      });
       const resolutionZ0 = 180 / activeBaselayer.tile_size;
       const levels = activeBaselayer.levels;
       const resolutions = [];
@@ -195,7 +242,7 @@ export function OpenLayersMap({
         tilePixelRatio: activeBaselayer.tile_size / 256,
       });
       const activeLayer = tileLayers.find(
-        (t) => t.get('id') === activeBaselayer!.id
+        (t) => t.get('id') === 'baselayer-' + activeBaselayer!.id
       )!;
       activeLayer.setSource(source);
       mapRef.current.addLayer(activeLayer);
@@ -237,6 +284,13 @@ export function OpenLayersMap({
       select.on('select', (e) => {
         const selectedFeatures = e.selected;
 
+        if (selectedFeatures.length === 0) {
+          // user clicked on empty space, so clear popup data
+          popupOverlay.setPosition(undefined);
+          setSelectedSourceData(undefined);
+          return;
+        }
+
         selectedFeatures.forEach((feature) => {
           const sourceData = feature.get('sourceData') as Source;
           popupOverlay.setPosition([sourceData.ra, sourceData.dec]);
@@ -245,6 +299,19 @@ export function OpenLayersMap({
       });
     }
   }, [mapRef.current, popupRef.current, sourceOverlays, activeSourceListIds]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.getLayers().forEach((l) => {
+      const id = l.get('id') as string;
+      if (typeof id === 'string' && id.includes('highlight-box')) {
+        l.setVisible(false);
+      }
+    });
+    highlightBoxOverlays.forEach((box) => {
+      mapRef.current?.addLayer(box);
+    });
+  }, [highlightBoxOverlays]);
 
   return (
     <div id="map">
@@ -271,6 +338,9 @@ export function OpenLayersMap({
         sourceLists={sourceLists}
         activeSourceListIds={activeSourceListIds}
         onSelectedSourceListsChange={onSelectedSourceListsChange}
+        highlightBoxes={highlightBoxes}
+        activeBoxIds={activeBoxIds}
+        onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
       />
       {coordinates && <CoordinatesDisplay coordinates={coordinates} />}
     </div>

@@ -17,6 +17,9 @@ export function LayerSelector({
   sourceLists,
   onSelectedSourceListsChange,
   activeSourceListIds,
+  highlightBoxes,
+  activeBoxIds,
+  onSelectedHighlightBoxChange,
 }: Props) {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -73,6 +76,23 @@ export function LayerSelector({
                   checked={activeSourceListIds.includes(sl.id)}
                 />
                 <label htmlFor={String(sl.id)}>{sl.name}</label>
+              </div>
+            ))}
+          </fieldset>
+        )}
+        {highlightBoxes && (
+          <fieldset>
+            <legend>Highlight regions</legend>
+            {highlightBoxes.map((box) => (
+              <div className="input-container" key={box.id + '-' + box.name}>
+                <input
+                  onChange={onSelectedHighlightBoxChange}
+                  type="checkbox"
+                  id={String(box.id)}
+                  value={box.id}
+                  checked={activeBoxIds.includes(box.id)}
+                />
+                <label htmlFor={String(box.id)}>{box.name}</label>
               </div>
             ))}
           </fieldset>
