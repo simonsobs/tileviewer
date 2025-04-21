@@ -1,27 +1,7 @@
 import { useCallback, useMemo, useState, useReducer, ChangeEvent } from 'react';
-import { LayersControl, MapContainer } from 'react-leaflet';
-import { LatLngBounds } from 'leaflet';
-import {
-  DEFAULT_MAP_CENTER,
-  DEFAULT_MAP_ZOOM_LEVEL,
-} from './configs/mapSettings';
-import {
-  GraticuleDetails,
-  MapMetadataResponse,
-  Band,
-  SourceList,
-} from './types/maps';
-import { MapEvents } from './components/MapEvents';
+import { MapMetadataResponse, Band, SourceList } from './types/maps';
 import { ColorMapControls } from './components/ColorMapControls';
-import { CoordinatesDisplay } from './components/CoordinatesDisplay';
-import { AstroScale } from './components/AstroScale';
-import { AreaSelection } from './components/AreaSelection';
-import { GraticuleLayer } from './components/layers/GraticuleLayer';
 import { fetchProducts } from './utils/fetchUtils';
-import { HighlightBoxLayer } from './components/layers/HighlightBoxLayer';
-import { SourceListOverlays } from './components/layers/SourceListOverlays';
-import { MapBaselayers } from './components/layers/MapBaselayers';
-import { getCustomCRS } from './configs/customCrs';
 import {
   baselayerReducer,
   CHANGE_BASELAYER,
@@ -106,14 +86,9 @@ function App() {
   } = useHighlightBoxes();
 
   /** sets the bounds of the rectangular "select region" box */
-  const [selectionBounds, setSelectionBounds] = useState<
-    LatLngBounds | undefined
-  >(undefined);
-
-  /** used to set the AstroScale component to the same width and interval as the graticule layer */
-  const [graticuleDetails, setGraticuleDetails] = useState<
-    undefined | GraticuleDetails
-  >(undefined);
+  // const [selectionBounds, setSelectionBounds] = useState<
+  //   LatLngBounds | undefined
+  // >(undefined);
 
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
@@ -179,19 +154,19 @@ function App() {
   /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
     composed from state at this level, we must construct it here and pass it down to the AreaSelection and
     HighlightBoxLayer components. */
-  const submapData = useMemo(() => {
-    if (baselayerState.activeBaselayer) {
-      const { map_id: mapId, id: bandId } = baselayerState.activeBaselayer;
-      const { cmap, cmapValues } = baselayerState;
-      return {
-        mapId,
-        bandId,
-        vmin: cmapValues?.min,
-        vmax: cmapValues?.max,
-        cmap,
-      };
-    }
-  }, [baselayerState]);
+  // const submapData = useMemo(() => {
+  //   if (baselayerState.activeBaselayer) {
+  //     const { map_id: mapId, id: bandId } = baselayerState.activeBaselayer;
+  //     const { cmap, cmapValues } = baselayerState;
+  //     return {
+  //       mapId,
+  //       bandId,
+  //       vmin: cmapValues?.min,
+  //       vmax: cmapValues?.max,
+  //       cmap,
+  //     };
+  //   }
+  // }, [baselayerState]);
 
   if (
     !baselayerState.activeBaselayer ||
@@ -216,54 +191,6 @@ function App() {
             onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
           />
         )}
-        {/* {baselayerState.activeBaselayer && (
-          <MapContainer
-            id="map"
-            key={mapKey}
-            crs={getCustomCRS(baselayerState.activeBaselayer.tile_size)}
-            bounds={mapBounds}
-            center={mapBounds ? undefined : DEFAULT_MAP_CENTER}
-            zoom={mapBounds ? undefined : DEFAULT_MAP_ZOOM_LEVEL}
-          >
-            <LayersControl>
-              {bands && (
-                <MapBaselayers bands={bands} baselayerState={baselayerState} />
-              )}
-              {sourceLists && <SourceListOverlays sources={sourceLists} />}
-              {submapData &&
-                optimisticHighlightBoxes?.map((box) => (
-                  <HighlightBoxLayer
-                    key={`${box.name}-${box.id}`}
-                    box={box}
-                    submapData={submapData}
-                    setBoxes={updateHighlightBoxes}
-                    activeBoxIds={activeBoxIds}
-                    setActiveBoxIds={setActiveBoxIds}
-                  />
-                ))}
-            </LayersControl>
-            <GraticuleLayer setGraticuleDetails={setGraticuleDetails} />
-            <CoordinatesDisplay />
-            {graticuleDetails && (
-              <AstroScale graticuleDetails={graticuleDetails} />
-            )}
-            <AreaSelection
-              handleSelectionBounds={setSelectionBounds}
-              selectionBounds={selectionBounds}
-              submapData={submapData}
-              setBoxes={updateHighlightBoxes}
-              setActiveBoxIds={setActiveBoxIds}
-              addOptimisticHighlightBox={addOptimisticHighlightBox}
-            />
-            <MapEvents
-              onBaseLayerChange={onBaseLayerChange}
-              selectionBounds={selectionBounds}
-              boxes={highlightBoxes}
-              activeBoxIds={activeBoxIds}
-              setActiveBoxIds={setActiveBoxIds}
-            />
-          </MapContainer>
-        )} */}
         <ColorMapControls
           values={[cmapValues.min, cmapValues.max]}
           onCmapValuesChange={onCmapValuesChange}

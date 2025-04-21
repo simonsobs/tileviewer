@@ -4,7 +4,7 @@ import { Tile as TileLayer, Graticule } from 'ol/layer';
 import { XYZ } from 'ol/source';
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Band, BaselayerState, Box, Source, SourceList } from '../types/maps';
-import { SERVICE_URL } from '../configs/mapSettings';
+import { DEFAULT_MAP_SETTINGS, SERVICE_URL } from '../configs/mapSettings';
 import 'ol/ol.css';
 import Stroke from 'ol/style/Stroke.js';
 import { CoordinatesDisplay } from './CoordinatesDisplay';
@@ -55,14 +55,7 @@ export function OpenLayersMap({
   const mapConfig = useMemo(
     () => ({
       target: 'map',
-      view: new View({
-        projection: 'EPSG:4326',
-        center: [0, 0],
-        zoom: 0,
-        extent: [-180, -90, 180, 90],
-        showFullExtent: true,
-        multiWorld: true,
-      }),
+      view: new View(DEFAULT_MAP_SETTINGS),
     }),
     []
   );
