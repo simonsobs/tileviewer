@@ -178,14 +178,15 @@ export function OpenLayersMap({
             },
             source: new VectorSource({
               features: [
-                new Feature(
-                  fromExtent([
+                new Feature({
+                  geometry: fromExtent([
                     box.top_left_ra,
                     box.bottom_right_dec,
                     box.bottom_right_ra,
                     box.top_left_dec,
-                  ]) // minX, minY, maxX, maxY
-                ),
+                  ]), // minX, minY, maxX, maxY
+                  boxData: box,
+                }),
               ],
             }),
             zIndex: 500,
@@ -199,6 +200,9 @@ export function OpenLayersMap({
       mapRef.current = new Map(mapConfig);
       mapRef.current.on('pointermove', (e) => {
         setCoordinates(e.coordinate);
+        e.map.forEachFeatureAtPixel(e.pixel, function (f) {
+          console.log(f.get('boxData'));
+        });
       });
       mapRef.current.addControl(scale);
     }
