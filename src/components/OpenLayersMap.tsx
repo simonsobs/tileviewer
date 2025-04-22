@@ -17,6 +17,12 @@ import VectorSource from 'ol/source/Vector';
 import Select from 'ol/interaction/Select.js';
 import { click } from 'ol/events/condition';
 import { fromExtent } from 'ol/geom/Polygon.js';
+import './styles/highlight-controls.css';
+import './styles/area-selection.css';
+import { MenuIcon } from './icons/MenuIcon';
+import { SubmapData } from './AreaSelection';
+import { SUBMAP_DOWNLOAD_OPTIONS } from '../configs/submapConfigs';
+import { deleteSubmapBox, downloadSubmap } from '../utils/fetchUtils';
 
 export type MapProps = {
   bands: Band[];
@@ -26,8 +32,18 @@ export type MapProps = {
   activeSourceListIds: number[];
   onSelectedSourceListsChange: (e: ChangeEvent<HTMLInputElement>) => void;
   highlightBoxes: Box[] | undefined;
+  setBoxes: (boxes: Box[]) => void;
   activeBoxIds: number[];
+  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
   onSelectedHighlightBoxChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  submapData?: SubmapData;
+};
+
+export type BoxWithPositionalData = Box & {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
 };
 
 export function OpenLayersMap({
@@ -38,17 +54,25 @@ export function OpenLayersMap({
   onSelectedSourceListsChange,
   activeSourceListIds,
   highlightBoxes,
+  setBoxes,
   activeBoxIds,
+  setActiveBoxIds,
   onSelectedHighlightBoxChange,
+  submapData,
 }: MapProps) {
   const mapRef = useRef<Map | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
+  const boxOverlayRef = useRef<HTMLDivElement | null>(null);
   const [coordinates, setCoordinates] = useState<number[] | undefined>(
     undefined
   );
   const [selectedSourceData, setSelectedSourceData] = useState<
     Source | undefined
   >(undefined);
+  const [selectedBoxData, setSelectedBoxData] = useState<
+    BoxWithPositionalData | undefined
+  >(undefined);
+  const [showMenu, setShowMenu] = useState(false);
 
   const { activeBaselayer, cmap, cmapValues } = baselayerState;
 
@@ -200,9 +224,6 @@ export function OpenLayersMap({
       mapRef.current = new Map(mapConfig);
       mapRef.current.on('pointermove', (e) => {
         setCoordinates(e.coordinate);
-        e.map.forEachFeatureAtPixel(e.pixel, function (f) {
-          console.log(f.get('boxData'));
-        });
       });
       mapRef.current.addControl(scale);
     }
@@ -263,8 +284,7 @@ export function OpenLayersMap({
 
   useEffect(() => {
     if (!mapRef.current) return;
-    const doesOverlayExist = mapRef.current.getOverlayById('source-popup');
-    if (!doesOverlayExist && popupRef.current) {
+    if (popupRef.current) {
       const popupOverlay = new Overlay({
         element: popupRef.current,
       });
@@ -310,6 +330,52 @@ export function OpenLayersMap({
     });
   }, [highlightBoxOverlays]);
 
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const doesOverlayExist = mapRef.current.getOverlayById('box-overlay');
+    if (!doesOverlayExist && boxOverlayRef.current) {
+      const boxOverlay = new Overlay({
+        element: boxOverlayRef.current,
+        id: 'box-overlay',
+      });
+      mapRef.current.addOverlay(boxOverlay);
+      mapRef.current.on('pointermove', (e) => {
+        if (!e.map.hasFeatureAtPixel(e.pixel)) {
+          boxOverlay.setPosition(undefined);
+          setSelectedBoxData(undefined);
+          setShowMenu(false);
+          return;
+        }
+        e.map.forEachFeatureAtPixel(e.pixel, function (f) {
+          const boxData = f.get('boxData') as Box;
+          if (!boxData) return;
+          const topLeftBoxPosition = e.map.getPixelFromCoordinate([
+            boxData.top_left_ra,
+            boxData.top_left_dec,
+          ]);
+          const bottomRightBoxPosition = e.map.getPixelFromCoordinate([
+            boxData.bottom_right_ra,
+            boxData.bottom_right_dec,
+          ]);
+          const boxWidth = Math.abs(
+            topLeftBoxPosition[0] - bottomRightBoxPosition[0]
+          );
+          const boxHeight = Math.abs(
+            topLeftBoxPosition[1] - bottomRightBoxPosition[1]
+          );
+          boxOverlay.setPosition([boxData.top_left_ra, boxData.top_left_dec]);
+          setSelectedBoxData({
+            ...boxData,
+            top: topLeftBoxPosition[1],
+            left: topLeftBoxPosition[0],
+            width: boxWidth,
+            height: boxHeight,
+          });
+        });
+      });
+    }
+  }, [mapRef.current, boxOverlayRef.current]);
+
   return (
     <div id="map">
       <div ref={popupRef} className="source-popup">
@@ -328,6 +394,111 @@ export function OpenLayersMap({
           </div>
         )}
       </div>
+      <div
+        ref={boxOverlayRef}
+        className="highlight-box-hover-container"
+        style={{
+          width: selectedBoxData && selectedBoxData.width,
+          height: selectedBoxData && selectedBoxData.height,
+        }}
+      >
+        {!showMenu && selectedBoxData && (
+          <div>
+            <div className="highlight-box-header">
+              <button
+                className={'menu-button highlight-box-menu-btn'}
+                onClick={() => setShowMenu(!showMenu)}
+              >
+                <MenuIcon />
+              </button>
+              <h3>{selectedBoxData.name}</h3>
+            </div>
+            <p>{selectedBoxData.description}</p>
+          </div>
+        )}
+      </div>
+      {showMenu && selectedBoxData && (
+        <div
+          className="highlight-box-hover-container no-background"
+          style={{
+            top: selectedBoxData.top,
+            left: selectedBoxData.left,
+          }}
+        >
+          <div>
+            <div className="highlight-box-header">
+              <button
+                className={'menu-button highlight-box-menu-btn'}
+                onClick={() => setShowMenu(!showMenu)}
+              >
+                <MenuIcon />
+              </button>
+              {showMenu && (
+                <div className="menu-btns-container highlight-box-menu-btns-container">
+                  {SUBMAP_DOWNLOAD_OPTIONS.map((option) => (
+                    <button
+                      className="area-select-button highlight-box-button"
+                      key={option.display}
+                      onClick={() => {
+                        if (submapData) {
+                          downloadSubmap(
+                            {
+                              ...submapData,
+                              top: selectedBoxData.top_left_dec,
+                              left: selectedBoxData.top_left_ra,
+                              bottom: selectedBoxData.bottom_right_dec,
+                              right: selectedBoxData.bottom_right_ra,
+                            },
+                            option.ext
+                          );
+                        }
+                      }}
+                    >
+                      Download {option.display}
+                    </button>
+                  ))}
+                  <button
+                    className="area-select-button highlight-box-button"
+                    key="hide-box"
+                    onClick={() => {
+                      setActiveBoxIds((prev) =>
+                        prev.filter((id) => selectedBoxData.id !== id)
+                      );
+                      setShowMenu(false);
+                      setSelectedBoxData(undefined);
+                      mapRef.current
+                        ?.getOverlayById('box-overlay')
+                        ?.setPosition(undefined);
+                    }}
+                  >
+                    Hide Box
+                  </button>
+                  <button
+                    key="delete-box"
+                    className="area-select button highlight-box-button delete-box-button"
+                    onClick={() => {
+                      deleteSubmapBox(
+                        selectedBoxData.id,
+                        setBoxes,
+                        setActiveBoxIds
+                      );
+                      setShowMenu(false);
+                      setSelectedBoxData(undefined);
+                      mapRef.current
+                        ?.getOverlayById('box-overlay')
+                        ?.setPosition(undefined);
+                    }}
+                  >
+                    Delete Box
+                  </button>
+                </div>
+              )}
+              <h3>{selectedBoxData.name}</h3>
+            </div>
+            <p>{selectedBoxData.description}</p>
+          </div>
+        </div>
+      )}
       <LayerSelector
         bands={bands}
         onBaseLayerChange={onBaseLayerChange}

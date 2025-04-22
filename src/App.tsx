@@ -154,19 +154,19 @@ function App() {
   /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
     composed from state at this level, we must construct it here and pass it down to the AreaSelection and
     HighlightBoxLayer components. */
-  // const submapData = useMemo(() => {
-  //   if (baselayerState.activeBaselayer) {
-  //     const { map_id: mapId, id: bandId } = baselayerState.activeBaselayer;
-  //     const { cmap, cmapValues } = baselayerState;
-  //     return {
-  //       mapId,
-  //       bandId,
-  //       vmin: cmapValues?.min,
-  //       vmax: cmapValues?.max,
-  //       cmap,
-  //     };
-  //   }
-  // }, [baselayerState]);
+  const submapData = useMemo(() => {
+    if (baselayerState.activeBaselayer) {
+      const { map_id: mapId, id: bandId } = baselayerState.activeBaselayer;
+      const { cmap, cmapValues } = baselayerState;
+      return {
+        mapId,
+        bandId,
+        vmin: cmapValues?.min,
+        vmax: cmapValues?.max,
+        cmap,
+      };
+    }
+  }, [baselayerState]);
 
   if (
     !baselayerState.activeBaselayer ||
@@ -186,9 +186,12 @@ function App() {
             sourceLists={sourceLists}
             activeSourceListIds={activeSourceListIds}
             onSelectedSourceListsChange={onSelectedSourceListsChange}
-            highlightBoxes={highlightBoxes}
+            highlightBoxes={optimisticHighlightBoxes}
+            setBoxes={updateHighlightBoxes}
             activeBoxIds={activeBoxIds}
+            setActiveBoxIds={setActiveBoxIds}
             onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
+            submapData={submapData}
           />
         )}
         <ColorMapControls

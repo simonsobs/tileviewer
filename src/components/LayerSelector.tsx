@@ -5,7 +5,11 @@ import { LayersIcon } from './icons/LayersIcon';
 import './styles/layer-selector.css';
 import { MapProps } from './OpenLayersMap';
 
-interface Props extends Omit<MapProps, 'baselayerState' | 'sourceLists'> {
+interface Props
+  extends Omit<
+    MapProps,
+    'baselayerState' | 'sourceLists' | 'setActiveBoxIds' | 'setBoxes'
+  > {
   activeBaselayerId?: number;
   sourceLists: SourceList[];
 }
