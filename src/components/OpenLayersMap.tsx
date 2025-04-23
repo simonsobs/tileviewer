@@ -23,6 +23,8 @@ import { MenuIcon } from './icons/MenuIcon';
 import { SubmapData } from './AreaSelection';
 import { SUBMAP_DOWNLOAD_OPTIONS } from '../configs/submapConfigs';
 import { deleteSubmapBox, downloadSubmap } from '../utils/fetchUtils';
+import Control from 'ol/control/Control';
+import { CropIcon } from './icons/CropIcon';
 
 export type MapProps = {
   bands: Band[];
@@ -378,6 +380,15 @@ export function OpenLayersMap({
 
   return (
     <div id="map">
+      <div className="ol-zoom ol-control draw-box-btn-container">
+        <button
+          type="button"
+          className="draw-box-btn"
+          title="Draw a region on the map"
+        >
+          <CropIcon />
+        </button>
+      </div>
       <div ref={popupRef} className="source-popup">
         {selectedSourceData && (
           <div className="source-popup-content">

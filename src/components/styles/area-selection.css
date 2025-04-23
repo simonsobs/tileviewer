@@ -77,3 +77,15 @@
   flex-direction: column;
   margin-top: 5px;
 }
+
+.draw-box-btn-container {
+  top: 85px;
+  z-index: 1000;
+}
+
+.draw-box-btn:hover,
+.draw-box.btn:focus {
+  text-decoration: none;
+  outline: 1px solid #666666;
+  color: #333333;
+}
