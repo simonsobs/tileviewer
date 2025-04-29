@@ -767,7 +767,7 @@ export function AreaSelection({
           <input type="submit" value="Add Box" />
         </form>
       </Dialog>
-      <AreaSelectionControl
+      {/* <AreaSelectionControl
         // Sets the position of the "Select Region" control button to the top left of the map
         position="topleft"
         handleSelectionBounds={handleSelectionBounds}
@@ -775,7 +775,7 @@ export function AreaSelection({
         setShowAddBoxDialog={setShowAddBoxDialog}
         resetAreaSelection={resetAreaSelection}
         setResetAreaSelection={setResetAreaSelection}
-      />
+      /> */}
     </>
   );
 }

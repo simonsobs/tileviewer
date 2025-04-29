@@ -192,6 +192,7 @@ function App() {
             setActiveBoxIds={setActiveBoxIds}
             onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
             submapData={submapData}
+            addOptimisticHighlightBox={addOptimisticHighlightBox}
           />
         )}
         <ColorMapControls

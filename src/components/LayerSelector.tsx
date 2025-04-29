@@ -8,7 +8,11 @@ import { MapProps } from './OpenLayersMap';
 interface Props
   extends Omit<
     MapProps,
-    'baselayerState' | 'sourceLists' | 'setActiveBoxIds' | 'setBoxes'
+    | 'baselayerState'
+    | 'sourceLists'
+    | 'setActiveBoxIds'
+    | 'setBoxes'
+    | 'addOptimisticHighlightBox'
   > {
   activeBaselayerId?: number;
   sourceLists: SourceList[];

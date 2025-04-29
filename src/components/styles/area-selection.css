@@ -89,3 +89,11 @@
   outline: 1px solid #666666;
   color: #333333;
 }
+
+.draw-box-btn:disabled,
+.draw-box-btn:disabled:hover,
+.draw-box.btn:disabled:focus {
+  cursor: not-allowed;
+  color: #999999;
+  outline: none;
+}
