@@ -94,3 +94,11 @@ export type BaselayerState = {
     max: number;
   };
 };
+
+export type SubmapData = {
+  mapId: number;
+  bandId: number;
+  vmin: number | undefined;
+  vmax: number | undefined;
+  cmap: string | undefined;
+};

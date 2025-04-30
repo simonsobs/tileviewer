@@ -12,7 +12,14 @@ import {
   FormEvent,
   useCallback,
 } from 'react';
-import { Band, BaselayerState, Box, Source, SourceList } from '../types/maps';
+import {
+  Band,
+  BaselayerState,
+  Box,
+  Source,
+  SourceList,
+  SubmapData,
+} from '../types/maps';
 import { DEFAULT_MAP_SETTINGS, SERVICE_URL } from '../configs/mapSettings';
 import 'ol/ol.css';
 import Stroke from 'ol/style/Stroke.js';
@@ -29,7 +36,6 @@ import { fromExtent } from 'ol/geom/Polygon.js';
 import './styles/highlight-controls.css';
 import './styles/area-selection.css';
 import { MenuIcon } from './icons/MenuIcon';
-import { SubmapData } from './AreaSelection';
 import { SUBMAP_DOWNLOAD_OPTIONS } from '../configs/submapConfigs';
 import {
   deleteSubmapBox,

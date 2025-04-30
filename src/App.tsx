@@ -85,11 +85,6 @@ function App() {
     addOptimisticHighlightBox,
   } = useHighlightBoxes();
 
-  /** sets the bounds of the rectangular "select region" box */
-  // const [selectionBounds, setSelectionBounds] = useState<
-  //   LatLngBounds | undefined
-  // >(undefined);
-
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
 
