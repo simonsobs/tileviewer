@@ -11,7 +11,7 @@
 
   color-scheme: light dark;
   color: black;
-  background-color: #242424;
+  background-color: #ddd;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -32,7 +32,24 @@ body {
 }
 
 #map {
+  position: relative;
   height: 100%;
+}
+
+.ol-zoom {
+  font-size: 2em;
+}
+
+.scale-control {
+  font-size: 1.3em;
+  padding: 1px 0 1px 8px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  border-top: none;
+  right: 3em;
+  bottom: 20px;
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 5px #bbb;
 }
 
 .leaflet-container {
@@ -45,14 +62,36 @@ body {
     sans-serif;
 }
 
-.source-popup > h3 {
+.source-markers {
+  stroke-width: 5px;
+}
+
+.source-popup {
+  font-size: 1.25em;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+  background-color: white;
+  border-radius: 12px;
+  border-top-left-radius: 0;
+  margin-left: 5px;
+  margin-top: 5px;
+}
+
+.source-popup-content {
+  padding: 2px 15px;
+}
+
+.source-popup-content > h3 {
   margin: 0.5em 0;
 }
 
-.source-popup > p {
+.source-popup-content > p {
   margin: 0.5em 0;
 }
 
-.source-popup > p > span {
+.source-popup-content > p > span {
   font-weight: bold;
+}
+
+.hide {
+  display: none;
 }

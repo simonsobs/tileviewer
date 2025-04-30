@@ -1,258 +1,190 @@
-import { LayersControl, Rectangle, useMap } from 'react-leaflet';
-import L, { latLng, latLngBounds } from 'leaflet';
-import { Box } from '../../types/maps';
-import { useCallback, useEffect, useRef, useMemo } from 'react';
-import { SubmapData, SubmapDataWithBounds } from '../AreaSelection';
-import { deleteSubmapBox, downloadSubmap } from '../../utils/fetchUtils';
-import { menu } from '../../icons/menu';
-import { getTopLeftBottomRightFromBounds } from '../../utils/layerUtils';
-import { SUBMAP_DOWNLOAD_OPTIONS } from '../../configs/submapConfigs';
-import '../styles/highlight-controls.css';
+import { useRef, useState, useMemo, useEffect } from 'react';
+import { Box, BoxWithPositionalData } from '../../types/maps';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import { Feature, Map, Overlay } from 'ol';
+import { fromExtent } from 'ol/geom/Polygon';
+import { MenuIcon } from '../icons/MenuIcon';
+import { MapProps } from '../OpenLayersMap';
+import { deleteSubmapBox } from '../../utils/fetchUtils';
+import { BoxMenu } from '../BoxMenu';
 
-type HighlightBoxLayerProps = {
-  box: Box;
-  submapData: SubmapData;
-  setBoxes: (boxes: Box[]) => void;
-  activeBoxIds: number[];
-  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
+type HightlightBoxLayerProps = {
+  highlightBoxes: MapProps['highlightBoxes'];
+  activeBoxIds: MapProps['activeBoxIds'];
+  mapRef: React.RefObject<Map | null>;
+  setActiveBoxIds: MapProps['setActiveBoxIds'];
+  setBoxes: MapProps['setBoxes'];
+  submapData: MapProps['submapData'];
 };
 
-interface CustomBoxPaneProps
-  extends Omit<HighlightBoxLayerProps, 'activeBoxIds'> {
-  hideBoxHandler: () => void;
-  bounds: L.LatLngBounds;
-}
+export function HighlightBoxLayer({
+  highlightBoxes,
+  activeBoxIds,
+  mapRef,
+  setActiveBoxIds,
+  setBoxes,
+  submapData,
+}: HightlightBoxLayerProps) {
+  const boxOverlayRef = useRef<HTMLDivElement | null>(null);
+  const [selectedBoxData, setSelectedBoxData] = useState<
+    BoxWithPositionalData | undefined
+  >(undefined);
+  const [showMenu, setShowMenu] = useState(false);
 
-function generateBoxContent(
-  boxId: number,
-  container: HTMLDivElement,
-  name: string,
-  description: string,
-  hideBoxHandler: CustomBoxPaneProps['hideBoxHandler'],
-  setBoxes: HighlightBoxLayerProps['setBoxes'],
-  submapDataWithBounds: SubmapDataWithBounds,
-  panePosition: { topLeft: L.Point; bottomRight: L.Point },
-  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>
-) {
-  const { topLeft, bottomRight } = panePosition;
-  const boxWidth = Math.abs(topLeft.x - bottomRight.x);
-  const boxHeight = Math.abs(topLeft.y - bottomRight.y);
+  const highlightBoxOverlays = useMemo(() => {
+    if (!highlightBoxes) return [];
+    return highlightBoxes
+      .filter((box) => activeBoxIds.includes(box.id))
+      .map(
+        (box) =>
+          new VectorLayer({
+            properties: {
+              id: 'highlight-box-' + box.id,
+            },
+            source: new VectorSource({
+              features: [
+                new Feature({
+                  geometry: fromExtent([
+                    box.top_left_ra,
+                    box.bottom_right_dec,
+                    box.bottom_right_ra,
+                    box.top_left_dec,
+                  ]), // minX, minY, maxX, maxY
+                  boxData: box,
+                }),
+              ],
+            }),
+            zIndex: 500,
+          })
+      );
+  }, [highlightBoxes, activeBoxIds]);
 
-  const boxContainer = container.firstChild as HTMLDivElement;
-
-  while (boxContainer.firstChild) {
-    boxContainer.removeChild(boxContainer.firstChild);
-  }
-
-  boxContainer.style.top = topLeft.y + 'px';
-  boxContainer.style.left = topLeft.x + 'px';
-  boxContainer.style.height = boxHeight + 'px';
-  boxContainer.style.width = boxWidth + 'px';
-
-  const headerDiv = document.createElement('div');
-  headerDiv.className = 'highlight-box-header';
-
-  const menuBtnsContainer = document.createElement('div');
-  menuBtnsContainer.style.display = 'none';
-  menuBtnsContainer.classList.add(
-    'menu-btns-container',
-    'highlight-box-menu-btns-container'
-  );
-
-  const hamburgerMenuButton = document.createElement('button');
-  hamburgerMenuButton.className = 'menu-button highlight-box-menu-btn';
-  hamburgerMenuButton.innerHTML = menu;
-  hamburgerMenuButton.addEventListener('click', () => {
-    if (menuBtnsContainer.style.display === 'none') {
-      menuBtnsContainer.style.display = 'flex';
-    } else {
-      menuBtnsContainer.style.display = 'none';
-    }
-  });
-
-  const boxHeader = document.createElement('h3');
-  boxHeader.textContent = name;
-
-  const p = document.createElement('p');
-  p.textContent = description;
-
-  const menuBtns = [];
-  SUBMAP_DOWNLOAD_OPTIONS.forEach((option) => {
-    const btn = document.createElement('button');
-    btn.textContent = `Download ${option.display}`;
-    btn.classList.add('area-select-button', 'highlight-box-button');
-    btn.addEventListener('click', () => {
-      if (submapDataWithBounds) {
-        downloadSubmap(submapDataWithBounds, option.ext);
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.getLayers().forEach((l) => {
+      const id = l.get('id') as string;
+      if (typeof id === 'string' && id.includes('highlight-box')) {
+        l.setVisible(false);
       }
     });
-    menuBtns.push(btn);
-  });
-
-  const hideBoxBtn = document.createElement('button');
-  hideBoxBtn.textContent = 'Hide Box';
-  hideBoxBtn.classList.add('area-select-button', 'highlight-box-button');
-  hideBoxBtn.addEventListener('click', hideBoxHandler);
-  menuBtns.push(hideBoxBtn);
-
-  const deleteBtn = document.createElement('button');
-  deleteBtn.textContent = 'Delete Box';
-  deleteBtn.classList.add(
-    'area-select-button',
-    'highlight-box-button',
-    'delete-box-button'
-  );
-  deleteBtn.addEventListener('click', () => {
-    deleteSubmapBox(boxId, setBoxes, setActiveBoxIds);
-    container.remove();
-  });
-  menuBtns.push(deleteBtn);
-
-  menuBtnsContainer.append(...menuBtns);
-
-  headerDiv.append(hamburgerMenuButton, menuBtnsContainer, boxHeader);
-
-  boxContainer.append(headerDiv, p);
-}
-
-export function CustomBoxPane({
-  box,
-  submapData,
-  bounds,
-  setBoxes,
-  hideBoxHandler,
-  setActiveBoxIds,
-}: CustomBoxPaneProps) {
-  const map = useMap();
-  const paneName = `highlight-boxes-pane-${box.id}`;
+    highlightBoxOverlays.forEach((box) => {
+      mapRef.current?.addLayer(box);
+    });
+  }, [highlightBoxOverlays]);
 
   useEffect(() => {
-    if (!map.getPane(paneName)) {
-      const pane = map.createPane(paneName);
-      pane.style.zIndex = String(500);
-      const boxContainer = document.createElement('div');
-      boxContainer.className = 'highlight-box-hover-container';
-      pane.append(boxContainer);
-
-      pane.addEventListener(
-        'mouseover',
-        () => (boxContainer.style.display = 'block')
-      );
-
-      pane.addEventListener(
-        'mouseout',
-        () => (boxContainer.style.display = 'none')
-      );
-    }
-  }, [map, paneName]);
-
-  useEffect(() => {
-    const pane = map.getPane(paneName);
-
-    const submapDataWithBounds = {
-      ...submapData,
-      ...getTopLeftBottomRightFromBounds(bounds),
-    };
-
-    const panePosition = {
-      topLeft: map.latLngToLayerPoint(bounds.getNorthWest()),
-      bottomRight: map.latLngToLayerPoint(bounds.getSouthEast()),
-    };
-
-    generateBoxContent(
-      box.id,
-      pane as HTMLDivElement,
-      box.name,
-      box.description,
-      hideBoxHandler,
-      setBoxes,
-      submapDataWithBounds,
-      panePosition,
-      setActiveBoxIds
-    );
-  }, [
-    map,
-    submapData,
-    bounds,
-    box,
-    hideBoxHandler,
-    paneName,
-    setActiveBoxIds,
-    setBoxes,
-  ]);
-
-  return null;
-}
-
-export function HighlightBoxLayer({
-  box,
-  submapData,
-  setBoxes,
-  activeBoxIds,
-  setActiveBoxIds,
-}: HighlightBoxLayerProps) {
-  const map = useMap();
-  const layer = useRef<L.Rectangle | null>(null);
-
-  const hideBoxHandler = useCallback(() => {
-    if (layer.current) {
-      const pane = map.getPane(`highlight-boxes-pane-${box.id}`);
-      if (
-        pane &&
-        pane.firstChild &&
-        pane.firstChild instanceof HTMLDivElement
-      ) {
-        const boxOverlayContainer = pane.firstChild;
-        boxOverlayContainer.style.display = 'none';
-        const boxHeaderContainer = boxOverlayContainer.firstChild;
-        if (
-          boxHeaderContainer &&
-          boxHeaderContainer instanceof HTMLDivElement &&
-          boxHeaderContainer.children
-        ) {
-          const menuContainer = boxHeaderContainer
-            .children[1] as HTMLDivElement;
-          menuContainer.style.display = 'none';
+    if (!mapRef.current) return;
+    const doesOverlayExist = mapRef.current.getOverlayById('box-overlay');
+    if (!doesOverlayExist && boxOverlayRef.current) {
+      const boxOverlay = new Overlay({
+        element: boxOverlayRef.current,
+        id: 'box-overlay',
+      });
+      mapRef.current.addOverlay(boxOverlay);
+      mapRef.current.on('pointermove', (e) => {
+        if (!e.map.hasFeatureAtPixel(e.pixel)) {
+          boxOverlay.setPosition(undefined);
+          setSelectedBoxData(undefined);
+          setShowMenu(false);
+          return;
         }
-      }
-      map.removeLayer(layer.current);
+        e.map.forEachFeatureAtPixel(e.pixel, function (f) {
+          const boxData = f.get('boxData') as Box;
+          if (!boxData) return;
+          const topLeftBoxPosition = e.map.getPixelFromCoordinate([
+            boxData.top_left_ra,
+            boxData.top_left_dec,
+          ]);
+          const bottomRightBoxPosition = e.map.getPixelFromCoordinate([
+            boxData.bottom_right_ra,
+            boxData.bottom_right_dec,
+          ]);
+          const boxWidth = Math.abs(
+            topLeftBoxPosition[0] - bottomRightBoxPosition[0]
+          );
+          const boxHeight = Math.abs(
+            topLeftBoxPosition[1] - bottomRightBoxPosition[1]
+          );
+          boxOverlay.setPosition([boxData.top_left_ra, boxData.top_left_dec]);
+          setSelectedBoxData({
+            ...boxData,
+            top: topLeftBoxPosition[1],
+            left: topLeftBoxPosition[0],
+            width: boxWidth,
+            height: boxHeight,
+          });
+        });
+      });
     }
-  }, [map, layer, box.id]);
-
-  const bounds = useMemo(() => {
-    return latLngBounds(
-      latLng(box.top_left_dec, box.top_left_ra),
-      latLng(box.bottom_right_dec, box.bottom_right_ra)
-    );
-  }, [box]);
+  }, [mapRef.current, boxOverlayRef.current]);
 
   return (
-    <LayersControl.Overlay
-      key={box.id}
-      name={box.name}
-      checked={activeBoxIds.includes(box.id)}
-    >
-      <CustomBoxPane
-        key={`custom-pane-${box.id}`}
-        box={box}
-        hideBoxHandler={hideBoxHandler}
-        setBoxes={setBoxes}
-        submapData={submapData}
-        bounds={bounds}
-        setActiveBoxIds={setActiveBoxIds}
-      />
-      <Rectangle
-        key={`rectangle-${box.id}`}
-        ref={layer}
-        bounds={bounds}
-        pathOptions={{
-          fill: true,
-          fillOpacity: 0,
-          weight: 2,
-          color: 'black',
-          pane: `highlight-boxes-pane-${box.id}`,
+    <>
+      <div
+        ref={boxOverlayRef}
+        className="highlight-box-hover-container"
+        style={{
+          width: selectedBoxData && selectedBoxData.width,
+          height: selectedBoxData && selectedBoxData.height,
         }}
-      />
-    </LayersControl.Overlay>
+      >
+        {!showMenu && selectedBoxData && (
+          <div>
+            <div className="highlight-box-header">
+              <button
+                className={'menu-button highlight-box-menu-btn'}
+                onClick={() => setShowMenu(!showMenu)}
+              >
+                <MenuIcon />
+              </button>
+              <h3>{selectedBoxData.name}</h3>
+            </div>
+            <p>{selectedBoxData.description}</p>
+          </div>
+        )}
+      </div>
+      {showMenu && selectedBoxData && (
+        <BoxMenu
+          isNewBox={false}
+          boxData={selectedBoxData}
+          setShowMenu={setShowMenu}
+          showMenu={showMenu}
+          additionalButtons={[
+            <button
+              className="area-select-button highlight-box-button"
+              key="hide-box"
+              onClick={() => {
+                setActiveBoxIds((prev) =>
+                  prev.filter((id) => selectedBoxData.id !== id)
+                );
+                setShowMenu(false);
+                setSelectedBoxData(undefined);
+                mapRef.current
+                  ?.getOverlayById('box-overlay')
+                  ?.setPosition(undefined);
+              }}
+            >
+              Hide Box
+            </button>,
+            <button
+              key="delete-box"
+              className="area-select-button highlight-box-button delete-box-button"
+              onClick={() => {
+                deleteSubmapBox(selectedBoxData.id, setBoxes, setActiveBoxIds);
+                setShowMenu(false);
+                setSelectedBoxData(undefined);
+                mapRef.current
+                  ?.getOverlayById('box-overlay')
+                  ?.setPosition(undefined);
+              }}
+            >
+              Delete Box
+            </button>,
+          ]}
+          submapData={submapData}
+        />
+      )}
+    </>
   );
 }

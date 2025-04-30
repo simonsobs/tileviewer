@@ -94,3 +94,25 @@ export type BaselayerState = {
     max: number;
   };
 };
+
+export type SubmapData = {
+  mapId: number;
+  bandId: number;
+  vmin: number | undefined;
+  vmax: number | undefined;
+  cmap: string | undefined;
+};
+
+export type BoxWithPositionalData = Box & {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
+
+export type NewBoxData = Omit<Box, 'id' | 'name' | 'description'> & {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};

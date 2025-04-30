@@ -1,45 +1,52 @@
 import { useEffect } from 'react';
-import { useMap } from 'react-leaflet';
-import L from 'leaflet';
-import '../../plugins/leaflet.latlng-graticule.js';
-import { GraticuleDetails } from '../../types/maps.js';
+import { Graticule, Map } from 'ol';
+import Stroke from 'ol/style/Stroke';
 
-type Props = {
-  setGraticuleDetails: (details: GraticuleDetails) => void;
-};
-
-export function GraticuleLayer({ setGraticuleDetails }: Props) {
-  const map = useMap();
-
+export function GraticuleLayer({
+  mapRef,
+}: {
+  mapRef: React.RefObject<Map | null>;
+}) {
   useEffect(() => {
-    if (!map) return;
+    if (mapRef.current) {
+      const graticule1 = new Graticule({
+        strokeStyle: new Stroke({
+          color: 'rgba(198,198,198,0.5)',
+          width: 2,
+        }),
+        zIndex: 1000,
+        showLabels: true,
+        lonLabelPosition: 0,
+        latLabelPosition: 0.999,
+        latLabelFormatter: (lat) => String(lat),
+        lonLabelFormatter: (lon) => String(lon),
+        wrapX: false,
+        properties: {
+          id: 'graticule-1',
+        },
+      });
 
-    const graticule = L.latlngGraticule({
-      sides: ['', '', '', ''],
-      zoomInterval: [
-        { start: 0, end: 1, interval: 40 },
-        { start: 2, end: 2, interval: 20 },
-        { start: 3, end: 3, interval: 10 },
-        { start: 4, end: 4, interval: 5 },
-        { start: 5, end: 5, interval: 2 },
-        { start: 6, end: 6, interval: 1 },
-        { start: 7, end: 7, interval: 0.5 },
-        { start: 8, end: 8, interval: 0.2 },
-        { start: 9, end: 20, interval: 0.1 },
-      ],
-      fontColor: '#000',
-      lngFormatTickLabel: function (lng) {
-        return Math.round(lng * 1000) / 1000;
-      },
-      latFormatTickLabel: function (lat) {
-        return Math.round(lat * 1000) / 1000;
-      },
-      getCurrentGraticuleDetails: setGraticuleDetails,
-    }).addTo(map);
+      const graticule2 = new Graticule({
+        strokeStyle: new Stroke({
+          color: 'rgba(198,198,198,0.5)',
+          width: 2,
+        }),
+        zIndex: 1000,
+        showLabels: true,
+        lonLabelPosition: 1,
+        latLabelPosition: 0.012,
+        latLabelFormatter: (lat) => String(lat),
+        lonLabelFormatter: (lon) => String(lon),
+        wrapX: false,
+        properties: {
+          id: 'graticule-2',
+        },
+      });
 
-    return () => {
-      map.removeLayer(graticule);
-    };
-  }, [map, setGraticuleDetails]);
+      mapRef.current.addLayer(graticule1);
+      mapRef.current.addLayer(graticule2);
+    }
+  }, [mapRef.current]);
+
   return null;
 }
