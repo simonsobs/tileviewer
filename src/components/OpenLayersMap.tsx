@@ -1,4 +1,4 @@
-import { Feature, Map, Overlay, View } from 'ol';
+import { Map, View } from 'ol';
 import { TileGrid } from 'ol/tilegrid';
 import { Tile as TileLayer } from 'ol/layer';
 import { XYZ } from 'ol/source';
@@ -14,7 +14,6 @@ import {
   Band,
   BaselayerState,
   Box,
-  Source,
   SourceList,
   SubmapData,
   NewBoxData,
@@ -24,12 +23,8 @@ import 'ol/ol.css';
 import { CoordinatesDisplay } from './CoordinatesDisplay';
 import { LayerSelector } from './LayerSelector';
 import ScaleLine from 'ol/control/ScaleLine.js';
-import LayerGroup from 'ol/layer/Group';
-import { Circle } from 'ol/geom';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import Select from 'ol/interaction/Select.js';
-import { click } from 'ol/events/condition';
 import './styles/highlight-controls.css';
 import './styles/area-selection.css';
 import { CropIcon } from './icons/CropIcon';
@@ -38,6 +33,7 @@ import { HighlightBoxLayer } from './layers/HighlightBoxLayer';
 import { AddBoxDialog } from './AddBoxDialog';
 import { BoxMenu } from './BoxMenu';
 import { GraticuleLayer } from './layers/GraticuleLayer';
+import { SourcesLayer } from './layers/SourcesLayer';
 
 export type MapProps = {
   bands: Band[];
@@ -71,15 +67,11 @@ export function OpenLayersMap({
   addOptimisticHighlightBox,
 }: MapProps) {
   const mapRef = useRef<Map | null>(null);
-  const popupRef = useRef<HTMLDivElement | null>(null);
   const drawBoxRef = useRef<VectorLayer | null>(null);
   const drawRef = useRef<Draw | null>(null);
   const [coordinates, setCoordinates] = useState<number[] | undefined>(
     undefined
   );
-  const [selectedSourceData, setSelectedSourceData] = useState<
-    Source | undefined
-  >(undefined);
   const [newBoxData, setNewBoxData] = useState<NewBoxData | undefined>(
     undefined
   );
@@ -114,39 +106,6 @@ export function OpenLayersMap({
       });
     });
   }, [bands]);
-
-  const sourceOverlays = useMemo(() => {
-    if (!sourceLists.length) return [];
-    return sourceLists
-      .filter((sl) => activeSourceListIds.includes(sl.id))
-      .map(
-        (sl) =>
-          new LayerGroup({
-            properties: {
-              id: 'sourcelist-group-' + sl.id,
-            },
-            layers: [
-              new VectorLayer({
-                source: new VectorSource({
-                  features: sl.sources.map(
-                    (source) =>
-                      new Feature({
-                        geometry: new Circle([source.ra, source.dec], 1),
-                        sourceData: source,
-                      })
-                  ),
-                }),
-                style: {
-                  'stroke-width': 2,
-                  'stroke-color': '#3388FF',
-                  'fill-color': [51, 136, 255, 0.2],
-                },
-              }),
-            ],
-            zIndex: 500,
-          })
-      );
-  }, [sourceLists, activeSourceListIds]);
 
   /**
    * Create the map with a scale control, a layer for the "add box" functionality
@@ -226,54 +185,6 @@ export function OpenLayersMap({
       mapRef.current.addLayer(activeLayer);
     }
   }, [activeBaselayer, cmap, cmapValues, tileLayers]);
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-    mapRef.current.getLayers().forEach((l) => {
-      const id = l.get('id') as string;
-      if (typeof id === 'string' && id.includes('sourcelist-group')) {
-        l.setVisible(false);
-      }
-    });
-    sourceOverlays.forEach((so) => {
-      mapRef.current?.addLayer(so);
-    });
-  }, [sourceOverlays]);
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-    if (popupRef.current) {
-      const popupOverlay = new Overlay({
-        element: popupRef.current,
-      });
-      mapRef.current.addOverlay(popupOverlay);
-      const select = new Select({
-        condition: click,
-        layers: (layer) => {
-          return sourceOverlays.some((group) =>
-            group.getLayers().getArray().includes(layer)
-          );
-        },
-      });
-      mapRef.current.addInteraction(select);
-      select.on('select', (e) => {
-        const selectedFeatures = e.selected;
-
-        if (selectedFeatures.length === 0) {
-          // user clicked on empty space, so clear popup data
-          popupOverlay.setPosition(undefined);
-          setSelectedSourceData(undefined);
-          return;
-        }
-
-        selectedFeatures.forEach((feature) => {
-          const sourceData = feature.get('sourceData') as Source;
-          popupOverlay.setPosition([sourceData.ra, sourceData.dec]);
-          setSelectedSourceData(sourceData);
-        });
-      });
-    }
-  }, [mapRef.current, popupRef.current, sourceOverlays, activeSourceListIds]);
 
   /**
    * Handles adding/removing Draw interaction in response to isDrawing state
@@ -373,22 +284,11 @@ export function OpenLayersMap({
           <CropIcon />
         </button>
       </div>
-      <div ref={popupRef} className="source-popup">
-        {selectedSourceData && (
-          <div className="source-popup-content">
-            {selectedSourceData.name ? (
-              <h3>{selectedSourceData.name}</h3>
-            ) : null}
-            <p>
-              <span>RA, Dec:</span> ({selectedSourceData.ra},{' '}
-              {selectedSourceData.dec})
-            </p>
-            <p>
-              <span>Flux:</span> {selectedSourceData.flux}
-            </p>
-          </div>
-        )}
-      </div>
+      <SourcesLayer
+        sourceLists={sourceLists}
+        activeSourceListIds={activeSourceListIds}
+        mapRef={mapRef}
+      />
       <HighlightBoxLayer
         highlightBoxes={highlightBoxes}
         activeBoxIds={activeBoxIds}
