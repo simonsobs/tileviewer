@@ -8,8 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  ReactNode,
-  FormEvent,
   useCallback,
 } from 'react';
 import {
@@ -19,6 +17,7 @@ import {
   Source,
   SourceList,
   SubmapData,
+  NewBoxData,
 } from '../types/maps';
 import { DEFAULT_MAP_SETTINGS, SERVICE_URL } from '../configs/mapSettings';
 import 'ol/ol.css';
@@ -32,19 +31,13 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Select from 'ol/interaction/Select.js';
 import { click } from 'ol/events/condition';
-import { fromExtent } from 'ol/geom/Polygon.js';
 import './styles/highlight-controls.css';
 import './styles/area-selection.css';
-import { MenuIcon } from './icons/MenuIcon';
-import { SUBMAP_DOWNLOAD_OPTIONS } from '../configs/submapConfigs';
-import {
-  deleteSubmapBox,
-  downloadSubmap,
-  addSubmapAsBox,
-} from '../utils/fetchUtils';
 import { CropIcon } from './icons/CropIcon';
 import Draw, { createBox } from 'ol/interaction/Draw.js';
-import { Dialog } from './Dialog';
+import { HighlightBoxLayer } from './layers/HighlightBoxLayer';
+import { AddBoxDialog } from './AddBoxDialog';
+import { BoxMenu } from './BoxMenu';
 
 export type MapProps = {
   bands: Band[];
@@ -60,20 +53,6 @@ export type MapProps = {
   onSelectedHighlightBoxChange: (e: ChangeEvent<HTMLInputElement>) => void;
   submapData?: SubmapData;
   addOptimisticHighlightBox: (action: Box) => void;
-};
-
-export type BoxWithPositionalData = Box & {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-};
-
-export type NewBoxData = Omit<Box, 'id' | 'name' | 'description'> & {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
 };
 
 export function OpenLayersMap({
@@ -93,7 +72,6 @@ export function OpenLayersMap({
 }: MapProps) {
   const mapRef = useRef<Map | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
-  const boxOverlayRef = useRef<HTMLDivElement | null>(null);
   const drawBoxRef = useRef<VectorLayer | null>(null);
   const drawRef = useRef<Draw | null>(null);
   const [coordinates, setCoordinates] = useState<number[] | undefined>(
@@ -102,13 +80,9 @@ export function OpenLayersMap({
   const [selectedSourceData, setSelectedSourceData] = useState<
     Source | undefined
   >(undefined);
-  const [selectedBoxData, setSelectedBoxData] = useState<
-    BoxWithPositionalData | undefined
-  >(undefined);
   const [newBoxData, setNewBoxData] = useState<NewBoxData | undefined>(
     undefined
   );
-  const [showMenu, setShowMenu] = useState(false);
   const [showNewBoxMenu, setShowNewBoxMenu] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [showAddBoxDialog, setShowAddBoxDialog] = useState(false);
@@ -229,34 +203,6 @@ export function OpenLayersMap({
       );
   }, [sourceLists, activeSourceListIds]);
 
-  const highlightBoxOverlays = useMemo(() => {
-    if (!highlightBoxes) return [];
-    return highlightBoxes
-      .filter((box) => activeBoxIds.includes(box.id))
-      .map(
-        (box) =>
-          new VectorLayer({
-            properties: {
-              id: 'highlight-box-' + box.id,
-            },
-            source: new VectorSource({
-              features: [
-                new Feature({
-                  geometry: fromExtent([
-                    box.top_left_ra,
-                    box.bottom_right_dec,
-                    box.bottom_right_ra,
-                    box.top_left_dec,
-                  ]), // minX, minY, maxX, maxY
-                  boxData: box,
-                }),
-              ],
-            }),
-            zIndex: 500,
-          })
-      );
-  }, [highlightBoxes, activeBoxIds]);
-
   useEffect(() => {
     const stableMapRef = mapRef.current;
     if (!stableMapRef) {
@@ -368,65 +314,6 @@ export function OpenLayersMap({
       });
     }
   }, [mapRef.current, popupRef.current, sourceOverlays, activeSourceListIds]);
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-    mapRef.current.getLayers().forEach((l) => {
-      const id = l.get('id') as string;
-      if (typeof id === 'string' && id.includes('highlight-box')) {
-        l.setVisible(false);
-      }
-    });
-    highlightBoxOverlays.forEach((box) => {
-      mapRef.current?.addLayer(box);
-    });
-  }, [highlightBoxOverlays]);
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-    const doesOverlayExist = mapRef.current.getOverlayById('box-overlay');
-    if (!doesOverlayExist && boxOverlayRef.current) {
-      const boxOverlay = new Overlay({
-        element: boxOverlayRef.current,
-        id: 'box-overlay',
-      });
-      mapRef.current.addOverlay(boxOverlay);
-      mapRef.current.on('pointermove', (e) => {
-        if (!e.map.hasFeatureAtPixel(e.pixel)) {
-          boxOverlay.setPosition(undefined);
-          setSelectedBoxData(undefined);
-          setShowMenu(false);
-          return;
-        }
-        e.map.forEachFeatureAtPixel(e.pixel, function (f) {
-          const boxData = f.get('boxData') as Box;
-          if (!boxData) return;
-          const topLeftBoxPosition = e.map.getPixelFromCoordinate([
-            boxData.top_left_ra,
-            boxData.top_left_dec,
-          ]);
-          const bottomRightBoxPosition = e.map.getPixelFromCoordinate([
-            boxData.bottom_right_ra,
-            boxData.bottom_right_dec,
-          ]);
-          const boxWidth = Math.abs(
-            topLeftBoxPosition[0] - bottomRightBoxPosition[0]
-          );
-          const boxHeight = Math.abs(
-            topLeftBoxPosition[1] - bottomRightBoxPosition[1]
-          );
-          boxOverlay.setPosition([boxData.top_left_ra, boxData.top_left_dec]);
-          setSelectedBoxData({
-            ...boxData,
-            top: topLeftBoxPosition[1],
-            left: topLeftBoxPosition[0],
-            width: boxWidth,
-            height: boxHeight,
-          });
-        });
-      });
-    }
-  }, [mapRef.current, boxOverlayRef.current]);
 
   /**
    * Handles adding/removing Draw interaction in response to isDrawing state
@@ -542,70 +429,14 @@ export function OpenLayersMap({
           </div>
         )}
       </div>
-      <div
-        ref={boxOverlayRef}
-        className="highlight-box-hover-container"
-        style={{
-          width: selectedBoxData && selectedBoxData.width,
-          height: selectedBoxData && selectedBoxData.height,
-        }}
-      >
-        {!showMenu && selectedBoxData && (
-          <div>
-            <div className="highlight-box-header">
-              <button
-                className={'menu-button highlight-box-menu-btn'}
-                onClick={() => setShowMenu(!showMenu)}
-              >
-                <MenuIcon />
-              </button>
-              <h3>{selectedBoxData.name}</h3>
-            </div>
-            <p>{selectedBoxData.description}</p>
-          </div>
-        )}
-      </div>
-      {showMenu && selectedBoxData && (
-        <BoxMenu
-          isNewBox={false}
-          boxData={selectedBoxData}
-          setShowMenu={setShowMenu}
-          showMenu={showMenu}
-          additionalButtons={[
-            <button
-              className="area-select-button highlight-box-button"
-              key="hide-box"
-              onClick={() => {
-                setActiveBoxIds((prev) =>
-                  prev.filter((id) => selectedBoxData.id !== id)
-                );
-                setShowMenu(false);
-                setSelectedBoxData(undefined);
-                mapRef.current
-                  ?.getOverlayById('box-overlay')
-                  ?.setPosition(undefined);
-              }}
-            >
-              Hide Box
-            </button>,
-            <button
-              key="delete-box"
-              className="area-select-button highlight-box-button delete-box-button"
-              onClick={() => {
-                deleteSubmapBox(selectedBoxData.id, setBoxes, setActiveBoxIds);
-                setShowMenu(false);
-                setSelectedBoxData(undefined);
-                mapRef.current
-                  ?.getOverlayById('box-overlay')
-                  ?.setPosition(undefined);
-              }}
-            >
-              Delete Box
-            </button>,
-          ]}
-          submapData={submapData}
-        />
-      )}
+      <HighlightBoxLayer
+        highlightBoxes={highlightBoxes}
+        activeBoxIds={activeBoxIds}
+        mapRef={mapRef}
+        setActiveBoxIds={setActiveBoxIds}
+        setBoxes={setBoxes}
+        submapData={submapData}
+      />
       {newBoxData && (
         <BoxMenu
           isNewBox={true}
@@ -653,178 +484,5 @@ export function OpenLayersMap({
       />
       {coordinates && <CoordinatesDisplay coordinates={coordinates} />}
     </div>
-  );
-}
-
-type BoxMenuProps = {
-  isNewBox: boolean;
-  boxData: BoxWithPositionalData | NewBoxData;
-  setShowMenu: (showMenu: boolean) => void;
-  showMenu: boolean;
-  additionalButtons?: ReactNode[];
-  submapData?: SubmapData;
-};
-
-function BoxMenu({
-  isNewBox,
-  boxData,
-  setShowMenu,
-  showMenu,
-  additionalButtons = [],
-  submapData,
-}: BoxMenuProps) {
-  return (
-    <div
-      className="highlight-box-hover-container no-background"
-      style={{
-        top: boxData.top,
-        left: boxData.left,
-      }}
-    >
-      <div>
-        <div className="highlight-box-header">
-          <button
-            className={'menu-button highlight-box-menu-btn'}
-            onClick={() => setShowMenu(!showMenu)}
-          >
-            <MenuIcon />
-          </button>
-          {showMenu && (
-            <div className="menu-btns-container highlight-box-menu-btns-container">
-              {SUBMAP_DOWNLOAD_OPTIONS.map((option) => (
-                <button
-                  className="area-select-button highlight-box-button"
-                  key={option.display}
-                  onClick={() => {
-                    if (submapData) {
-                      downloadSubmap(
-                        {
-                          ...submapData,
-                          top: boxData.top_left_dec,
-                          left: boxData.top_left_ra,
-                          bottom: boxData.bottom_right_dec,
-                          right: boxData.bottom_right_ra,
-                        },
-                        option.ext
-                      );
-                    }
-                  }}
-                >
-                  Download {option.display}
-                </button>
-              ))}
-              {...additionalButtons}
-            </div>
-          )}
-          {!isNewBox && 'name' in boxData && <h3>{boxData.name}</h3>}
-        </div>
-        {!isNewBox && 'description' in boxData && <p>{boxData.description}</p>}
-      </div>
-    </div>
-  );
-}
-
-type AddBoxDialogProps = {
-  showAddBoxDialog: boolean;
-  setShowAddBoxDialog: (showDialog: boolean) => void;
-  newBoxData?: NewBoxData;
-  setBoxes: (boxes: Box[]) => void;
-  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
-  addOptimisticHighlightBox: (action: Box) => void;
-  handleAddBoxCleanup: () => void;
-};
-
-function AddBoxDialog({
-  showAddBoxDialog,
-  setShowAddBoxDialog,
-  newBoxData,
-  setBoxes,
-  setActiveBoxIds,
-  addOptimisticHighlightBox,
-  handleAddBoxCleanup,
-}: AddBoxDialogProps) {
-  const [boxName, setBoxName] = useState('');
-  const [boxDescription, setBoxDescription] = useState('');
-
-  const handleSubmit = useCallback(
-    (e: FormEvent) => {
-      const formData = new FormData(e.target as HTMLFormElement);
-      const params = new URLSearchParams();
-
-      formData.forEach((val, key) => {
-        params.append(key, val.toString());
-      });
-
-      if (!newBoxData) return;
-
-      const { top_left_ra, top_left_dec, bottom_right_ra, bottom_right_dec } =
-        newBoxData;
-
-      const top_left = [top_left_ra, top_left_dec];
-      const bottom_right = [bottom_right_ra, bottom_right_dec];
-
-      const boxData = {
-        params,
-        top_left,
-        bottom_right,
-      };
-
-      addSubmapAsBox(
-        boxData,
-        setBoxes,
-        setActiveBoxIds,
-        addOptimisticHighlightBox
-      );
-
-      // Reset applicable state after adding a new submap box
-      setBoxName('');
-      setBoxDescription('');
-      setShowAddBoxDialog(false);
-      handleAddBoxCleanup();
-    },
-    [
-      newBoxData,
-      handleAddBoxCleanup,
-      setShowAddBoxDialog,
-      addOptimisticHighlightBox,
-      setActiveBoxIds,
-      setBoxes,
-    ]
-  );
-
-  return (
-    <Dialog
-      dialogKey="add-box-dialog"
-      openDialog={showAddBoxDialog}
-      setOpenDialog={setShowAddBoxDialog}
-      headerText="Add New Box Layer"
-    >
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit(e);
-        }}
-      >
-        <label>
-          Name
-          <input
-            name="name"
-            type="text"
-            value={boxName}
-            onChange={(e) => setBoxName(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Description
-          <textarea
-            name="description"
-            value={boxDescription}
-            onChange={(e) => setBoxDescription(e.target.value)}
-          />
-        </label>
-        <input type="submit" value="Add Box" />
-      </form>
-    </Dialog>
   );
 }
