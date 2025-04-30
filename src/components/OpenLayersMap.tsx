@@ -1,6 +1,6 @@
 import { Feature, Map, Overlay, View } from 'ol';
 import { TileGrid } from 'ol/tilegrid';
-import { Tile as TileLayer, Graticule } from 'ol/layer';
+import { Tile as TileLayer } from 'ol/layer';
 import { XYZ } from 'ol/source';
 import {
   ChangeEvent,
@@ -21,7 +21,6 @@ import {
 } from '../types/maps';
 import { DEFAULT_MAP_SETTINGS, SERVICE_URL } from '../configs/mapSettings';
 import 'ol/ol.css';
-import Stroke from 'ol/style/Stroke.js';
 import { CoordinatesDisplay } from './CoordinatesDisplay';
 import { LayerSelector } from './LayerSelector';
 import ScaleLine from 'ol/control/ScaleLine.js';
@@ -38,6 +37,7 @@ import Draw, { createBox } from 'ol/interaction/Draw.js';
 import { HighlightBoxLayer } from './layers/HighlightBoxLayer';
 import { AddBoxDialog } from './AddBoxDialog';
 import { BoxMenu } from './BoxMenu';
+import { GraticuleLayer } from './layers/GraticuleLayer';
 
 export type MapProps = {
   bands: Band[];
@@ -88,61 +88,6 @@ export function OpenLayersMap({
   const [showAddBoxDialog, setShowAddBoxDialog] = useState(false);
 
   const { activeBaselayer, cmap, cmapValues } = baselayerState;
-
-  const mapConfig = useMemo(
-    () => ({
-      target: 'map',
-      view: new View(DEFAULT_MAP_SETTINGS),
-    }),
-    []
-  );
-
-  const scale = useMemo(
-    () =>
-      new ScaleLine({
-        className: 'scale-control',
-        units: 'degrees',
-      }),
-    []
-  );
-
-  const graticule1 = useMemo(() => {
-    return new Graticule({
-      strokeStyle: new Stroke({
-        color: 'rgba(198,198,198,0.5)',
-        width: 2,
-      }),
-      zIndex: 1000,
-      showLabels: true,
-      lonLabelPosition: 0,
-      latLabelPosition: 0.999,
-      latLabelFormatter: (lat) => String(lat),
-      lonLabelFormatter: (lon) => String(lon),
-      wrapX: false,
-      properties: {
-        id: 'graticule-1',
-      },
-    });
-  }, []);
-
-  const graticule2 = useMemo(() => {
-    return new Graticule({
-      strokeStyle: new Stroke({
-        color: 'rgba(198,198,198,0.5)',
-        width: 2,
-      }),
-      zIndex: 1000,
-      showLabels: true,
-      lonLabelPosition: 1,
-      latLabelPosition: 0.012,
-      latLabelFormatter: (lat) => String(lat),
-      lonLabelFormatter: (lon) => String(lon),
-      wrapX: false,
-      properties: {
-        id: 'graticule-2',
-      },
-    });
-  }, []);
 
   const tileLayers = useMemo(() => {
     return bands.map((band) => {
@@ -203,14 +148,28 @@ export function OpenLayersMap({
       );
   }, [sourceLists, activeSourceListIds]);
 
+  /**
+   * Create the map with a scale control, a layer for the "add box" functionality
+   * and a 'pointermove' interaction for the coordinate display
+   */
   useEffect(() => {
     const stableMapRef = mapRef.current;
     if (!stableMapRef) {
-      mapRef.current = new Map(mapConfig);
+      mapRef.current = new Map({
+        target: 'map',
+        view: new View(DEFAULT_MAP_SETTINGS),
+      });
+
       mapRef.current.on('pointermove', (e) => {
         setCoordinates(e.coordinate);
       });
-      mapRef.current.addControl(scale);
+
+      mapRef.current.addControl(
+        new ScaleLine({
+          className: 'scale-control',
+          units: 'degrees',
+        })
+      );
 
       // create a source and layer for the "add box" functionality
       const boxSource = new VectorSource();
@@ -228,14 +187,17 @@ export function OpenLayersMap({
     return () => {
       stableMapRef?.setTarget(undefined);
     };
-  }, [mapConfig]);
+  }, []);
 
+  /**
+   * Updates tilelayers when new baselayer is selected and/or color map settings change
+   */
   useEffect(() => {
     if (mapRef.current && activeBaselayer) {
       mapRef.current.getAllLayers().forEach((layer) => {
         const layerId = layer.get('id');
         if (!layerId) return;
-        if (layerId.includes('baselayer') || layerId.includes('graticule')) {
+        if (layerId.includes('baselayer')) {
           mapRef.current?.removeLayer(layer);
         }
       });
@@ -262,10 +224,8 @@ export function OpenLayersMap({
       )!;
       activeLayer.setSource(source);
       mapRef.current.addLayer(activeLayer);
-      mapRef.current.addLayer(graticule1);
-      mapRef.current.addLayer(graticule2);
     }
-  }, [activeBaselayer, cmap, cmapValues, tileLayers, graticule1, graticule2]);
+  }, [activeBaselayer, cmap, cmapValues, tileLayers]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -482,6 +442,7 @@ export function OpenLayersMap({
         activeBoxIds={activeBoxIds}
         onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
       />
+      <GraticuleLayer mapRef={mapRef} />
       {coordinates && <CoordinatesDisplay coordinates={coordinates} />}
     </div>
   );
