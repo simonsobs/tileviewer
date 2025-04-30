@@ -35,6 +35,7 @@ export function AddHighlightBoxLayer({
   );
   const [showNewBoxMenu, setShowNewBoxMenu] = useState(false);
   const [showAddBoxDialog, setShowAddBoxDialog] = useState(false);
+  const [showMenuOverlay, setShowMenuOverlay] = useState(false);
 
   /**
    * Handles adding/removing Draw interaction in response to isDrawing state
@@ -47,11 +48,11 @@ export function AddHighlightBoxLayer({
         source.clear();
         setNewBoxData(undefined);
         setShowNewBoxMenu(false);
-
         const draw = new Draw({
           source: source,
           type: 'Circle',
           geometryFunction: createBox(),
+          geometryName: 'drawn-box-feature',
         });
 
         draw.on('drawend', (e) => {
@@ -92,9 +93,20 @@ export function AddHighlightBoxLayer({
 
           setIsDrawing(false);
         });
-
         map.addInteraction(draw);
         drawRef.current = draw;
+
+        map.on('pointermove', (e) => {
+          const feature = map.getFeaturesAtPixel(e.pixel);
+          if (feature.length) {
+            const featureProperties = feature[0].getProperties();
+            if ('drawn-box-feature' in featureProperties && !showMenuOverlay) {
+              setShowMenuOverlay(true);
+            }
+          } else {
+            setShowMenuOverlay(false);
+          }
+        });
       } else {
         if (drawRef.current) {
           map.removeInteraction(drawRef.current);
@@ -146,6 +158,7 @@ export function AddHighlightBoxLayer({
               Remove Region
             </button>,
           ]}
+          showMenuOverlay={showMenuOverlay}
         />
       )}
       <AddBoxDialog

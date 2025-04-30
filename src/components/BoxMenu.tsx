@@ -11,6 +11,7 @@ type BoxMenuProps = {
   showMenu: boolean;
   additionalButtons?: ReactNode[];
   submapData?: SubmapData;
+  showMenuOverlay?: boolean;
 };
 
 export function BoxMenu({
@@ -20,10 +21,14 @@ export function BoxMenu({
   showMenu,
   additionalButtons = [],
   submapData,
+  showMenuOverlay,
 }: BoxMenuProps) {
   return (
     <div
-      className="highlight-box-hover-container no-background"
+      className={
+        'highlight-box-hover-container no-background ' +
+        (isNewBox && !showMenuOverlay && 'hide')
+      }
       style={{
         top: boxData.top,
         left: boxData.left,
