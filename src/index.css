@@ -95,3 +95,28 @@ body {
 .hide {
   display: none;
 }
+
+.ol-popup {
+  position: absolute;
+  background-color: white;
+  padding: 10px;
+  border-radius: 6px;
+  border-top-left-radius: 0;
+  border: 1px solid #ccc;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  left: 5px;
+  top: 2px;
+  text-wrap: nowrap;
+}
+
+.external-search-content > h1 {
+  margin: 0;
+  font-size: 0.9em;
+}
+
+.external-search-content > ul {
+  font-size: 0.85em;
+  margin: 0;
+  padding: 0;
+  padding-left: 1em;
+}
