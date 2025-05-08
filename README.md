@@ -1,6 +1,6 @@
 # Tileviewer
 
-This is the user interface for the SO Map Viewer. The client is built with [React](https://react.dev/) and bundled by [vite](https://vite.dev/). The underlying mapping components are built with [leaflet.js](https://leafletjs.com/) and [react-leaflet](https://react-leaflet.js.org/).
+This is the user interface for the SO Map Viewer. The client is built with [React](https://react.dev/) and bundled by [vite](https://vite.dev/). The underlying mapping components are built with [OpenLayers](https://openlayers.org/).
 
 ## Steps to run locally
 
