@@ -147,8 +147,7 @@ function App() {
   }, []);
 
   /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
-    composed from state at this level, we must construct it here and pass it down to the AreaSelection and
-    HighlightBoxLayer components. */
+    composed from state at this level, we must construct it here and pass it down. */
   const submapData = useMemo(() => {
     if (baselayerState.activeBaselayer) {
       const { map_id: mapId, id: bandId } = baselayerState.activeBaselayer;

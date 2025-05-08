@@ -6,8 +6,8 @@ import {
   MapResponse,
   Source,
   SourceListResponse,
+  SubmapDataWithBounds,
 } from '../types/maps';
-import { SubmapDataWithBounds } from '../components/AreaSelection';
 import { SubmapFileExtensions } from '../configs/submapConfigs';
 
 type SourcesResponse = {

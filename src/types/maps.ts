@@ -103,6 +103,13 @@ export type SubmapData = {
   cmap: string | undefined;
 };
 
+export type SubmapDataWithBounds = SubmapData & {
+  top: number;
+  left: number;
+  bottom: number;
+  right: number;
+};
+
 export type BoxWithPositionalData = Box & {
   top: number;
   left: number;
