@@ -52,16 +52,6 @@ body {
   box-shadow: 0 0 5px #bbb;
 }
 
-.leaflet-container {
-  font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif;
-  font:
-    11px/1.5 monospace,
-    'Helvetica Neue',
-    Arial,
-    Helvetica,
-    sans-serif;
-}
-
 .source-markers {
   stroke-width: 5px;
 }
