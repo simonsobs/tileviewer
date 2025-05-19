@@ -42,7 +42,6 @@ body {
 
 .scale-control {
   font-size: 1.3em;
-  padding: 1px 0 1px 8px;
   border: 2px solid rgba(0, 0, 0, 0.3);
   border-top: none;
   right: 3em;
@@ -50,6 +49,12 @@ body {
   position: absolute;
   background-color: rgba(255, 255, 255, 0.7);
   box-shadow: 0 0 5px #bbb;
+  box-sizing: border-box;
+}
+
+.scale-control > div {
+  box-sizing: border-box;
+  padding-left: 8px;
 }
 
 .source-markers {
