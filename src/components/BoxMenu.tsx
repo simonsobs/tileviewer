@@ -48,6 +48,7 @@ export function BoxMenu({
                 <button
                   className="area-select-button highlight-box-button"
                   key={option.display}
+                  disabled={!submapData}
                   onClick={() => {
                     if (submapData) {
                       downloadSubmap(

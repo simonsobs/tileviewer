@@ -1,4 +1,16 @@
-import { Band, BaselayerState } from '../types/maps';
+import { Band, BaselayerState, ExternalBaselayer } from '../types/maps';
+
+export function assertExternalBaselayer(
+  baselayer: Band | ExternalBaselayer | undefined
+): baselayer is ExternalBaselayer {
+  return baselayer !== undefined && 'url' in baselayer;
+}
+
+export function assertBand(
+  baselayer: Band | ExternalBaselayer | undefined
+): baselayer is Band {
+  return baselayer !== undefined && 'map_id' in baselayer;
+}
 
 export const initialBaselayerState: BaselayerState = {
   activeBaselayer: undefined,
@@ -25,7 +37,7 @@ type ChangeCmapValuesAction = {
 
 type ChangeBaselayer = {
   type: typeof CHANGE_BASELAYER;
-  newBaselayer: Band;
+  newBaselayer: Band | ExternalBaselayer;
 };
 
 type Action = ChangeCmapAction | ChangeCmapValuesAction | ChangeBaselayer;
@@ -49,27 +61,46 @@ export function baselayerReducer(state: BaselayerState, action: Action) {
     }
     case 'CHANGE_BASELAYER': {
       const { newBaselayer } = action;
-      /**
-       * If we've yet to set an activeBaselayer or the units change between baselayers,
-       * we need to update the state of cmap properties to the band's recommended values
-       */
-      if (
-        !state.activeBaselayer ||
-        newBaselayer.units !== state.activeBaselayer.units
-      ) {
+
+      if (assertExternalBaselayer(newBaselayer)) {
         return {
-          cmap: newBaselayer.recommended_cmap,
-          cmapValues: {
-            min: newBaselayer.recommended_cmap_min,
-            max: newBaselayer.recommended_cmap_max,
-          },
+          cmap: undefined,
+          cmapValues: undefined,
           activeBaselayer: newBaselayer,
         };
-      } else {
+      }
+
+      if (assertBand(newBaselayer)) {
         /**
-         * Since units aren't changing and we have an already-defined activeBaselayer,
-         * simply set a new activeBaselayer
+         * If we've yet to set an activeBaselayer or we're switching from ExternalBaselayer to a
+         * Band or the units change between Band baselayers, we need to update the state of cmap
+         * properties to the band's recommended values
          */
+        if (
+          !state.activeBaselayer ||
+          assertExternalBaselayer(state.activeBaselayer) ||
+          newBaselayer.units !== state.activeBaselayer.units
+        ) {
+          return {
+            cmap: newBaselayer.recommended_cmap,
+            cmapValues: {
+              min: newBaselayer.recommended_cmap_min,
+              max: newBaselayer.recommended_cmap_max,
+            },
+            activeBaselayer: newBaselayer,
+          };
+        } else {
+          /**
+           * Since units aren't changing and we have an already-defined activeBaselayer,
+           * simply set a new activeBaselayer
+           */
+          return {
+            ...state,
+            activeBaselayer: action.newBaselayer,
+          };
+        }
+      } else {
+        /** Fallback to only updating activeBaselayer */
         return {
           ...state,
           activeBaselayer: action.newBaselayer,

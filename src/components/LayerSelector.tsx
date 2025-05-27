@@ -4,6 +4,7 @@ import { makeLayerName } from '../utils/layerUtils';
 import { LayersIcon } from './icons/LayersIcon';
 import './styles/layer-selector.css';
 import { MapProps } from './OpenLayersMap';
+import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
 
 interface Props
   extends Omit<
@@ -14,7 +15,7 @@ interface Props
     | 'setBoxes'
     | 'addOptimisticHighlightBox'
   > {
-  activeBaselayerId?: number;
+  activeBaselayerId?: number | string;
   sourceLists: SourceList[];
 }
 
@@ -65,9 +66,22 @@ export function LayerSelector({
                 value={band.id}
                 name="baselayer"
                 checked={band.id === activeBaselayerId}
-                onChange={(e) => onBaseLayerChange(Number(e.target.value))}
+                onChange={(e) => onBaseLayerChange(e.target.value)}
               />
               <label htmlFor={String(band.id)}>{makeLayerName(band)}</label>
+            </div>
+          ))}
+          {EXTERNAL_BASELAYERS.map((bl) => (
+            <div className="input-container" key={bl.id}>
+              <input
+                type="radio"
+                id={bl.id}
+                value={bl.id}
+                name="baselayer"
+                checked={bl.id === activeBaselayerId}
+                onChange={(e) => onBaseLayerChange(e.target.value)}
+              />
+              <label htmlFor={bl.id}>{bl.name}</label>
             </div>
           ))}
         </fieldset>
