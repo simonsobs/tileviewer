@@ -210,11 +210,17 @@ export function OpenLayersMap({
                 );
               }
             }
+            const mapProj = e.map.getView().getProjection();
+            let searchCoords = e.coordinate;
+            let mapPosition = e.coordinate;
+            if (mapProj.getCode() === 'EPSG:3857') {
+              searchCoords = toLonLat(e.coordinate);
+            }
             externalSearchRef.current?.append(
-              generateSearchContent(e.coordinate)
+              generateSearchContent(searchCoords)
             );
-            simbadOverlay.setPosition(e.coordinate);
-            externalSearchMarker.setGeometry(new Point(e.coordinate));
+            simbadOverlay.setPosition(mapPosition);
+            externalSearchMarker.setGeometry(new Point(mapPosition));
           }
         } else {
           const simbadOverlay = e.map.getOverlayById('simbad-search-overlay');
