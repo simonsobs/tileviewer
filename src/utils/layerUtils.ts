@@ -28,11 +28,11 @@ export function handleSelectChange(
 }
 
 export function getBaselayerResolutions(
-  totalDegrees: number,
+  worldWidth: number,
   tileSize: number,
   maxZoom: number
 ) {
-  const resolutionZ0 = totalDegrees / tileSize;
+  const resolutionZ0 = worldWidth / tileSize;
   const resolutions = [];
   for (let i = 0; i < maxZoom; i++) {
     resolutions.push(resolutionZ0 / 2 ** i);

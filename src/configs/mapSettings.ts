@@ -1,3 +1,4 @@
+import { transformExtent } from 'ol/proj';
 import { ExternalBaselayer } from '../types/maps';
 
 // Uses a user-defined VITE_SERVICE_URL environment variable for development; otherwise
@@ -20,9 +21,14 @@ export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
     name: 'Legacy Survey | unWISE neo4',
     projection: 'EPSG:3857',
     url: 'http://imagine.legacysurvey.org/static/tiles/unwise-neo4/1/{z}/{x}/{y}.jpg',
-    extent: [0, -90, 360, 90],
+    extent: transformExtent(
+      [-180, -85.06, 180, 85.06],
+      'EPSG:4326',
+      'EPSG:3857'
+    ),
     // url: function ([z, x, y]) {
     //   const tileX = (x + 2 ** z) % (2 ** z); // wrap-around X at 360° RA
+    //   // const tileX = ((x + 2) ** z) % (2 ** z); // wrap-around X at 360° RA
     //   return `http://imagine.legacysurvey.org/static/tiles/unwise-neo4/1/${z}/${tileX}/${y}.jpg`;
     // },
   },
