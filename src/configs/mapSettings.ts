@@ -15,6 +15,8 @@ export const DEFAULT_INTERNAL_MAP_SETTINGS = {
   multiWorld: true,
 };
 
+const MERCATOR_MAX_LAT = 85.0511287798066;
+
 export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
   {
     id: 'external-unwise-neo4',
@@ -22,7 +24,7 @@ export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
     projection: 'EPSG:3857',
     url: 'http://imagine.legacysurvey.org/static/tiles/unwise-neo4/1/{z}/{x}/{y}.jpg',
     extent: transformExtent(
-      [-180, -85.06, 180, 85.06],
+      [-180, -MERCATOR_MAX_LAT, 180, MERCATOR_MAX_LAT],
       'EPSG:4326',
       'EPSG:3857'
     ),

@@ -86,6 +86,7 @@ export function OpenLayersMap({
     undefined
   );
   const [isDrawing, setIsDrawing] = useState(false);
+  const [flipTiles, setFlipTiles] = useState(false);
 
   const { activeBaselayer, cmap, cmapValues } = baselayerState;
 
@@ -94,7 +95,7 @@ export function OpenLayersMap({
       return new TileLayer({
         properties: { id: 'baselayer-' + band.id },
         source: new XYZ({
-          url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}`,
+          url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}&flip=${flipTiles}`,
           tileGrid: new TileGrid({
             extent: [-180, -90, 180, 90],
             origin: [-180, 90],
@@ -324,7 +325,7 @@ export function OpenLayersMap({
           resolutions.push(resolutionZ0 / 2 ** i);
         }
         const source = new XYZ({
-          url: `${SERVICE_URL}/maps/${activeBaselayer.map_id}/${activeBaselayer.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}`,
+          url: `${SERVICE_URL}/maps/${activeBaselayer.map_id}/${activeBaselayer.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}&flip=${flipTiles}`,
           tileGrid: new TileGrid({
             extent: [-180, -90, 180, 90],
             origin: [-180, 90],
@@ -361,10 +362,23 @@ export function OpenLayersMap({
         mapRef.current.addLayer(activeLayer);
       }
     }
-  }, [activeBaselayer, cmap, cmapValues, tileLayers]);
+  }, [activeBaselayer, cmap, cmapValues, tileLayers, flipTiles]);
 
   return (
     <div id="map" style={{ cursor: isDrawing ? 'crosshair' : 'auto' }}>
+      <div style={{ position: 'absolute', left: 50, top: 10, zIndex: 5000 }}>
+        <label style={{ display: 'flex', flexDirection: 'row', gap: 5 }}>
+          <input
+            type="checkbox"
+            checked={flipTiles}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              setFlipTiles(!flipTiles);
+            }}
+          />
+          {flipTiles ? '360 < ra < 0' : '-180 < ra < 180'}
+        </label>
+      </div>
       <div ref={externalSearchRef} className="ol-popup"></div>
       <div className="ol-zoom ol-control draw-box-btn-container">
         <button
