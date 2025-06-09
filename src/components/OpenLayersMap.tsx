@@ -1,4 +1,11 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Map, View, Feature } from 'ol';
 import { TileGrid } from 'ol/tilegrid';
 import { Tile as TileLayer } from 'ol/layer';
@@ -9,6 +16,12 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
 import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
+import {
+  get as getProjection,
+  getPointResolution,
+  transform,
+  toLonLat,
+} from 'ol/proj.js';
 import 'ol/ol.css';
 import {
   Band,
@@ -17,7 +30,11 @@ import {
   SourceList,
   SubmapData,
 } from '../types/maps';
-import { DEFAULT_MAP_SETTINGS, SERVICE_URL } from '../configs/mapSettings';
+import {
+  DEFAULT_INTERNAL_MAP_SETTINGS,
+  EXTERNAL_BASELAYERS,
+  SERVICE_URL,
+} from '../configs/mapSettings';
 import { CoordinatesDisplay } from './CoordinatesDisplay';
 import { LayerSelector } from './LayerSelector';
 import { CropIcon } from './icons/CropIcon';
@@ -28,11 +45,13 @@ import { AddHighlightBoxLayer } from './layers/AddHighlightBoxLayer';
 import { generateSearchContent } from '../utils/externalSearchUtils';
 import './styles/highlight-controls.css';
 import './styles/area-selection.css';
+import { assertBand } from '../reducers/baselayerReducer';
+import { getBaselayerResolutions } from '../utils/layerUtils';
 
 export type MapProps = {
   bands: Band[];
   baselayerState: BaselayerState;
-  onBaseLayerChange: (baselayerId: number) => void;
+  onBaseLayerChange: (baselayerId: string) => void;
   sourceLists?: SourceList[];
   activeSourceListIds: number[];
   onSelectedSourceListsChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -67,26 +86,25 @@ export function OpenLayersMap({
     undefined
   );
   const [isDrawing, setIsDrawing] = useState(false);
+  const [flipTiles, setFlipTiles] = useState(false);
 
   const { activeBaselayer, cmap, cmapValues } = baselayerState;
 
   const tileLayers = useMemo(() => {
     return bands.map((band) => {
-      const resolutionZ0 = 180 / band.tile_size;
-      const levels = band.levels;
-      const resolutions = [];
-      for (let i = 0; i < levels; i++) {
-        resolutions.push(resolutionZ0 / 2 ** i);
-      }
       return new TileLayer({
         properties: { id: 'baselayer-' + band.id },
         source: new XYZ({
-          url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}`,
+          url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}&flip=${flipTiles}`,
           tileGrid: new TileGrid({
             extent: [-180, -90, 180, 90],
             origin: [-180, 90],
             tileSize: band.tile_size,
-            resolutions,
+            resolutions: getBaselayerResolutions(
+              180,
+              band.tile_size,
+              band.levels
+            ),
           }),
           interpolate: false,
           projection: 'EPSG:4326',
@@ -95,6 +113,29 @@ export function OpenLayersMap({
       });
     });
   }, [bands]);
+
+  const externalTileLayers = useMemo(() => {
+    return EXTERNAL_BASELAYERS.map((b) => {
+      return new TileLayer({
+        properties: { id: b.id },
+        source: new XYZ({
+          url: typeof b.url === 'string' ? b.url : undefined,
+          tileUrlFunction: typeof b.url !== 'string' ? b.url : undefined,
+          projection: b.projection,
+          tileGrid: new TileGrid({
+            extent: b.extent,
+            resolutions: getBaselayerResolutions(
+              b.extent[2] - b.extent[0],
+              256,
+              9
+            ),
+            origin: [b.extent[0], b.extent[3]],
+          }),
+          wrapX: true,
+        }),
+      });
+    });
+  }, []);
 
   /**
    * Create the map with a scale control, a layer for the "add box" functionality
@@ -105,11 +146,17 @@ export function OpenLayersMap({
     if (!stableMapRef) {
       mapRef.current = new Map({
         target: 'map',
-        view: new View(DEFAULT_MAP_SETTINGS),
+        view: new View(DEFAULT_INTERNAL_MAP_SETTINGS),
       });
 
       mapRef.current.on('pointermove', (e) => {
-        setCoordinates(e.coordinate);
+        const units = mapRef.current?.getView().getProjection().getUnits();
+        if (units === 'm') {
+          const lonLat = toLonLat(e.coordinate);
+          setCoordinates(lonLat);
+        } else {
+          setCoordinates(e.coordinate);
+        }
       });
 
       /**
@@ -164,11 +211,17 @@ export function OpenLayersMap({
                 );
               }
             }
+            const mapProj = e.map.getView().getProjection();
+            let searchCoords = e.coordinate;
+            let mapPosition = e.coordinate;
+            if (mapProj.getCode() === 'EPSG:3857') {
+              searchCoords = toLonLat(e.coordinate);
+            }
             externalSearchRef.current?.append(
-              generateSearchContent(e.coordinate)
+              generateSearchContent(searchCoords)
             );
-            simbadOverlay.setPosition(e.coordinate);
-            externalSearchMarker.setGeometry(new Point(e.coordinate));
+            simbadOverlay.setPosition(mapPosition);
+            externalSearchMarker.setGeometry(new Point(mapPosition));
           }
         } else {
           const simbadOverlay = e.map.getOverlayById('simbad-search-overlay');
@@ -208,6 +261,50 @@ export function OpenLayersMap({
     };
   }, []);
 
+  const onChangeProjection = useCallback(
+    (projection: string) => {
+      // (projection: string, extent: number[]) => {
+      if (mapRef.current) {
+        const currentView = mapRef.current.getView();
+        const currentProjection = currentView.getProjection();
+        const newProjection = getProjection(projection)!;
+        const currentResolution = currentView.getResolution();
+        const currentCenter = currentView.getCenter() ?? [0, 0];
+        const currentRotation = currentView.getRotation();
+        const newCenter = transform(
+          currentCenter,
+          currentProjection,
+          newProjection
+        );
+        const currentMPU = currentProjection.getMetersPerUnit();
+        const newMPU = newProjection!.getMetersPerUnit();
+        const currentPointResolution =
+          getPointResolution(
+            currentProjection,
+            1 / currentMPU!,
+            currentCenter,
+            'm'
+          ) * currentMPU!;
+        const newPointResolution =
+          getPointResolution(newProjection!, 1 / newMPU!, newCenter, 'm') *
+          newMPU!;
+        const newResolution =
+          (currentResolution! * currentPointResolution) / newPointResolution;
+        const newView = new View({
+          center: newCenter,
+          resolution: newResolution,
+          rotation: currentRotation,
+          projection: newProjection,
+          // extent,
+          showFullExtent: true,
+          multiWorld: true,
+        });
+        mapRef.current.setView(newView);
+      }
+    },
+    [mapRef.current]
+  );
+
   /**
    * Updates tilelayers when new baselayer is selected and/or color map settings change
    */
@@ -216,38 +313,72 @@ export function OpenLayersMap({
       mapRef.current.getAllLayers().forEach((layer) => {
         const layerId = layer.get('id');
         if (!layerId) return;
-        if (layerId.includes('baselayer')) {
+        if (layerId.includes('baselayer') || layerId.includes('external')) {
           mapRef.current?.removeLayer(layer);
         }
       });
-      const resolutionZ0 = 180 / activeBaselayer.tile_size;
-      const levels = activeBaselayer.levels;
-      const resolutions = [];
-      for (let i = 0; i < levels; i++) {
-        resolutions.push(resolutionZ0 / 2 ** i);
+      if (assertBand(activeBaselayer)) {
+        const resolutionZ0 = 180 / activeBaselayer.tile_size;
+        const levels = activeBaselayer.levels;
+        const resolutions = [];
+        for (let i = 0; i < levels; i++) {
+          resolutions.push(resolutionZ0 / 2 ** i);
+        }
+        const source = new XYZ({
+          url: `${SERVICE_URL}/maps/${activeBaselayer.map_id}/${activeBaselayer.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}&flip=${flipTiles}`,
+          tileGrid: new TileGrid({
+            extent: [-180, -90, 180, 90],
+            origin: [-180, 90],
+            tileSize: activeBaselayer.tile_size,
+            resolutions,
+          }),
+          interpolate: false,
+          projection: 'EPSG:4326',
+          tilePixelRatio: activeBaselayer.tile_size / 256,
+        });
+        const activeLayer = tileLayers.find(
+          (t) => t.get('id') === 'baselayer-' + activeBaselayer!.id
+        )!;
+        activeLayer.setSource(source);
+        mapRef.current.addLayer(activeLayer);
+        onChangeProjection(
+          DEFAULT_INTERNAL_MAP_SETTINGS.projection
+          // DEFAULT_INTERNAL_MAP_SETTINGS.extent,
+        );
+      } else {
+        const externalBaselayer = EXTERNAL_BASELAYERS.find(
+          (b) => b.id === activeBaselayer.id
+        );
+        const activeLayer = externalTileLayers.find(
+          (t) => t.get('id') === activeBaselayer.id
+        )!;
+
+        if (!externalBaselayer || !activeLayer) return;
+
+        onChangeProjection(
+          externalBaselayer.projection
+          // externalBaselayer.extent,
+        );
+        mapRef.current.addLayer(activeLayer);
       }
-      const source = new XYZ({
-        url: `${SERVICE_URL}/maps/${activeBaselayer.map_id}/${activeBaselayer.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}`,
-        tileGrid: new TileGrid({
-          extent: [-180, -90, 180, 90],
-          origin: [-180, 90],
-          tileSize: activeBaselayer.tile_size,
-          resolutions,
-        }),
-        interpolate: false,
-        projection: 'EPSG:4326',
-        tilePixelRatio: activeBaselayer.tile_size / 256,
-      });
-      const activeLayer = tileLayers.find(
-        (t) => t.get('id') === 'baselayer-' + activeBaselayer!.id
-      )!;
-      activeLayer.setSource(source);
-      mapRef.current.addLayer(activeLayer);
     }
-  }, [activeBaselayer, cmap, cmapValues, tileLayers]);
+  }, [activeBaselayer, cmap, cmapValues, tileLayers, flipTiles]);
 
   return (
     <div id="map" style={{ cursor: isDrawing ? 'crosshair' : 'auto' }}>
+      <div style={{ position: 'absolute', left: 50, top: 10, zIndex: 5000 }}>
+        <label style={{ display: 'flex', flexDirection: 'row', gap: 5 }}>
+          <input
+            type="checkbox"
+            checked={flipTiles}
+            onChange={(e) => {
+              console.log(e.target.checked);
+              setFlipTiles(!flipTiles);
+            }}
+          />
+          {flipTiles ? '360 < ra < 0' : '-180 < ra < 180'}
+        </label>
+      </div>
       <div ref={externalSearchRef} className="ol-popup"></div>
       <div className="ol-zoom ol-control draw-box-btn-container">
         <button

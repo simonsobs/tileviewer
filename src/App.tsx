@@ -3,6 +3,7 @@ import { MapMetadataResponse, Band, SourceList } from './types/maps';
 import { ColorMapControls } from './components/ColorMapControls';
 import { fetchProducts } from './utils/fetchUtils';
 import {
+  assertBand,
   baselayerReducer,
   CHANGE_BASELAYER,
   CHANGE_CMAP_TYPE,
@@ -13,6 +14,7 @@ import { useQuery } from './hooks/useQuery';
 import { useHighlightBoxes } from './hooks/useHighlightBoxes';
 import { OpenLayersMap } from './components/OpenLayersMap';
 import { handleSelectChange } from './utils/layerUtils';
+import { EXTERNAL_BASELAYERS } from './configs/mapSettings';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
@@ -98,10 +100,12 @@ function App() {
    * TileLayer requests.
    */
   const onBaseLayerChange = useCallback(
-    (selectedBaselayerId: number) => {
-      const newActiveBaselayer = bands?.find(
-        (b) => b.id === selectedBaselayerId
-      );
+    (selectedBaselayerId: string) => {
+      const isExternalBaselayer = selectedBaselayerId.includes('external');
+
+      const newActiveBaselayer = isExternalBaselayer
+        ? EXTERNAL_BASELAYERS.find((b) => b.id === selectedBaselayerId)
+        : bands?.find((b) => b.id === Number(selectedBaselayerId));
 
       if (!newActiveBaselayer) return;
 
@@ -149,7 +153,7 @@ function App() {
   /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
     composed from state at this level, we must construct it here and pass it down. */
   const submapData = useMemo(() => {
-    if (baselayerState.activeBaselayer) {
+    if (assertBand(baselayerState.activeBaselayer)) {
       const { map_id: mapId, id: bandId } = baselayerState.activeBaselayer;
       const { cmap, cmapValues } = baselayerState;
       return {
@@ -162,33 +166,27 @@ function App() {
     }
   }, [baselayerState]);
 
-  if (
-    !baselayerState.activeBaselayer ||
-    !baselayerState.cmap ||
-    !baselayerState.cmapValues
-  ) {
-    return null;
-  } else {
-    const { activeBaselayer, cmap, cmapValues } = baselayerState;
-    return (
-      <>
-        {baselayerState.activeBaselayer && bands && (
-          <OpenLayersMap
-            bands={bands}
-            baselayerState={baselayerState}
-            onBaseLayerChange={onBaseLayerChange}
-            sourceLists={sourceLists}
-            activeSourceListIds={activeSourceListIds}
-            onSelectedSourceListsChange={onSelectedSourceListsChange}
-            highlightBoxes={optimisticHighlightBoxes}
-            setBoxes={updateHighlightBoxes}
-            activeBoxIds={activeBoxIds}
-            setActiveBoxIds={setActiveBoxIds}
-            onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
-            submapData={submapData}
-            addOptimisticHighlightBox={addOptimisticHighlightBox}
-          />
-        )}
+  const { activeBaselayer, cmap, cmapValues } = baselayerState;
+  return (
+    <>
+      {baselayerState.activeBaselayer && bands && (
+        <OpenLayersMap
+          bands={bands}
+          baselayerState={baselayerState}
+          onBaseLayerChange={onBaseLayerChange}
+          sourceLists={sourceLists}
+          activeSourceListIds={activeSourceListIds}
+          onSelectedSourceListsChange={onSelectedSourceListsChange}
+          highlightBoxes={optimisticHighlightBoxes}
+          setBoxes={updateHighlightBoxes}
+          activeBoxIds={activeBoxIds}
+          setActiveBoxIds={setActiveBoxIds}
+          onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
+          submapData={submapData}
+          addOptimisticHighlightBox={addOptimisticHighlightBox}
+        />
+      )}
+      {assertBand(activeBaselayer) && cmap && cmapValues && (
         <ColorMapControls
           values={[cmapValues.min, cmapValues.max]}
           onCmapValuesChange={onCmapValuesChange}
@@ -198,9 +196,9 @@ function App() {
           units={activeBaselayer.units}
           quantity={activeBaselayer.quantity}
         />
-      </>
-    );
-  }
+      )}
+    </>
+  );
 }
 
 export default App;

@@ -8,6 +8,7 @@ import { Circle } from 'ol/geom';
 import Select from 'ol/interaction/Select.js';
 import { click } from 'ol/events/condition';
 import { MapProps } from '../OpenLayersMap';
+import { transform } from 'ol/proj';
 
 type SourcesLayerProps = {
   sourceLists: MapProps['sourceLists'];
@@ -27,6 +28,7 @@ export function SourcesLayer({
 
   const sourceOverlays = useMemo(() => {
     if (!sourceLists.length) return [];
+    const projection = mapRef.current?.getView().getProjection();
     return sourceLists
       .filter((sl) => activeSourceListIds.includes(sl.id))
       .map(
@@ -38,13 +40,18 @@ export function SourcesLayer({
             layers: [
               new VectorLayer({
                 source: new VectorSource({
-                  features: sl.sources.map(
-                    (source) =>
-                      new Feature({
-                        geometry: new Circle([source.ra, source.dec], 1),
-                        sourceData: source,
-                      })
-                  ),
+                  features: sl.sources.map((source) => {
+                    let coords = [source.ra, source.dec];
+                    let rad = 1;
+                    if (projection && projection.getCode() === 'EPSG:3857') {
+                      coords = transform(coords, 'EPSG:4326', 'EPSG:3857');
+                      rad = 100000;
+                    }
+                    return new Feature({
+                      geometry: new Circle(coords, rad),
+                      sourceData: source,
+                    });
+                  }),
                 }),
                 style: {
                   'stroke-width': 2,
@@ -97,9 +104,15 @@ export function SourcesLayer({
           return;
         }
 
+        const projection = mapRef.current?.getView().getProjection();
+
         selectedFeatures.forEach((feature) => {
           const sourceData = feature.get('sourceData') as Source;
-          popupOverlay.setPosition([sourceData.ra, sourceData.dec]);
+          let coords = [sourceData.ra, sourceData.dec];
+          if (projection && projection.getCode() === 'EPSG:3857') {
+            coords = transform(coords, 'EPSG:4326', 'EPSG:3857');
+          }
+          popupOverlay.setPosition(coords);
           setSelectedSourceData(sourceData);
         });
       });
