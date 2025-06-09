@@ -85,7 +85,7 @@ export function LayerSelector({
             </div>
           ))}
         </fieldset>
-        {sourceLists.length && (
+        {sourceLists.length ? (
           <fieldset>
             <legend>Source catalogs</legend>
             {sourceLists.map((sl) => (
@@ -101,8 +101,8 @@ export function LayerSelector({
               </div>
             ))}
           </fieldset>
-        )}
-        {highlightBoxes && (
+        ) : null}
+        {highlightBoxes && highlightBoxes.length ? (
           <fieldset>
             <legend>Highlight regions</legend>
             {highlightBoxes.map((box) => (
@@ -118,7 +118,7 @@ export function LayerSelector({
               </div>
             ))}
           </fieldset>
-        )}
+        ) : null}
       </div>
     </>
   );
