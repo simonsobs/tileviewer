@@ -21,6 +21,7 @@ import {
   getPointResolution,
   transform,
   toLonLat,
+  getTransform,
 } from 'ol/proj.js';
 import 'ol/ol.css';
 import {
@@ -31,8 +32,10 @@ import {
   SubmapData,
 } from '../types/maps';
 import {
+  CAR_BBOX,
   DEFAULT_INTERNAL_MAP_SETTINGS,
   EXTERNAL_BASELAYERS,
+  MERCATOR_BBOX,
   SERVICE_URL,
 } from '../configs/mapSettings';
 import { CoordinatesDisplay } from './CoordinatesDisplay';
@@ -47,6 +50,7 @@ import './styles/highlight-controls.css';
 import './styles/area-selection.css';
 import { assertBand } from '../reducers/baselayerReducer';
 import { getBaselayerResolutions } from '../utils/layerUtils';
+import { applyTransform } from 'ol/extent';
 
 export type MapProps = {
   bands: Band[];
@@ -268,6 +272,18 @@ export function OpenLayersMap({
         const currentView = mapRef.current.getView();
         const currentProjection = currentView.getProjection();
         const newProjection = getProjection(projection)!;
+        const fromLonLat = getTransform('EPSG:4326', newProjection);
+        const bbox = projection === 'EPSG:4326' ? CAR_BBOX : MERCATOR_BBOX;
+        newProjection.setWorldExtent(bbox);
+
+        // approximate calculation of projection extent,
+        // checking if the world extent crosses the dateline
+        if (bbox[0] > bbox[2]) {
+          bbox[2] += 360;
+        }
+
+        const extent = applyTransform(bbox, fromLonLat, undefined, 8);
+
         const currentResolution = currentView.getResolution();
         const currentCenter = currentView.getCenter() ?? [0, 0];
         const currentRotation = currentView.getRotation();
@@ -290,16 +306,22 @@ export function OpenLayersMap({
           newMPU!;
         const newResolution =
           (currentResolution! * currentPointResolution) / newPointResolution;
+
+        newProjection.setExtent(extent);
+
         const newView = new View({
           center: newCenter,
           resolution: newResolution,
           rotation: currentRotation,
           projection: newProjection,
-          // extent,
+          extent,
           showFullExtent: true,
           multiWorld: true,
         });
+
         mapRef.current.setView(newView);
+        newView.fit(extent);
+        newView.setCenter(newCenter);
       }
     },
     [mapRef.current]
@@ -341,10 +363,10 @@ export function OpenLayersMap({
         )!;
         activeLayer.setSource(source);
         mapRef.current.addLayer(activeLayer);
-        onChangeProjection(
-          DEFAULT_INTERNAL_MAP_SETTINGS.projection
-          // DEFAULT_INTERNAL_MAP_SETTINGS.extent,
-        );
+        // onChangeProjection(
+        //   DEFAULT_INTERNAL_MAP_SETTINGS.projection
+        //   // DEFAULT_INTERNAL_MAP_SETTINGS.extent,
+        // );
       } else {
         const externalBaselayer = EXTERNAL_BASELAYERS.find(
           (b) => b.id === activeBaselayer.id
@@ -355,10 +377,10 @@ export function OpenLayersMap({
 
         if (!externalBaselayer || !activeLayer) return;
 
-        onChangeProjection(
-          externalBaselayer.projection
-          // externalBaselayer.extent,
-        );
+        // onChangeProjection(
+        //   externalBaselayer.projection
+        //   // externalBaselayer.extent,
+        // );
         mapRef.current.addLayer(activeLayer);
       }
     }

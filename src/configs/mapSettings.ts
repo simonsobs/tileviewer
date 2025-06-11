@@ -6,16 +6,19 @@ import { ExternalBaselayer } from '../types/maps';
 export const SERVICE_URL: string =
   import.meta.env.VITE_SERVICE_URL || window.location.href.slice(0, -1);
 
+const MERCATOR_MAX_LAT = 85.0511287798066;
+
+export const CAR_BBOX = [-180, -90, 180, 90];
+export const MERCATOR_BBOX = [-180, -MERCATOR_MAX_LAT, 180, MERCATOR_MAX_LAT];
+
 export const DEFAULT_INTERNAL_MAP_SETTINGS = {
   projection: 'EPSG:4326',
   center: [0, 0],
   zoom: 0,
-  extent: [-180, -90, 180, 90],
+  // extent: [-180, -90, 180, 90],
   showFullExtent: true,
   multiWorld: true,
 };
-
-const MERCATOR_MAX_LAT = 85.0511287798066;
 
 export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
   {
