@@ -14,7 +14,7 @@ export const MERCATOR_BBOX = [-180, -MERCATOR_MAX_LAT, 180, MERCATOR_MAX_LAT];
 export const DEFAULT_INTERNAL_MAP_SETTINGS = {
   projection: 'EPSG:4326',
   center: [0, 0],
-  zoom: 0,
+  zoom: 2,
   // extent: [-180, -90, 180, 90],
   showFullExtent: true,
   multiWorld: true,
@@ -31,13 +31,21 @@ export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
       'EPSG:4326',
       'EPSG:3857'
     ),
-    // url: function ([z, x, y]) {
-    //   const tileX = (x + 2 ** z) % (2 ** z); // wrap-around X at 360° RA
-    //   // const tileX = ((x + 2) ** z) % (2 ** z); // wrap-around X at 360° RA
-    //   return `http://imagine.legacysurvey.org/static/tiles/unwise-neo4/1/${z}/${tileX}/${y}.jpg`;
-    // },
+    disabledState: (isFlipped: boolean) => !isFlipped,
   },
 ];
 
 // related to controls
 export const NUMBER_OF_FIXED_COORDINATE_DECIMALS = 5;
+
+export function transformCoords(
+  coords: number[],
+  isFlipped: boolean
+): number[] {
+  if (isFlipped) {
+    const [ra, dec] = coords;
+    return [ra * -1 + 180, dec];
+  } else {
+    return coords;
+  }
+}

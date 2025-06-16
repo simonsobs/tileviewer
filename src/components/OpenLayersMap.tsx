@@ -9,7 +9,6 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
 import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
-import { toLonLat } from 'ol/proj.js';
 import 'ol/ol.css';
 import {
   Band,
@@ -194,17 +193,10 @@ export function OpenLayersMap({
                 );
               }
             }
-            const mapProj = e.map.getView().getProjection();
-            let searchCoords = e.coordinate;
-            let mapPosition = e.coordinate;
-            if (mapProj.getCode() === 'EPSG:3857') {
-              searchCoords = toLonLat(e.coordinate);
-            }
-            externalSearchRef.current?.append(
-              generateSearchContent(searchCoords)
-            );
-            simbadOverlay.setPosition(mapPosition);
-            externalSearchMarker.setGeometry(new Point(mapPosition));
+            const coords = e.coordinate;
+            externalSearchRef.current?.append(generateSearchContent(coords));
+            simbadOverlay.setPosition(coords);
+            externalSearchMarker.setGeometry(new Point(coords));
           }
         } else {
           const simbadOverlay = e.map.getOverlayById('simbad-search-overlay');
@@ -335,7 +327,9 @@ export function OpenLayersMap({
         isFlipped={flipTiles}
       />
       <GraticuleLayer mapRef={mapRef} flipped={flipTiles} />
-      {coordinates && <CoordinatesDisplay coordinates={coordinates} />}
+      {coordinates && (
+        <CoordinatesDisplay coordinates={coordinates} flipped={flipTiles} />
+      )}
     </div>
   );
 }
