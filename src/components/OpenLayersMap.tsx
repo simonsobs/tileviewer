@@ -1,11 +1,4 @@
-import {
-  ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Map, View, Feature } from 'ol';
 import { TileGrid } from 'ol/tilegrid';
 import { Tile as TileLayer } from 'ol/layer';
@@ -16,13 +9,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
 import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
-import {
-  get as getProjection,
-  getPointResolution,
-  transform,
-  toLonLat,
-  getTransform,
-} from 'ol/proj.js';
+import { toLonLat } from 'ol/proj.js';
 import 'ol/ol.css';
 import {
   Band,
@@ -32,10 +19,8 @@ import {
   SubmapData,
 } from '../types/maps';
 import {
-  CAR_BBOX,
   DEFAULT_INTERNAL_MAP_SETTINGS,
   EXTERNAL_BASELAYERS,
-  MERCATOR_BBOX,
   SERVICE_URL,
 } from '../configs/mapSettings';
 import { CoordinatesDisplay } from './CoordinatesDisplay';
@@ -50,7 +35,7 @@ import './styles/highlight-controls.css';
 import './styles/area-selection.css';
 import { assertBand } from '../reducers/baselayerReducer';
 import { getBaselayerResolutions } from '../utils/layerUtils';
-import { applyTransform } from 'ol/extent';
+import { ToggleSwitch } from './ToggleSwitch';
 
 export type MapProps = {
   bands: Band[];
@@ -154,13 +139,7 @@ export function OpenLayersMap({
       });
 
       mapRef.current.on('pointermove', (e) => {
-        const units = mapRef.current?.getView().getProjection().getUnits();
-        if (units === 'm') {
-          const lonLat = toLonLat(e.coordinate);
-          setCoordinates(lonLat);
-        } else {
-          setCoordinates(e.coordinate);
-        }
+        setCoordinates(e.coordinate);
       });
 
       /**
@@ -265,68 +244,6 @@ export function OpenLayersMap({
     };
   }, []);
 
-  const onChangeProjection = useCallback(
-    (projection: string) => {
-      // (projection: string, extent: number[]) => {
-      if (mapRef.current) {
-        const currentView = mapRef.current.getView();
-        const currentProjection = currentView.getProjection();
-        const newProjection = getProjection(projection)!;
-        const fromLonLat = getTransform('EPSG:4326', newProjection);
-        const bbox = projection === 'EPSG:4326' ? CAR_BBOX : MERCATOR_BBOX;
-        newProjection.setWorldExtent(bbox);
-
-        // approximate calculation of projection extent,
-        // checking if the world extent crosses the dateline
-        if (bbox[0] > bbox[2]) {
-          bbox[2] += 360;
-        }
-
-        const extent = applyTransform(bbox, fromLonLat, undefined, 8);
-
-        const currentResolution = currentView.getResolution();
-        const currentCenter = currentView.getCenter() ?? [0, 0];
-        const currentRotation = currentView.getRotation();
-        const newCenter = transform(
-          currentCenter,
-          currentProjection,
-          newProjection
-        );
-        const currentMPU = currentProjection.getMetersPerUnit();
-        const newMPU = newProjection!.getMetersPerUnit();
-        const currentPointResolution =
-          getPointResolution(
-            currentProjection,
-            1 / currentMPU!,
-            currentCenter,
-            'm'
-          ) * currentMPU!;
-        const newPointResolution =
-          getPointResolution(newProjection!, 1 / newMPU!, newCenter, 'm') *
-          newMPU!;
-        const newResolution =
-          (currentResolution! * currentPointResolution) / newPointResolution;
-
-        newProjection.setExtent(extent);
-
-        const newView = new View({
-          center: newCenter,
-          resolution: newResolution,
-          rotation: currentRotation,
-          projection: newProjection,
-          extent,
-          showFullExtent: true,
-          multiWorld: true,
-        });
-
-        mapRef.current.setView(newView);
-        newView.fit(extent);
-        newView.setCenter(newCenter);
-      }
-    },
-    [mapRef.current]
-  );
-
   /**
    * Updates tilelayers when new baselayer is selected and/or color map settings change
    */
@@ -340,33 +257,12 @@ export function OpenLayersMap({
         }
       });
       if (assertBand(activeBaselayer)) {
-        const resolutionZ0 = 180 / activeBaselayer.tile_size;
-        const levels = activeBaselayer.levels;
-        const resolutions = [];
-        for (let i = 0; i < levels; i++) {
-          resolutions.push(resolutionZ0 / 2 ** i);
-        }
-        const source = new XYZ({
-          url: `${SERVICE_URL}/maps/${activeBaselayer.map_id}/${activeBaselayer.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}&flip=${flipTiles}`,
-          tileGrid: new TileGrid({
-            extent: [-180, -90, 180, 90],
-            origin: [-180, 90],
-            tileSize: activeBaselayer.tile_size,
-            resolutions,
-          }),
-          interpolate: false,
-          projection: 'EPSG:4326',
-          tilePixelRatio: activeBaselayer.tile_size / 256,
-        });
+        const url = `${SERVICE_URL}/maps/${activeBaselayer.map_id}/${activeBaselayer.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}&flip=${flipTiles}`;
         const activeLayer = tileLayers.find(
           (t) => t.get('id') === 'baselayer-' + activeBaselayer!.id
         )!;
-        activeLayer.setSource(source);
+        activeLayer.getSource()?.setUrl(url);
         mapRef.current.addLayer(activeLayer);
-        // onChangeProjection(
-        //   DEFAULT_INTERNAL_MAP_SETTINGS.projection
-        //   // DEFAULT_INTERNAL_MAP_SETTINGS.extent,
-        // );
       } else {
         const externalBaselayer = EXTERNAL_BASELAYERS.find(
           (b) => b.id === activeBaselayer.id
@@ -377,10 +273,6 @@ export function OpenLayersMap({
 
         if (!externalBaselayer || !activeLayer) return;
 
-        // onChangeProjection(
-        //   externalBaselayer.projection
-        //   // externalBaselayer.extent,
-        // );
         mapRef.current.addLayer(activeLayer);
       }
     }
@@ -388,19 +280,13 @@ export function OpenLayersMap({
 
   return (
     <div id="map" style={{ cursor: isDrawing ? 'crosshair' : 'auto' }}>
-      <div style={{ position: 'absolute', left: 50, top: 10, zIndex: 5000 }}>
-        <label style={{ display: 'flex', flexDirection: 'row', gap: 5 }}>
-          <input
-            type="checkbox"
-            checked={flipTiles}
-            onChange={(e) => {
-              console.log(e.target.checked);
-              setFlipTiles(!flipTiles);
-            }}
-          />
-          {flipTiles ? '360 < ra < 0' : '-180 < ra < 180'}
-        </label>
-      </div>
+      <ToggleSwitch
+        checked={flipTiles}
+        onChange={() => {
+          setFlipTiles(!flipTiles);
+        }}
+        disabled={!assertBand(activeBaselayer)}
+      />
       <div ref={externalSearchRef} className="ol-popup"></div>
       <div className="ol-zoom ol-control draw-box-btn-container">
         <button
@@ -446,8 +332,9 @@ export function OpenLayersMap({
         highlightBoxes={highlightBoxes}
         activeBoxIds={activeBoxIds}
         onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
+        isFlipped={flipTiles}
       />
-      <GraticuleLayer mapRef={mapRef} />
+      <GraticuleLayer mapRef={mapRef} flipped={flipTiles} />
       {coordinates && <CoordinatesDisplay coordinates={coordinates} />}
     </div>
   );
