@@ -91,6 +91,7 @@ export type ExternalBaselayer = {
   projection: string;
   url: string | TileUrlFunction;
   extent: number[];
+  disabledState: (state: boolean) => boolean;
 };
 
 export type BaselayerState = {

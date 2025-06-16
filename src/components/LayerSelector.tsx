@@ -17,6 +17,7 @@ interface Props
   > {
   activeBaselayerId?: number | string;
   sourceLists: SourceList[];
+  isFlipped: boolean;
 }
 
 export function LayerSelector({
@@ -29,6 +30,7 @@ export function LayerSelector({
   highlightBoxes,
   activeBoxIds,
   onSelectedHighlightBoxChange,
+  isFlipped,
 }: Props) {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -72,7 +74,10 @@ export function LayerSelector({
             </div>
           ))}
           {EXTERNAL_BASELAYERS.map((bl) => (
-            <div className="input-container" key={bl.id}>
+            <div
+              className={`input-container ${bl.disabledState(isFlipped) ? 'disabled' : ''}`}
+              key={bl.id}
+            >
               <input
                 type="radio"
                 id={bl.id}
@@ -80,6 +85,7 @@ export function LayerSelector({
                 name="baselayer"
                 checked={bl.id === activeBaselayerId}
                 onChange={(e) => onBaseLayerChange(e.target.value)}
+                disabled={bl.disabledState(isFlipped)}
               />
               <label htmlFor={bl.id}>{bl.name}</label>
             </div>
