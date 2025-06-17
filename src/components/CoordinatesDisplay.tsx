@@ -1,6 +1,6 @@
 import {
   NUMBER_OF_FIXED_COORDINATE_DECIMALS,
-  transformCoords,
+  transformGraticuleCoords,
 } from '../configs/mapSettings';
 import './styles/coordinates-display.css';
 
@@ -11,7 +11,7 @@ export function CoordinatesDisplay({
   coordinates: number[];
   flipped: boolean;
 }) {
-  const transformedCoords = transformCoords(coordinates, flipped);
+  const transformedCoords = transformGraticuleCoords(coordinates, flipped);
   return (
     <div className="coordinates-display">
       <span className="parens">( </span>

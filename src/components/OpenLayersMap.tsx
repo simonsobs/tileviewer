@@ -1,5 +1,12 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Map, View, Feature } from 'ol';
+import {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Map, View, Feature, MapBrowserEvent } from 'ol';
 import { TileGrid } from 'ol/tilegrid';
 import { Tile as TileLayer } from 'ol/layer';
 import { XYZ } from 'ol/source';
@@ -21,6 +28,8 @@ import {
   DEFAULT_INTERNAL_MAP_SETTINGS,
   EXTERNAL_BASELAYERS,
   SERVICE_URL,
+  transformGraticuleCoords,
+  transformCoords,
 } from '../configs/mapSettings';
 import { CoordinatesDisplay } from './CoordinatesDisplay';
 import { LayerSelector } from './LayerSelector';
@@ -70,6 +79,9 @@ export function OpenLayersMap({
   const mapRef = useRef<Map | null>(null);
   const drawBoxRef = useRef<VectorLayer | null>(null);
   const externalSearchRef = useRef<HTMLDivElement | null>(null);
+  const externalSearchMarkerRef = useRef<Feature | null>(null);
+  const previousSearchOverlayHandlerRef =
+    useRef<(e: MapBrowserEvent<any>) => void | null>(null);
   const [coordinates, setCoordinates] = useState<number[] | undefined>(
     undefined
   );
@@ -170,8 +182,11 @@ export function OpenLayersMap({
         })
       );
 
+      externalSearchMarkerRef.current = externalSearchMarker;
+
       const externalSearchMarkerSource = new VectorSource({
         features: [externalSearchMarker],
+        wrapX: false,
       });
 
       const externalSearchMarkerLayer = new VectorLayer({
@@ -181,36 +196,6 @@ export function OpenLayersMap({
 
       mapRef.current.addLayer(externalSearchMarkerLayer);
 
-      // Create the click handler that displays/hides the marker and the popup
-      mapRef.current.on('click', (e) => {
-        if (e.originalEvent.metaKey) {
-          const simbadOverlay = e.map.getOverlayById('simbad-search-overlay');
-          if (simbadOverlay) {
-            if (externalSearchRef.current) {
-              while (externalSearchRef.current.firstChild) {
-                externalSearchRef.current.removeChild(
-                  externalSearchRef.current.firstChild
-                );
-              }
-            }
-            const coords = e.coordinate;
-            externalSearchRef.current?.append(generateSearchContent(coords));
-            simbadOverlay.setPosition(coords);
-            externalSearchMarker.setGeometry(new Point(coords));
-          }
-        } else {
-          const simbadOverlay = e.map.getOverlayById('simbad-search-overlay');
-          if (simbadOverlay) {
-            externalSearchRef.current!.innerHTML = '';
-            simbadOverlay.setPosition(undefined);
-            externalSearchMarker.setGeometry(undefined);
-          }
-        }
-      });
-      /**
-       * END
-       */
-
       mapRef.current.addControl(
         new ScaleLine({
           className: 'scale-control',
@@ -219,7 +204,9 @@ export function OpenLayersMap({
       );
 
       // create a source and layer for the "add box" functionality
-      const boxSource = new VectorSource();
+      const boxSource = new VectorSource({
+        wrapX: false,
+      });
       const boxVector = new VectorLayer({
         source: boxSource,
         properties: {
@@ -235,6 +222,82 @@ export function OpenLayersMap({
       stableMapRef?.setTarget(undefined);
     };
   }, []);
+
+  const handleSearchOverlay = useCallback(
+    (e: MapBrowserEvent) => {
+      if (e.originalEvent.metaKey) {
+        const simbadOverlay = e.map.getOverlayById('simbad-search-overlay');
+        if (simbadOverlay) {
+          if (externalSearchRef.current) {
+            while (externalSearchRef.current.firstChild) {
+              externalSearchRef.current.removeChild(
+                externalSearchRef.current.firstChild
+              );
+            }
+          }
+          const overlayCoords = e.coordinate;
+          const searchCoords = transformGraticuleCoords(
+            overlayCoords,
+            flipTiles
+          );
+          externalSearchRef.current?.append(
+            generateSearchContent(searchCoords)
+          );
+          simbadOverlay.setPosition(overlayCoords);
+          externalSearchMarkerRef.current?.setGeometry(
+            new Point(overlayCoords)
+          );
+        }
+      } else {
+        const simbadOverlay = e.map.getOverlayById('simbad-search-overlay');
+        if (simbadOverlay) {
+          externalSearchRef.current!.innerHTML = '';
+          simbadOverlay.setPosition(undefined);
+          externalSearchMarkerRef.current?.setGeometry(undefined);
+        }
+      }
+    },
+    [externalSearchMarkerRef.current, flipTiles]
+  );
+
+  useEffect(() => {
+    if (mapRef.current) {
+      if (previousSearchOverlayHandlerRef.current) {
+        mapRef.current.un('click', previousSearchOverlayHandlerRef.current);
+      }
+      previousSearchOverlayHandlerRef.current = handleSearchOverlay;
+      mapRef.current.on('click', handleSearchOverlay);
+    }
+  }, [handleSearchOverlay]);
+
+  useEffect(() => {
+    if (mapRef.current) {
+      const simbadOverlay = mapRef.current.getOverlayById(
+        'simbad-search-overlay'
+      );
+      if (simbadOverlay) {
+        const coords = simbadOverlay.getPosition();
+        if (coords) {
+          if (externalSearchRef.current) {
+            while (externalSearchRef.current.firstChild) {
+              externalSearchRef.current.removeChild(
+                externalSearchRef.current.firstChild
+              );
+            }
+          }
+          const searchCoords = transformCoords(coords, flipTiles, 'search');
+          const overlayCoords = transformCoords(coords, flipTiles, 'layer');
+          externalSearchRef.current?.append(
+            generateSearchContent(searchCoords)
+          );
+          simbadOverlay.setPosition(overlayCoords);
+          externalSearchMarkerRef.current?.setGeometry(
+            new Point(overlayCoords)
+          );
+        }
+      }
+    }
+  }, [flipTiles]);
 
   /**
    * Updates tilelayers when new baselayer is selected and/or color map settings change
@@ -295,6 +358,7 @@ export function OpenLayersMap({
         sourceLists={sourceLists}
         activeSourceListIds={activeSourceListIds}
         mapRef={mapRef}
+        flipped={flipTiles}
       />
       <HighlightBoxLayer
         highlightBoxes={highlightBoxes}
