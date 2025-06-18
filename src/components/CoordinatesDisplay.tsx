@@ -1,7 +1,5 @@
-import {
-  NUMBER_OF_FIXED_COORDINATE_DECIMALS,
-  transformGraticuleCoords,
-} from '../configs/mapSettings';
+import { NUMBER_OF_FIXED_COORDINATE_DECIMALS } from '../configs/mapSettings';
+import { transformGraticuleCoords } from '../utils/layerUtils';
 import './styles/coordinates-display.css';
 
 export function CoordinatesDisplay({

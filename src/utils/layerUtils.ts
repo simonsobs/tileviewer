@@ -1,4 +1,6 @@
+import { Feature } from 'ol';
 import { Band } from '../types/maps';
+import { Source } from '../types/maps';
 
 /**
  * A utility function to format a layer's name.
@@ -38,4 +40,58 @@ export function getBaselayerResolutions(
     resolutions.push(resolutionZ0 / 2 ** i);
   }
   return resolutions;
+}
+
+export function transformGraticuleCoords(
+  coords: number[],
+  isFlipped: boolean
+): number[] {
+  if (isFlipped) {
+    const [ra, dec] = coords;
+    const newRa = ra * -1 + 180;
+    return [newRa, dec];
+  } else {
+    return coords;
+  }
+}
+
+export function transformCoords(
+  coords: number[],
+  isFlipped: boolean,
+  context: 'search' | 'layer'
+): number[] {
+  const [ra, dec] = coords;
+  const newRa = coords[0] * -1 + (coords[0] > 0 ? 180 : -180);
+  if (isFlipped) {
+    if (context === 'search') {
+      return [ra > 0 ? ra : ra + 360, dec];
+    }
+    if (context === 'layer') {
+      return [newRa, dec];
+    }
+    return coords;
+  } else {
+    return [newRa, dec];
+  }
+}
+
+export function transformSources(feature: Feature, flipped: boolean) {
+  const sourceData = feature.get('sourceData') as Source;
+  let newOverlayCoords = [sourceData.ra, sourceData.dec];
+  let newSourceData = { ...sourceData };
+  if (flipped) {
+    newOverlayCoords = transformCoords(
+      [sourceData.ra, sourceData.dec],
+      flipped,
+      'layer'
+    );
+    newSourceData = {
+      ...sourceData,
+      ra: sourceData.ra < 0 ? sourceData.ra + 360 : sourceData.ra,
+    };
+  }
+  return {
+    newOverlayCoords,
+    newSourceData,
+  };
 }

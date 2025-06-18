@@ -28,8 +28,6 @@ import {
   DEFAULT_INTERNAL_MAP_SETTINGS,
   EXTERNAL_BASELAYERS,
   SERVICE_URL,
-  transformGraticuleCoords,
-  transformCoords,
 } from '../configs/mapSettings';
 import { CoordinatesDisplay } from './CoordinatesDisplay';
 import { LayerSelector } from './LayerSelector';
@@ -42,7 +40,11 @@ import { generateSearchContent } from '../utils/externalSearchUtils';
 import './styles/highlight-controls.css';
 import './styles/area-selection.css';
 import { assertBand } from '../reducers/baselayerReducer';
-import { getBaselayerResolutions } from '../utils/layerUtils';
+import {
+  getBaselayerResolutions,
+  transformCoords,
+  transformGraticuleCoords,
+} from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
 
 export type MapProps = {

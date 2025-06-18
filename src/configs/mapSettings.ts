@@ -37,36 +37,3 @@ export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
 
 // related to controls
 export const NUMBER_OF_FIXED_COORDINATE_DECIMALS = 5;
-
-export function transformGraticuleCoords(
-  coords: number[],
-  isFlipped: boolean
-): number[] {
-  if (isFlipped) {
-    const [ra, dec] = coords;
-    const newRa = ra * -1 + 180;
-    return [newRa, dec];
-  } else {
-    return coords;
-  }
-}
-
-export function transformCoords(
-  coords: number[],
-  isFlipped: boolean,
-  context: 'search' | 'layer'
-): number[] {
-  const [ra, dec] = coords;
-  const newRa = coords[0] * -1 + (coords[0] > 0 ? 180 : -180);
-  if (isFlipped) {
-    if (context === 'search') {
-      return [ra > 0 ? ra : ra + 360, dec];
-    }
-    if (context === 'layer') {
-      return [newRa, dec];
-    }
-    return coords;
-  } else {
-    return [newRa, dec];
-  }
-}

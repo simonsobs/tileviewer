@@ -1,123 +1,171 @@
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { Source } from '../../types/maps';
 import { Feature, Map, Overlay } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import LayerGroup from 'ol/layer/Group';
 import { Circle } from 'ol/geom';
-import Select from 'ol/interaction/Select.js';
+import Select, { SelectEvent } from 'ol/interaction/Select.js';
 import { click } from 'ol/events/condition';
 import { MapProps } from '../OpenLayersMap';
-import { transform } from 'ol/proj';
+import { transformSources } from '../../utils/layerUtils';
 
 type SourcesLayerProps = {
   sourceLists: MapProps['sourceLists'];
   activeSourceListIds: MapProps['activeSourceListIds'];
   mapRef: React.RefObject<Map | null>;
+  flipped: boolean;
 };
 
 export function SourcesLayer({
   sourceLists = [],
   activeSourceListIds,
   mapRef,
+  flipped,
 }: SourcesLayerProps) {
   const popupRef = useRef<HTMLDivElement | null>(null);
   const [selectedSourceData, setSelectedSourceData] = useState<
     Source | undefined
   >(undefined);
 
-  const sourceOverlays = useMemo(() => {
-    if (!sourceLists.length) return [];
-    const projection = mapRef.current?.getView().getProjection();
-    return sourceLists
-      .filter((sl) => activeSourceListIds.includes(sl.id))
-      .map(
-        (sl) =>
-          new LayerGroup({
-            properties: {
-              id: 'sourcelist-group-' + sl.id,
-            },
-            layers: [
-              new VectorLayer({
-                source: new VectorSource({
-                  features: sl.sources.map((source) => {
-                    let coords = [source.ra, source.dec];
-                    let rad = 1;
-                    if (projection && projection.getCode() === 'EPSG:3857') {
-                      coords = transform(coords, 'EPSG:4326', 'EPSG:3857');
-                      rad = 100000;
-                    }
-                    return new Feature({
-                      geometry: new Circle(coords, rad),
-                      sourceData: source,
-                    });
-                  }),
-                }),
-                style: {
-                  'stroke-width': 2,
-                  'stroke-color': '#3388FF',
-                  'fill-color': [51, 136, 255, 0.2],
-                },
-              }),
-            ],
-            zIndex: 500,
-          })
-      );
-  }, [sourceLists, activeSourceListIds]);
+  const sourceGroupRef = useRef<LayerGroup | null>(null);
+  const selectInteractionRef = useRef<Select | null>(null);
+  const handleSourceClickRef = useRef<(e: SelectEvent) => void | null>(null);
+  const popupOverlayRef = useRef<Overlay | null>(null);
 
-  useEffect(() => {
-    if (!mapRef.current) return;
-    mapRef.current.getLayers().forEach((l) => {
-      const id = l.get('id') as string;
-      if (typeof id === 'string' && id.includes('sourcelist-group')) {
-        l.setVisible(false);
+  const handleSourceClick = useCallback(
+    (e: SelectEvent) => {
+      const select = selectInteractionRef.current;
+      const popupOverlay = popupOverlayRef.current;
+      if (!select || !popupOverlay) return;
+      const selectedFeatures = e.selected;
+      if (selectedFeatures.length === 0) {
+        popupOverlay.setPosition(undefined);
+        setSelectedSourceData(undefined);
+        return;
       }
-    });
-    sourceOverlays.forEach((so) => {
-      mapRef.current?.addLayer(so);
-    });
-  }, [sourceOverlays]);
+      selectedFeatures.forEach((feature) => {
+        const { newOverlayCoords, newSourceData } = transformSources(
+          feature,
+          flipped
+        );
+        popupOverlay.setPosition(newOverlayCoords);
+        setSelectedSourceData(newSourceData);
+      });
+    },
+    [flipped]
+  );
 
+  // Create/reuse the source group layer
   useEffect(() => {
     if (!mapRef.current) return;
-    if (popupRef.current) {
-      const popupOverlay = new Overlay({
-        element: popupRef.current,
-      });
-      mapRef.current.addOverlay(popupOverlay);
-      const select = new Select({
-        condition: click,
-        layers: (layer) => {
-          return sourceOverlays.some((group) =>
-            group.getLayers().getArray().includes(layer)
-          );
-        },
-      });
-      mapRef.current.addInteraction(select);
-      select.on('select', (e) => {
-        const selectedFeatures = e.selected;
 
-        if (selectedFeatures.length === 0) {
-          // user clicked on empty space, so clear popup data
-          popupOverlay.setPosition(undefined);
-          setSelectedSourceData(undefined);
-          return;
-        }
+    const map = mapRef.current;
 
-        const projection = mapRef.current?.getView().getProjection();
+    // Clean up old layer if needed
+    if (sourceGroupRef.current) {
+      map.removeLayer(sourceGroupRef.current);
+    }
 
-        selectedFeatures.forEach((feature) => {
-          const sourceData = feature.get('sourceData') as Source;
-          let coords = [sourceData.ra, sourceData.dec];
-          if (projection && projection.getCode() === 'EPSG:3857') {
-            coords = transform(coords, 'EPSG:4326', 'EPSG:3857');
-          }
-          popupOverlay.setPosition(coords);
-          setSelectedSourceData(sourceData);
+    const newLayers = sourceLists
+      .filter((sl) => activeSourceListIds.includes(sl.id))
+      .map((sl) => {
+        return new VectorLayer({
+          source: new VectorSource({
+            features: sl.sources.map((source) => {
+              const coords = [source.ra, source.dec];
+              return new Feature({
+                geometry: new Circle(coords, 1),
+                sourceData: source,
+              });
+            }),
+            wrapX: false,
+          }),
+          style: {
+            'stroke-width': 2,
+            'stroke-color': '#3388FF',
+            'fill-color': [51, 136, 255, 0.2],
+          },
         });
       });
+
+    const group = new LayerGroup({
+      layers: newLayers,
+      properties: { id: 'sourcelist-group' },
+      zIndex: 500,
+    });
+
+    sourceGroupRef.current = group;
+    map.addLayer(group);
+  }, [sourceLists, activeSourceListIds]);
+
+  // Set up interaction and popup
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !popupRef.current) return;
+
+    // Add popup overlay
+    const popupOverlay = new Overlay({
+      element: popupRef.current,
+    });
+    popupOverlayRef.current = popupOverlay;
+    map.addOverlay(popupOverlay);
+
+    // Set up click interaction
+    const select = new Select({
+      condition: click,
+      layers: (layer) => {
+        const group = sourceGroupRef.current;
+        return group ? group.getLayers().getArray().includes(layer) : false;
+      },
+    });
+
+    map.addInteraction(select);
+    selectInteractionRef.current = select;
+
+    return () => {
+      map.removeOverlay(popupOverlay);
+      map.removeInteraction(select);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (mapRef.current) {
+      if (handleSourceClickRef.current) {
+        selectInteractionRef.current?.un(
+          'select',
+          handleSourceClickRef.current
+        );
+      }
+      handleSourceClickRef.current = handleSourceClick;
+      selectInteractionRef.current?.on('select', handleSourceClick);
     }
-  }, [mapRef.current, popupRef.current, sourceOverlays, activeSourceListIds]);
+  }, [handleSourceClick]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const sourceGroup = sourceGroupRef.current;
+    if (!sourceGroup || !map) return;
+    sourceGroup.getLayers().forEach((l) => {
+      const source = (l as VectorLayer).getSource();
+      if (source instanceof VectorSource) {
+        source.getFeatures().forEach((f: Feature) => {
+          if (f) {
+            const { newOverlayCoords, newSourceData } = transformSources(
+              f,
+              flipped
+            );
+            const circle = f.getGeometry() as Circle;
+            circle.setCenter(newOverlayCoords);
+            if (newSourceData.id === selectedSourceData?.id) {
+              popupOverlayRef.current?.setPosition(newOverlayCoords);
+              setSelectedSourceData(newSourceData);
+            }
+          }
+        });
+      }
+    });
+  }, [flipped]);
 
   return (
     <div ref={popupRef} className="source-popup">
