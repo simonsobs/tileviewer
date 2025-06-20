@@ -4,19 +4,19 @@ type ToggleSwitchProps = {
   checked: boolean;
   onChange: () => void;
   disabled: boolean;
+  disabledMessage: string;
 };
 
 export function ToggleSwitch({
   checked,
   onChange,
   disabled,
+  disabledMessage,
 }: ToggleSwitchProps) {
   return (
     <div
       className="toggle-container"
-      title={
-        disabled ? 'You cannot switch to an incompatible RA range.' : undefined
-      }
+      title={disabled ? disabledMessage : undefined}
     >
       <input
         className="input"
