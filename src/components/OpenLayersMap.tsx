@@ -369,6 +369,7 @@ export function OpenLayersMap({
         setActiveBoxIds={setActiveBoxIds}
         setBoxes={setBoxes}
         submapData={submapData}
+        flipped={flipTiles}
       />
       <AddHighlightBoxLayer
         mapRef={mapRef}

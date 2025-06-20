@@ -1,5 +1,5 @@
 import { Feature } from 'ol';
-import { Band } from '../types/maps';
+import { Band, BoxExtent } from '../types/maps';
 import { Source } from '../types/maps';
 
 /**
@@ -94,4 +94,38 @@ export function transformSources(feature: Feature, flipped: boolean) {
     newOverlayCoords,
     newSourceData,
   };
+}
+
+export function transformBoxes(boxExtent: BoxExtent, flipped: boolean) {
+  let newBoxPosition = {
+    ...boxExtent,
+  };
+
+  if (flipped) {
+    const isLeftRaNegative = boxExtent.top_left_ra < 0;
+    const isRightRaNegative = boxExtent.bottom_right_ra < 0;
+    const newRaLeft = transformCoords(
+      [boxExtent.bottom_right_ra, boxExtent.bottom_right_dec],
+      flipped,
+      'layer'
+    )[0];
+    if (
+      (isLeftRaNegative && isRightRaNegative) ||
+      (!isLeftRaNegative && !isRightRaNegative)
+    ) {
+      newBoxPosition['top_left_ra'] = newRaLeft;
+      newBoxPosition['bottom_right_ra'] = transformCoords(
+        [boxExtent.top_left_ra, boxExtent.top_left_dec],
+        flipped,
+        'layer'
+      )[0];
+    } else {
+      const newRaRight =
+        newRaLeft + Math.abs(boxExtent.bottom_right_ra - boxExtent.top_left_ra);
+      newBoxPosition['top_left_ra'] = newRaLeft;
+      newBoxPosition['bottom_right_ra'] = newRaRight;
+    }
+  }
+
+  return newBoxPosition;
 }
