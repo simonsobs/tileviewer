@@ -25,7 +25,7 @@ export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
     id: 'external-unwise-neo4',
     name: 'Legacy Survey | unWISE neo4',
     projection: 'EPSG:3857',
-    url: 'http://imagine.legacysurvey.org/static/tiles/unwise-neo4/1/{z}/{x}/{y}.jpg',
+    url: 'https://imagine.legacysurvey.org/static/tiles/unwise-neo4/1/{z}/{x}/{y}.jpg',
     extent: transformExtent(
       [-180, -MERCATOR_MAX_LAT, 180, MERCATOR_MAX_LAT],
       'EPSG:4326',
