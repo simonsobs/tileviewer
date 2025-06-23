@@ -129,3 +129,12 @@ export function transformBoxes(boxExtent: BoxExtent, flipped: boolean) {
 
   return newBoxPosition;
 }
+
+export function isBoxSynced(currentData: BoxExtent, originalData: BoxExtent) {
+  return (
+    currentData.top_left_ra === originalData.top_left_ra &&
+    currentData.top_left_dec === originalData.top_left_dec &&
+    currentData.bottom_right_ra === originalData.bottom_right_ra &&
+    currentData.bottom_right_dec === originalData.bottom_right_dec
+  );
+}

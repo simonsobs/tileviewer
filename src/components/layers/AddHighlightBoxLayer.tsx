@@ -12,10 +12,12 @@ type AddHightlightBoxLayerProps = {
   drawBoxRef: React.RefObject<VectorLayer | null>;
   isDrawing: boolean;
   setIsDrawing: (drawing: boolean) => void;
+  setIsNewBoxDrawn: (drawn: boolean) => void;
   submapData: MapProps['submapData'];
   setBoxes: MapProps['setBoxes'];
   setActiveBoxIds: MapProps['setActiveBoxIds'];
   addOptimisticHighlightBox: MapProps['addOptimisticHighlightBox'];
+  flipped: boolean;
 };
 
 export function AddHighlightBoxLayer({
@@ -23,12 +25,13 @@ export function AddHighlightBoxLayer({
   drawBoxRef,
   isDrawing,
   setIsDrawing,
+  setIsNewBoxDrawn,
   submapData,
   setBoxes,
   setActiveBoxIds,
   addOptimisticHighlightBox,
+  flipped,
 }: AddHightlightBoxLayerProps) {
-  // const drawBoxRef = useRef<VectorLayer | null>(null);
   const drawRef = useRef<Draw | null>(null);
   const [newBoxData, setNewBoxData] = useState<NewBoxData | undefined>(
     undefined
@@ -92,6 +95,7 @@ export function AddHighlightBoxLayer({
           }
 
           setIsDrawing(false);
+          setIsNewBoxDrawn(true);
         });
         map.addInteraction(draw);
         drawRef.current = draw;
@@ -127,6 +131,7 @@ export function AddHighlightBoxLayer({
 
   const handleAddBoxCleanup = useCallback(() => {
     setNewBoxData(undefined);
+    setIsNewBoxDrawn(false);
     const source = drawBoxRef.current?.getSource();
     if (source) {
       source.clear();
@@ -138,6 +143,7 @@ export function AddHighlightBoxLayer({
       {newBoxData && (
         <BoxMenu
           isNewBox={true}
+          flipped={flipped}
           boxData={newBoxData}
           setShowMenu={setShowNewBoxMenu}
           showMenu={showNewBoxMenu}
@@ -169,6 +175,7 @@ export function AddHighlightBoxLayer({
         setActiveBoxIds={setActiveBoxIds}
         addOptimisticHighlightBox={addOptimisticHighlightBox}
         handleAddBoxCleanup={handleAddBoxCleanup}
+        flipped={flipped}
       />
     </>
   );

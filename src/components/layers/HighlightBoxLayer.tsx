@@ -8,7 +8,7 @@ import { MenuIcon } from '../icons/MenuIcon';
 import { MapProps } from '../OpenLayersMap';
 import { deleteSubmapBox } from '../../utils/fetchUtils';
 import { BoxMenu } from '../BoxMenu';
-import { transformBoxes } from '../../utils/layerUtils';
+import { transformBoxes, isBoxSynced } from '../../utils/layerUtils';
 
 type HightlightBoxLayerProps = {
   highlightBoxes: MapProps['highlightBoxes'];
@@ -178,28 +178,36 @@ export function HighlightBoxLayer({
           const feature = vectorSource.getFeatures()[0];
           const box = feature.getGeometry() as Polygon;
           const currentData = feature.get('boxData');
+          const id = Number(layerId.replace('highlight-box-', ''));
+          const originalBox = highlightBoxes?.find((b) => b.id === id);
+
+          if (!originalBox) return;
+
+          const originalExtent = {
+            top_left_ra: originalBox.top_left_ra,
+            bottom_right_dec: originalBox.bottom_right_dec,
+            bottom_right_ra: originalBox.bottom_right_ra,
+            top_left_dec: originalBox.top_left_dec,
+          };
+
           if (!flipped) {
-            const id = Number(layerId.replace('highlight-box-', ''));
-            const originalBox = highlightBoxes?.find((b) => b.id === id);
-            if (originalBox) {
-              box.setCoordinates([
-                [
-                  [originalBox.top_left_ra, originalBox.top_left_dec],
-                  [originalBox.bottom_right_ra, originalBox.top_left_dec],
-                  [originalBox.bottom_right_ra, originalBox.bottom_right_dec],
-                  [originalBox.top_left_ra, originalBox.bottom_right_dec],
-                  [originalBox.top_left_ra, originalBox.top_left_dec],
-                ],
-              ]);
-              const newData = {
-                ...currentData,
-                top_left_ra: originalBox.top_left_ra,
-                top_left_dec: originalBox.top_left_dec,
-                bottom_right_ra: originalBox.bottom_right_ra,
-                bottom_right_dec: originalBox.bottom_right_dec,
-              };
-              feature.set('boxData', newData);
-            }
+            box.setCoordinates([
+              [
+                [originalBox.top_left_ra, originalBox.top_left_dec],
+                [originalBox.bottom_right_ra, originalBox.top_left_dec],
+                [originalBox.bottom_right_ra, originalBox.bottom_right_dec],
+                [originalBox.top_left_ra, originalBox.bottom_right_dec],
+                [originalBox.top_left_ra, originalBox.top_left_dec],
+              ],
+            ]);
+            const newData = {
+              ...currentData,
+              top_left_ra: originalBox.top_left_ra,
+              top_left_dec: originalBox.top_left_dec,
+              bottom_right_ra: originalBox.bottom_right_ra,
+              bottom_right_dec: originalBox.bottom_right_dec,
+            };
+            feature.set('boxData', newData);
           } else {
             const currentExtentArray = box.getExtent();
             const currentExtent = {
@@ -208,6 +216,11 @@ export function HighlightBoxLayer({
               bottom_right_ra: currentExtentArray[2],
               top_left_dec: currentExtentArray[3],
             };
+
+            if (!isBoxSynced(currentExtent, originalExtent)) {
+              return;
+            }
+
             const newExtent = transformBoxes(currentExtent, flipped);
             box.setCoordinates([
               [
@@ -260,6 +273,7 @@ export function HighlightBoxLayer({
       {showMenu && selectedBoxData && (
         <BoxMenu
           isNewBox={false}
+          flipped={flipped}
           boxData={selectedBoxData}
           setShowMenu={setShowMenu}
           showMenu={showMenu}

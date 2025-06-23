@@ -88,6 +88,7 @@ export function OpenLayersMap({
     undefined
   );
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
   const [flipTiles, setFlipTiles] = useState(false);
 
   const { activeBaselayer, cmap, cmapValues } = baselayerState;
@@ -335,6 +336,8 @@ export function OpenLayersMap({
     }
   }, [activeBaselayer, cmap, cmapValues, tileLayers, flipTiles]);
 
+  const disableToggleForNewBox = isDrawing || isNewBoxDrawn;
+
   return (
     <div id="map" style={{ cursor: isDrawing ? 'crosshair' : 'auto' }}>
       <ToggleSwitch
@@ -342,7 +345,12 @@ export function OpenLayersMap({
         onChange={() => {
           setFlipTiles(!flipTiles);
         }}
-        disabled={!assertBand(activeBaselayer)}
+        disabled={!assertBand(activeBaselayer) || disableToggleForNewBox}
+        disabledMessage={
+          disableToggleForNewBox
+            ? 'You cannot switch when drawing a new highlight region.'
+            : 'You cannot switch to an incompatible RA range.'
+        }
       />
       <div ref={externalSearchRef} className="ol-popup"></div>
       <div className="ol-zoom ol-control draw-box-btn-container">
@@ -376,10 +384,12 @@ export function OpenLayersMap({
         drawBoxRef={drawBoxRef}
         isDrawing={isDrawing}
         setIsDrawing={setIsDrawing}
+        setIsNewBoxDrawn={setIsNewBoxDrawn}
         submapData={submapData}
         setBoxes={setBoxes}
         setActiveBoxIds={setActiveBoxIds}
         addOptimisticHighlightBox={addOptimisticHighlightBox}
+        flipped={flipTiles}
       />
       <LayerSelector
         bands={bands}

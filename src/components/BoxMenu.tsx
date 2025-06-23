@@ -3,6 +3,7 @@ import { BoxWithPositionalData, NewBoxData, SubmapData } from '../types/maps';
 import { MenuIcon } from './icons/MenuIcon';
 import { SUBMAP_DOWNLOAD_OPTIONS } from '../configs/submapConfigs';
 import { downloadSubmap } from '../utils/fetchUtils';
+import { transformBoxes } from '../utils/layerUtils';
 
 type BoxMenuProps = {
   isNewBox: boolean;
@@ -12,6 +13,7 @@ type BoxMenuProps = {
   additionalButtons?: ReactNode[];
   submapData?: SubmapData;
   showMenuOverlay?: boolean;
+  flipped: boolean;
 };
 
 export function BoxMenu({
@@ -22,6 +24,7 @@ export function BoxMenu({
   additionalButtons = [],
   submapData,
   showMenuOverlay,
+  flipped,
 }: BoxMenuProps) {
   return (
     <div
@@ -51,13 +54,22 @@ export function BoxMenu({
                   disabled={!submapData}
                   onClick={() => {
                     if (submapData) {
+                      const boxPosition = transformBoxes(
+                        {
+                          top_left_ra: boxData.top_left_ra,
+                          top_left_dec: boxData.top_left_dec,
+                          bottom_right_ra: boxData.bottom_right_ra,
+                          bottom_right_dec: boxData.bottom_right_dec,
+                        },
+                        flipped
+                      );
                       downloadSubmap(
                         {
                           ...submapData,
-                          top: boxData.top_left_dec,
-                          left: boxData.top_left_ra,
-                          bottom: boxData.bottom_right_dec,
-                          right: boxData.bottom_right_ra,
+                          top: boxPosition.top_left_dec,
+                          left: boxPosition.top_left_ra,
+                          bottom: boxPosition.bottom_right_dec,
+                          right: boxPosition.bottom_right_ra,
                         },
                         option.ext
                       );

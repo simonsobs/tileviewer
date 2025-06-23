@@ -12,6 +12,7 @@ type AddBoxDialogProps = {
   setActiveBoxIds: MapProps['setActiveBoxIds'];
   addOptimisticHighlightBox: MapProps['addOptimisticHighlightBox'];
   handleAddBoxCleanup: () => void;
+  flipped: boolean;
 };
 
 export function AddBoxDialog({
@@ -22,6 +23,7 @@ export function AddBoxDialog({
   setActiveBoxIds,
   addOptimisticHighlightBox,
   handleAddBoxCleanup,
+  flipped,
 }: AddBoxDialogProps) {
   const [boxName, setBoxName] = useState('');
   const [boxDescription, setBoxDescription] = useState('');
@@ -51,6 +53,7 @@ export function AddBoxDialog({
 
       addSubmapAsBox(
         boxData,
+        flipped,
         setBoxes,
         setActiveBoxIds,
         addOptimisticHighlightBox
@@ -69,6 +72,7 @@ export function AddBoxDialog({
       addOptimisticHighlightBox,
       setActiveBoxIds,
       setBoxes,
+      flipped,
     ]
   );
 
