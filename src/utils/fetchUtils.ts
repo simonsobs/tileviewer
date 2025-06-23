@@ -9,6 +9,7 @@ import {
   SubmapDataWithBounds,
 } from '../types/maps';
 import { SubmapFileExtensions } from '../configs/submapConfigs';
+import { transformBoxes } from './layerUtils';
 
 type SourcesResponse = {
   catalogs: SourceListResponse[];
@@ -107,18 +108,44 @@ export async function addSubmapAsBox(
     top_left: number[];
     bottom_right: number[];
   },
+  flipped: boolean,
   setBoxes: (boxes: Box[]) => void,
   setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>,
   addOptimisticHighlightBox: (action: Box) => void
 ) {
   const { params, top_left, bottom_right } = boxData;
 
-  const endpoint = `${SERVICE_URL}/highlights/boxes/new?${params.toString()}`;
+  let syncedPositionForBackend = {
+    top_left_ra: top_left[0],
+    top_left_dec: top_left[1],
+    bottom_right_ra: bottom_right[0],
+    bottom_right_dec: bottom_right[1],
+  };
+
+  if (flipped) {
+    syncedPositionForBackend = transformBoxes(
+      {
+        top_left_ra: top_left[0],
+        top_left_dec: top_left[1],
+        bottom_right_ra: bottom_right[0],
+        bottom_right_dec: bottom_right[1],
+      },
+      flipped
+    );
+  }
 
   const requestBody = {
-    top_left,
-    bottom_right,
+    top_left: [
+      syncedPositionForBackend.top_left_ra,
+      syncedPositionForBackend.top_left_dec,
+    ],
+    bottom_right: [
+      syncedPositionForBackend.bottom_right_ra,
+      syncedPositionForBackend.bottom_right_dec,
+    ],
   };
+
+  const endpoint = `${SERVICE_URL}/highlights/boxes/new?${params.toString()}`;
 
   try {
     const response = await fetch(endpoint, {

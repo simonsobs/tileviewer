@@ -73,19 +73,33 @@ export interface SourceList extends SourceListResponse {
   sources: Source[];
 }
 
-export type Box = {
-  id: number;
-  name: string;
-  description: string;
+export type BoxExtent = {
   top_left_ra: number;
   top_left_dec: number;
   bottom_right_ra: number;
   bottom_right_dec: number;
 };
 
+export type Box = BoxExtent & {
+  id: number;
+  name: string;
+  description: string;
+};
+
+type TileUrlFunction = (x: number[]) => string;
+
+export type ExternalBaselayer = {
+  id: string;
+  name: string;
+  projection: string;
+  url: string | TileUrlFunction;
+  extent: number[];
+  disabledState: (state: boolean) => boolean;
+};
+
 export type BaselayerState = {
   /** the active baselayer selected in the map's legend */
-  activeBaselayer?: Band;
+  activeBaselayer?: Band | ExternalBaselayer;
   /** the cmap matplotlib parameters used in the histogram components and tile request */
   cmap?: string;
   /** values for vmin and vmax matplotlib parameters used in histogram components and tile requests */

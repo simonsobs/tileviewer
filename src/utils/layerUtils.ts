@@ -1,4 +1,6 @@
-import { Band } from '../types/maps';
+import { Feature } from 'ol';
+import { Band, BoxExtent } from '../types/maps';
+import { Source } from '../types/maps';
 
 /**
  * A utility function to format a layer's name.
@@ -25,4 +27,114 @@ export function handleSelectChange(
       prevState.filter((id) => id !== Number(event.target.value))
     );
   }
+}
+
+export function getBaselayerResolutions(
+  worldWidth: number,
+  tileSize: number,
+  maxZoom: number
+) {
+  const resolutionZ0 = worldWidth / tileSize;
+  const resolutions = [];
+  for (let i = 0; i < maxZoom; i++) {
+    resolutions.push(resolutionZ0 / 2 ** i);
+  }
+  return resolutions;
+}
+
+export function transformGraticuleCoords(
+  coords: number[],
+  isFlipped: boolean
+): number[] {
+  if (isFlipped) {
+    const [ra, dec] = coords;
+    const newRa = ra * -1 + 180;
+    return [newRa, dec];
+  } else {
+    return coords;
+  }
+}
+
+export function transformCoords(
+  coords: number[],
+  isFlipped: boolean,
+  context: 'search' | 'layer'
+): number[] {
+  const [ra, dec] = coords;
+  const newRa = coords[0] * -1 + (coords[0] > 0 ? 180 : -180);
+  if (isFlipped) {
+    if (context === 'search') {
+      return [ra > 0 ? ra : ra + 360, dec];
+    }
+    if (context === 'layer') {
+      return [newRa, dec];
+    }
+    return coords;
+  } else {
+    return [newRa, dec];
+  }
+}
+
+export function transformSources(feature: Feature, flipped: boolean) {
+  const sourceData = feature.get('sourceData') as Source;
+  let newOverlayCoords = [sourceData.ra, sourceData.dec];
+  let newSourceData = { ...sourceData };
+  if (flipped) {
+    newOverlayCoords = transformCoords(
+      [sourceData.ra, sourceData.dec],
+      flipped,
+      'layer'
+    );
+    newSourceData = {
+      ...sourceData,
+      ra: sourceData.ra < 0 ? sourceData.ra + 360 : sourceData.ra,
+    };
+  }
+  return {
+    newOverlayCoords,
+    newSourceData,
+  };
+}
+
+export function transformBoxes(boxExtent: BoxExtent, flipped: boolean) {
+  let newBoxPosition = {
+    ...boxExtent,
+  };
+
+  if (flipped) {
+    const isLeftRaNegative = boxExtent.top_left_ra < 0;
+    const isRightRaNegative = boxExtent.bottom_right_ra < 0;
+    const newRaLeft = transformCoords(
+      [boxExtent.bottom_right_ra, boxExtent.bottom_right_dec],
+      flipped,
+      'layer'
+    )[0];
+    if (
+      (isLeftRaNegative && isRightRaNegative) ||
+      (!isLeftRaNegative && !isRightRaNegative)
+    ) {
+      newBoxPosition['top_left_ra'] = newRaLeft;
+      newBoxPosition['bottom_right_ra'] = transformCoords(
+        [boxExtent.top_left_ra, boxExtent.top_left_dec],
+        flipped,
+        'layer'
+      )[0];
+    } else {
+      const newRaRight =
+        newRaLeft + Math.abs(boxExtent.bottom_right_ra - boxExtent.top_left_ra);
+      newBoxPosition['top_left_ra'] = newRaLeft;
+      newBoxPosition['bottom_right_ra'] = newRaRight;
+    }
+  }
+
+  return newBoxPosition;
+}
+
+export function isBoxSynced(currentData: BoxExtent, originalData: BoxExtent) {
+  return (
+    currentData.top_left_ra === originalData.top_left_ra &&
+    currentData.top_left_dec === originalData.top_left_dec &&
+    currentData.bottom_right_ra === originalData.bottom_right_ra &&
+    currentData.bottom_right_dec === originalData.bottom_right_dec
+  );
 }
