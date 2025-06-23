@@ -8,7 +8,7 @@ import { Circle } from 'ol/geom';
 import Select, { SelectEvent } from 'ol/interaction/Select.js';
 import { click } from 'ol/events/condition';
 import { MapProps } from '../OpenLayersMap';
-import { transformSources } from '../../utils/layerUtils';
+import { transformCoords, transformSources } from '../../utils/layerUtils';
 
 type SourcesLayerProps = {
   sourceLists: MapProps['sourceLists'];
@@ -73,9 +73,12 @@ export function SourcesLayer({
         return new VectorLayer({
           source: new VectorSource({
             features: sl.sources.map((source) => {
-              const coords = [source.ra, source.dec];
+              const originalCoords = [source.ra, source.dec];
+              const syncedCoords = flipped
+                ? transformCoords(originalCoords, flipped, 'layer')
+                : originalCoords;
               return new Feature({
-                geometry: new Circle(coords, 1),
+                geometry: new Circle(syncedCoords, 1 / 6),
                 sourceData: source,
               });
             }),
@@ -97,7 +100,7 @@ export function SourcesLayer({
 
     sourceGroupRef.current = group;
     map.addLayer(group);
-  }, [sourceLists, activeSourceListIds]);
+  }, [sourceLists, activeSourceListIds, flipped]);
 
   // Set up interaction and popup
   useEffect(() => {
