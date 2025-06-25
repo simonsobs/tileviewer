@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Graticule, Map } from 'ol';
 import Stroke from 'ol/style/Stroke';
+import { NUMBER_OF_FIXED_GRATICULE_DECIMALS } from '../../configs/mapSettings';
 
 export function GraticuleLayer({
   mapRef,
@@ -9,6 +10,27 @@ export function GraticuleLayer({
   mapRef: React.RefObject<Map | null>;
   flipped: boolean;
 }) {
+  const handleLatLabelFormat = useCallback((lat: number) => {
+    if (Number.isInteger(lat) || String(lat).length < 5) {
+      return String(lat);
+    }
+    return String(lat.toFixed(NUMBER_OF_FIXED_GRATICULE_DECIMALS));
+  }, []);
+
+  const handleLonLabelFormat = useCallback(
+    (lon: number) => {
+      if (Number.isInteger(lon) || String(lon).length < 5) {
+        return String(flipped ? lon * -1 + 180 : lon);
+      }
+      return String(
+        (flipped ? lon * -1 + 180 : lon).toFixed(
+          NUMBER_OF_FIXED_GRATICULE_DECIMALS
+        )
+      );
+    },
+    [flipped]
+  );
+
   useEffect(() => {
     if (mapRef.current) {
       mapRef.current.getAllLayers().forEach((l) => {
@@ -27,8 +49,8 @@ export function GraticuleLayer({
         showLabels: true,
         lonLabelPosition: 0,
         latLabelPosition: 0.999,
-        latLabelFormatter: (lat) => String(lat),
-        lonLabelFormatter: (lon) => String(flipped ? lon * -1 + 180 : lon),
+        latLabelFormatter: handleLatLabelFormat,
+        lonLabelFormatter: handleLonLabelFormat,
         wrapX: false,
         properties: {
           id: 'graticule-1',
@@ -43,9 +65,9 @@ export function GraticuleLayer({
         zIndex: 1000,
         showLabels: true,
         lonLabelPosition: 1,
-        latLabelPosition: 0.012,
-        latLabelFormatter: (lat) => String(lat),
-        lonLabelFormatter: (lon) => String(flipped ? lon * -1 + 180 : lon),
+        latLabelPosition: 0.035,
+        latLabelFormatter: handleLatLabelFormat,
+        lonLabelFormatter: handleLonLabelFormat,
         wrapX: false,
         properties: {
           id: 'graticule-2',

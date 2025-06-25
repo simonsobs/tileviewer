@@ -37,3 +37,4 @@ export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
 
 // related to controls
 export const NUMBER_OF_FIXED_COORDINATE_DECIMALS = 5;
+export const NUMBER_OF_FIXED_GRATICULE_DECIMALS = 3;
