@@ -1,5 +1,5 @@
 import { Feature } from 'ol';
-import { Band, BoxExtent } from '../types/maps';
+import { BandWithCmapValues, BoxExtent } from '../types/maps';
 import { Source } from '../types/maps';
 
 /**
@@ -8,7 +8,7 @@ import { Source } from '../types/maps';
  * @returns A string of map_name + stokes_parameter + quantity, where quantity
  *  and stokes_parameter are conditionally rendered based on their truthiness
  */
-export function makeLayerName(band: Band) {
+export function makeLayerName(band: BandWithCmapValues) {
   return (
     band.map_name +
     (band.stokes_parameter ? ` ${band.stokes_parameter}` : '') +
