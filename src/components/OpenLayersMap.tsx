@@ -107,7 +107,7 @@ export function OpenLayersMap({
         }),
       });
     });
-  }, [internalBaselayersState]);
+  }, [internalBaselayersState, flipTiles]);
 
   const externalTileLayers = useMemo(() => {
     return EXTERNAL_BASELAYERS.map((b) => {
@@ -307,11 +307,9 @@ export function OpenLayersMap({
         }
       });
       if (assertBand(activeBaselayer)) {
-        const url = `${SERVICE_URL}/maps/${activeBaselayer.map_id}/${activeBaselayer.id}/{z}/{-y}/{x}/tile.png?cmap=${activeBaselayer.cmap}&vmin=${activeBaselayer.cmapValues.min}&vmax=${activeBaselayer.cmapValues.max}&flip=${flipTiles}`;
         const activeLayer = tileLayers!.find(
           (t) => t.get('id') === 'baselayer-' + activeBaselayer!.id
         )!;
-        activeLayer.getSource()?.setUrl(url);
         mapRef.current.addLayer(activeLayer);
       } else {
         const externalBaselayer = EXTERNAL_BASELAYERS.find(
@@ -326,7 +324,7 @@ export function OpenLayersMap({
         mapRef.current.addLayer(activeLayer);
       }
     }
-  }, [activeBaselayer, tileLayers, flipTiles]);
+  }, [activeBaselayer, tileLayers]);
 
   const disableToggleForNewBox = isDrawing || isNewBoxDrawn;
 
