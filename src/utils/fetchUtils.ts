@@ -3,6 +3,7 @@ import { SERVICE_URL } from '../configs/mapSettings';
 import {
   Box,
   MapMetadataResponse,
+  MapMetadataResponseWithClientBand,
   MapResponse,
   Source,
   SourceListResponse,
@@ -16,7 +17,9 @@ type SourcesResponse = {
   sources: Source[];
 };
 
-export type ProductsResponse = MapMetadataResponse[] | SourcesResponse;
+export type ProductsResponse =
+  | MapMetadataResponseWithClientBand[]
+  | SourcesResponse;
 
 /**
  *
@@ -25,7 +28,7 @@ export type ProductsResponse = MapMetadataResponse[] | SourcesResponse;
  */
 export async function fetchProducts(
   type: 'maps'
-): Promise<MapMetadataResponse[]>;
+): Promise<MapMetadataResponseWithClientBand[]>;
 export async function fetchProducts(type: 'sources'): Promise<SourcesResponse>;
 export async function fetchProducts(
   type: 'maps' | 'sources'
@@ -43,7 +46,32 @@ export async function fetchProducts(
   );
 
   if (type === 'maps') {
-    return productList as MapMetadataResponse[];
+    // Map the bands to include color map properties, initially set to the recommended values
+    const bandsWithCmapValues = (productList as MapMetadataResponse[]).map(
+      (m) => {
+        const map = {
+          ...m,
+          bands: m.bands.map((b) => {
+            const {
+              recommended_cmap,
+              recommended_cmap_min,
+              recommended_cmap_max,
+              ...remainingProperties
+            } = b;
+            return {
+              ...remainingProperties,
+              cmap: recommended_cmap,
+              cmapValues: {
+                min: recommended_cmap_min,
+                max: recommended_cmap_max,
+              },
+            };
+          }),
+        };
+        return map;
+      }
+    );
+    return bandsWithCmapValues as MapMetadataResponseWithClientBand[];
   }
 
   return {

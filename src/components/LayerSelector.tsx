@@ -1,5 +1,5 @@
 import { MouseEvent, useCallback, useRef } from 'react';
-import { SourceList } from '../types/maps';
+import { BandWithCmapValues, SourceList } from '../types/maps';
 import { makeLayerName } from '../utils/layerUtils';
 import { LayersIcon } from './icons/LayersIcon';
 import './styles/layer-selector.css';
@@ -9,7 +9,7 @@ import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
 interface Props
   extends Omit<
     MapProps,
-    | 'baselayerState'
+    | 'baselayersState'
     | 'sourceLists'
     | 'setActiveBoxIds'
     | 'setBoxes'
@@ -18,10 +18,11 @@ interface Props
   activeBaselayerId?: number | string;
   sourceLists: SourceList[];
   isFlipped: boolean;
+  internalBaselayers: BandWithCmapValues[] | undefined;
 }
 
 export function LayerSelector({
-  bands,
+  internalBaselayers,
   onBaseLayerChange,
   activeBaselayerId,
   sourceLists,
@@ -60,7 +61,7 @@ export function LayerSelector({
       >
         <fieldset>
           <legend>Baselayers</legend>
-          {bands.map((band) => (
+          {internalBaselayers?.map((band) => (
             <div className="input-container" key={band.map_id + '-' + band.id}>
               <input
                 type="radio"

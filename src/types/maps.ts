@@ -9,7 +9,7 @@ export type MapResponse = {
   patch: string;
 };
 
-export type Band = {
+export type BandResponseBase = {
   id: number;
   map_id: number;
   map_name: string;
@@ -24,13 +24,32 @@ export type Band = {
   bounding_right: number;
   bounding_bottom: number;
   bounding_left: number;
+};
+
+type BandCmapResponse = {
   recommended_cmap: string;
   recommended_cmap_min: number;
   recommended_cmap_max: number;
 };
 
+type BandResponse = BandResponseBase & BandCmapResponse;
+
+type BandCmapValues = {
+  cmap: string;
+  cmapValues: {
+    min: number;
+    max: number;
+  };
+};
+
+export type BandWithCmapValues = BandResponseBase & BandCmapValues;
+
 export type MapMetadataResponse = MapResponse & {
-  bands: Band[];
+  bands: BandResponse[];
+};
+
+export type MapMetadataResponseWithClientBand = MapResponse & {
+  bands: BandWithCmapValues[];
 };
 
 export type HistogramResponse = {
@@ -97,16 +116,11 @@ export type ExternalBaselayer = {
   disabledState: (state: boolean) => boolean;
 };
 
-export type BaselayerState = {
+export type BaselayersState = {
   /** the active baselayer selected in the map's legend */
-  activeBaselayer?: Band | ExternalBaselayer;
-  /** the cmap matplotlib parameters used in the histogram components and tile request */
-  cmap?: string;
-  /** values for vmin and vmax matplotlib parameters used in histogram components and tile requests */
-  cmapValues?: {
-    min: number;
-    max: number;
-  };
+  activeBaselayer?: BandWithCmapValues | ExternalBaselayer;
+  /** the bands used as internal baselayers */
+  internalBaselayersState?: BandWithCmapValues[];
 };
 
 export type SubmapData = {

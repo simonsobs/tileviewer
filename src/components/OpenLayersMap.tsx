@@ -17,13 +17,7 @@ import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
 import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
-import {
-  Band,
-  BaselayerState,
-  Box,
-  SourceList,
-  SubmapData,
-} from '../types/maps';
+import { BaselayersState, Box, SourceList, SubmapData } from '../types/maps';
 import {
   DEFAULT_INTERNAL_MAP_SETTINGS,
   EXTERNAL_BASELAYERS,
@@ -39,7 +33,7 @@ import { AddHighlightBoxLayer } from './layers/AddHighlightBoxLayer';
 import { generateSearchContent } from '../utils/externalSearchUtils';
 import './styles/highlight-controls.css';
 import './styles/area-selection.css';
-import { assertBand } from '../reducers/baselayerReducer';
+import { assertBand } from '../reducers/baselayersReducer';
 import {
   getBaselayerResolutions,
   transformCoords,
@@ -48,8 +42,7 @@ import {
 import { ToggleSwitch } from './ToggleSwitch';
 
 export type MapProps = {
-  bands: Band[];
-  baselayerState: BaselayerState;
+  baselayersState: BaselayersState;
   onBaseLayerChange: (baselayerId: string) => void;
   sourceLists?: SourceList[];
   activeSourceListIds: number[];
@@ -64,8 +57,7 @@ export type MapProps = {
 };
 
 export function OpenLayersMap({
-  bands,
-  baselayerState,
+  baselayersState,
   onBaseLayerChange,
   sourceLists = [],
   onSelectedSourceListsChange,
@@ -91,14 +83,14 @@ export function OpenLayersMap({
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
   const [flipTiles, setFlipTiles] = useState(false);
 
-  const { activeBaselayer, cmap, cmapValues } = baselayerState;
+  const { activeBaselayer, internalBaselayersState } = baselayersState;
 
   const tileLayers = useMemo(() => {
-    return bands.map((band) => {
+    return internalBaselayersState?.map((band) => {
       return new TileLayer({
         properties: { id: 'baselayer-' + band.id },
         source: new XYZ({
-          url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}&flip=${flipTiles}`,
+          url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${band.cmap}&vmin=${band.cmapValues.min}&vmax=${band.cmapValues.max}&flip=${flipTiles}`,
           tileGrid: new TileGrid({
             extent: [-180, -90, 180, 90],
             origin: [-180, 90],
@@ -115,7 +107,7 @@ export function OpenLayersMap({
         }),
       });
     });
-  }, [bands]);
+  }, [internalBaselayersState]);
 
   const externalTileLayers = useMemo(() => {
     return EXTERNAL_BASELAYERS.map((b) => {
@@ -315,8 +307,8 @@ export function OpenLayersMap({
         }
       });
       if (assertBand(activeBaselayer)) {
-        const url = `${SERVICE_URL}/maps/${activeBaselayer.map_id}/${activeBaselayer.id}/{z}/{-y}/{x}/tile.png?cmap=${cmap}&vmin=${cmapValues?.min}&vmax=${cmapValues?.max}&flip=${flipTiles}`;
-        const activeLayer = tileLayers.find(
+        const url = `${SERVICE_URL}/maps/${activeBaselayer.map_id}/${activeBaselayer.id}/{z}/{-y}/{x}/tile.png?cmap=${activeBaselayer.cmap}&vmin=${activeBaselayer.cmapValues.min}&vmax=${activeBaselayer.cmapValues.max}&flip=${flipTiles}`;
+        const activeLayer = tileLayers!.find(
           (t) => t.get('id') === 'baselayer-' + activeBaselayer!.id
         )!;
         activeLayer.getSource()?.setUrl(url);
@@ -334,7 +326,7 @@ export function OpenLayersMap({
         mapRef.current.addLayer(activeLayer);
       }
     }
-  }, [activeBaselayer, cmap, cmapValues, tileLayers, flipTiles]);
+  }, [activeBaselayer, tileLayers, flipTiles]);
 
   const disableToggleForNewBox = isDrawing || isNewBoxDrawn;
 
@@ -392,7 +384,7 @@ export function OpenLayersMap({
         flipped={flipTiles}
       />
       <LayerSelector
-        bands={bands}
+        internalBaselayers={internalBaselayersState}
         onBaseLayerChange={onBaseLayerChange}
         activeBaselayerId={activeBaselayer?.id}
         sourceLists={sourceLists}
