@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Source } from '../../types/maps';
 import { Feature, Map, Overlay } from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -8,7 +7,11 @@ import { Circle } from 'ol/geom';
 import Select, { SelectEvent } from 'ol/interaction/Select.js';
 import { click } from 'ol/events/condition';
 import { MapProps } from '../OpenLayersMap';
-import { transformCoords, transformSources } from '../../utils/layerUtils';
+import {
+  createSourcePopupContent,
+  transformCoords,
+  transformSources,
+} from '../../utils/layerUtils';
 
 type SourcesLayerProps = {
   sourceLists: MapProps['sourceLists'];
@@ -24,9 +27,9 @@ export function SourcesLayer({
   flipped,
 }: SourcesLayerProps) {
   const popupRef = useRef<HTMLDivElement | null>(null);
-  const [selectedSourceData, setSelectedSourceData] = useState<
-    Source | undefined
-  >(undefined);
+  const [selectedSourceId, setSelectedSourceId] = useState<number | undefined>(
+    undefined
+  );
 
   const sourceGroupRef = useRef<LayerGroup | null>(null);
   const selectInteractionRef = useRef<Select | null>(null);
@@ -37,11 +40,15 @@ export function SourcesLayer({
     (e: SelectEvent) => {
       const select = selectInteractionRef.current;
       const popupOverlay = popupOverlayRef.current;
+      const popupDiv = popupRef.current;
       if (!select || !popupOverlay) return;
       const selectedFeatures = e.selected;
       if (selectedFeatures.length === 0) {
         popupOverlay.setPosition(undefined);
-        setSelectedSourceData(undefined);
+        setSelectedSourceId(undefined);
+        if (popupDiv) {
+          popupDiv.innerHTML = '';
+        }
         return;
       }
       selectedFeatures.forEach((feature) => {
@@ -50,7 +57,10 @@ export function SourcesLayer({
           flipped
         );
         popupOverlay.setPosition(newOverlayCoords);
-        setSelectedSourceData(newSourceData);
+        if (popupDiv) {
+          createSourcePopupContent(popupDiv, newSourceData);
+        }
+        setSelectedSourceId(newSourceData.id);
       });
     },
     [flipped]
@@ -105,11 +115,15 @@ export function SourcesLayer({
   // Set up interaction and popup
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !popupRef.current) return;
+    if (!map) return;
+
+    const popupElement = document.createElement('div');
+    popupElement.className = 'source-popup';
+    popupRef.current = popupElement;
 
     // Add popup overlay
     const popupOverlay = new Overlay({
-      element: popupRef.current,
+      element: popupElement,
     });
     popupOverlayRef.current = popupOverlay;
     map.addOverlay(popupOverlay);
@@ -160,9 +174,12 @@ export function SourcesLayer({
             );
             const circle = f.getGeometry() as Circle;
             circle.setCenter(newOverlayCoords);
-            if (newSourceData.id === selectedSourceData?.id) {
+            if (newSourceData.id === selectedSourceId) {
               popupOverlayRef.current?.setPosition(newOverlayCoords);
-              setSelectedSourceData(newSourceData);
+              setSelectedSourceId(newSourceData.id);
+              if (popupRef.current) {
+                createSourcePopupContent(popupRef.current, newSourceData);
+              }
             }
           }
         });
@@ -170,20 +187,5 @@ export function SourcesLayer({
     });
   }, [flipped]);
 
-  return (
-    <div ref={popupRef} className="source-popup">
-      {selectedSourceData && (
-        <div className="source-popup-content">
-          {selectedSourceData.name ? <h3>{selectedSourceData.name}</h3> : null}
-          <p>
-            <span>RA, Dec:</span> ({selectedSourceData.ra},{' '}
-            {selectedSourceData.dec})
-          </p>
-          <p>
-            <span>Flux:</span> {selectedSourceData.flux}
-          </p>
-        </div>
-      )}
-    </div>
-  );
+  return null;
 }

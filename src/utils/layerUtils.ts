@@ -1,6 +1,7 @@
 import { Feature } from 'ol';
 import { BandWithCmapValues, BoxExtent } from '../types/maps';
 import { Source } from '../types/maps';
+import { NUMBER_OF_FIXED_COORDINATE_DECIMALS } from '../configs/mapSettings';
 
 /**
  * A utility function to format a layer's name.
@@ -137,4 +138,37 @@ export function isBoxSynced(currentData: BoxExtent, originalData: BoxExtent) {
     currentData.bottom_right_ra === originalData.bottom_right_ra &&
     currentData.bottom_right_dec === originalData.bottom_right_dec
   );
+}
+
+function createSourceP(type: 'coord' | 'flux', data: Source) {
+  const p = document.createElement('p');
+  const label = document.createElement('span');
+  label.className = 'source-data-label';
+  const content = document.createElement('span');
+  if (type === 'coord') {
+    label.textContent = 'RA, Dec: ';
+    content.textContent = `(${data.ra.toFixed(NUMBER_OF_FIXED_COORDINATE_DECIMALS)}, ${data.dec.toFixed(NUMBER_OF_FIXED_COORDINATE_DECIMALS)})`;
+  } else {
+    label.textContent = 'Flux: ';
+    content.textContent = `${data.flux}`;
+  }
+  p.appendChild(label);
+  p.appendChild(content);
+  return p;
+}
+
+export function createSourcePopupContent(
+  containerEl: HTMLDivElement,
+  data: Source
+) {
+  containerEl.innerHTML = '';
+
+  if (data.name) {
+    const h3 = document.createElement('h3');
+    h3.textContent = data.name;
+    containerEl.appendChild(h3);
+  }
+
+  containerEl.appendChild(createSourceP('coord', data));
+  containerEl.appendChild(createSourceP('flux', data));
 }
