@@ -65,23 +65,18 @@ body {
   background-color: white;
   border-radius: 12px;
   border-top-left-radius: 0;
-  margin-left: 5px;
-  margin-top: 5px;
-}
-
-.source-popup-content {
   padding: 2px 15px;
 }
 
-.source-popup-content > h3 {
+.source-popup > h3 {
   margin: 0.5em 0;
 }
 
-.source-popup-content > p {
+.source-popup > p {
   margin: 0.5em 0;
 }
 
-.source-popup-content > p > span {
+.source-popup > p > .source-data-label {
   font-weight: bold;
 }
 
