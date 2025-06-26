@@ -1,15 +1,20 @@
 import { useCallback, useMemo, useState, useReducer, ChangeEvent } from 'react';
-import { MapMetadataResponse, Band, SourceList } from './types/maps';
+import {
+  MapMetadataResponseWithClientBand,
+  BandWithCmapValues,
+  SourceList,
+} from './types/maps';
 import { ColorMapControls } from './components/ColorMapControls';
 import { fetchProducts } from './utils/fetchUtils';
 import {
   assertBand,
-  baselayerReducer,
+  baselayersReducer,
   CHANGE_BASELAYER,
   CHANGE_CMAP_TYPE,
   CHANGE_CMAP_VALUES,
-  initialBaselayerState,
-} from './reducers/baselayerReducer';
+  initialBaselayersState,
+  SET_BASELAYERS_STATE,
+} from './reducers/baselayersReducer';
 import { useQuery } from './hooks/useQuery';
 import { useHighlightBoxes } from './hooks/useHighlightBoxes';
 import { OpenLayersMap } from './components/OpenLayersMap';
@@ -18,13 +23,13 @@ import { EXTERNAL_BASELAYERS } from './configs/mapSettings';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
-  const [baselayerState, dispatch] = useReducer(
-    baselayerReducer,
-    initialBaselayerState
+  const [baselayersState, dispatch] = useReducer(
+    baselayersReducer,
+    initialBaselayersState
   );
 
-  /** bands are used as the baselayers of the map */
-  const { data: bands } = useQuery<Band[] | undefined>({
+  /** query the bands to use as the baselayers of the map */
+  useQuery<BandWithCmapValues[] | undefined>({
     initialData: undefined,
     queryKey: [],
     queryFn: async () => {
@@ -35,7 +40,10 @@ function App() {
       // Loop through each map's metadata and reduce the map's bands
       // into a single array
       const finalBands = mapsMetadata.reduce(
-        (prev: Band[], curr: MapMetadataResponse) => {
+        (
+          prev: BandWithCmapValues[],
+          curr: MapMetadataResponseWithClientBand
+        ) => {
           if (curr.bands.length) {
             return prev.concat(curr.bands);
           } else {
@@ -48,10 +56,11 @@ function App() {
       // If we end up with no bands for some reason, return early
       if (!finalBands.length) return;
 
-      // Default the active layer to be the first band of finalBands
+      // Set the baselayersState with the finalBands; note that this action will also set the
+      // activeBaselayer to be finalBands[0]
       dispatch({
-        type: CHANGE_BASELAYER,
-        newBaselayer: finalBands[0],
+        type: SET_BASELAYERS_STATE,
+        baselayers: finalBands,
       });
 
       return finalBands;
@@ -105,7 +114,9 @@ function App() {
 
       const newActiveBaselayer = isExternalBaselayer
         ? EXTERNAL_BASELAYERS.find((b) => b.id === selectedBaselayerId)
-        : bands?.find((b) => b.id === Number(selectedBaselayerId));
+        : baselayersState.internalBaselayersState?.find(
+            (b) => b.id === Number(selectedBaselayerId)
+          );
 
       if (!newActiveBaselayer) return;
 
@@ -114,7 +125,7 @@ function App() {
         newBaselayer: newActiveBaselayer,
       });
     },
-    [bands, baselayerState]
+    [baselayersState.internalBaselayersState]
   );
 
   const onSelectedSourceListsChange = useCallback(
@@ -133,29 +144,45 @@ function App() {
     [highlightBoxes]
   );
 
-  const onCmapValuesChange = useCallback((values: number[]) => {
-    dispatch({
-      type: CHANGE_CMAP_VALUES,
-      cmapValues: {
-        min: values[0],
-        max: values[1],
-      },
-    });
-  }, []);
+  const onCmapValuesChange = useCallback(
+    (values: number[]) => {
+      if (baselayersState.activeBaselayer) {
+        dispatch({
+          type: CHANGE_CMAP_VALUES,
+          activeBaselayer: baselayersState.activeBaselayer,
+          cmapValues: {
+            min: values[0],
+            max: values[1],
+          },
+        });
+      }
+    },
+    [baselayersState.activeBaselayer]
+  );
 
-  const onCmapChange = useCallback((cmap: string) => {
-    dispatch({
-      type: CHANGE_CMAP_TYPE,
-      cmap,
-    });
-  }, []);
+  const onCmapChange = useCallback(
+    (cmap: string) => {
+      if (baselayersState.activeBaselayer) {
+        dispatch({
+          type: CHANGE_CMAP_TYPE,
+          activeBaselayer: baselayersState.activeBaselayer,
+          cmap,
+        });
+      }
+    },
+    [baselayersState.activeBaselayer]
+  );
 
   /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
     composed from state at this level, we must construct it here and pass it down. */
   const submapData = useMemo(() => {
-    if (assertBand(baselayerState.activeBaselayer)) {
-      const { map_id: mapId, id: bandId } = baselayerState.activeBaselayer;
-      const { cmap, cmapValues } = baselayerState;
+    if (assertBand(baselayersState.activeBaselayer)) {
+      const {
+        map_id: mapId,
+        id: bandId,
+        cmap,
+        cmapValues,
+      } = baselayersState.activeBaselayer;
       return {
         mapId,
         bandId,
@@ -164,15 +191,14 @@ function App() {
         cmap,
       };
     }
-  }, [baselayerState]);
+  }, [baselayersState.activeBaselayer]);
 
-  const { activeBaselayer, cmap, cmapValues } = baselayerState;
+  const { activeBaselayer, internalBaselayersState } = baselayersState;
   return (
     <>
-      {baselayerState.activeBaselayer && bands && (
+      {activeBaselayer && internalBaselayersState && (
         <OpenLayersMap
-          bands={bands}
-          baselayerState={baselayerState}
+          baselayersState={baselayersState}
           onBaseLayerChange={onBaseLayerChange}
           sourceLists={sourceLists}
           activeSourceListIds={activeSourceListIds}
@@ -186,17 +212,22 @@ function App() {
           addOptimisticHighlightBox={addOptimisticHighlightBox}
         />
       )}
-      {assertBand(activeBaselayer) && cmap && cmapValues && (
-        <ColorMapControls
-          values={[cmapValues.min, cmapValues.max]}
-          onCmapValuesChange={onCmapValuesChange}
-          cmap={cmap}
-          onCmapChange={onCmapChange}
-          activeBaselayerId={activeBaselayer.id}
-          units={activeBaselayer.units}
-          quantity={activeBaselayer.quantity}
-        />
-      )}
+      {assertBand(activeBaselayer) &&
+        activeBaselayer.cmap &&
+        activeBaselayer.cmapValues && (
+          <ColorMapControls
+            values={[
+              activeBaselayer.cmapValues.min,
+              activeBaselayer.cmapValues.max,
+            ]}
+            onCmapValuesChange={onCmapValuesChange}
+            cmap={activeBaselayer.cmap}
+            onCmapChange={onCmapChange}
+            activeBaselayerId={activeBaselayer.id}
+            units={activeBaselayer.units}
+            quantity={activeBaselayer.quantity}
+          />
+        )}
     </>
   );
 }

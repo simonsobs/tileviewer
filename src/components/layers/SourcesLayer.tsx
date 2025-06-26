@@ -87,7 +87,7 @@ export function SourcesLayer({
           style: {
             'stroke-width': 2,
             'stroke-color': '#3388FF',
-            'fill-color': [51, 136, 255, 0.2],
+            'fill-color': [0, 0, 0, 0],
           },
         });
       });
