@@ -81,14 +81,16 @@ export function HighlightBoxLayer({
   );
 
   useEffect(() => {
-    if (!mapRef.current || !highlightBoxes?.length) return;
+    if (!mapRef.current) return;
 
     const map = mapRef.current;
     const existingLayers = map.getLayers().getArray();
 
     // Build a Set of current valid highlight box IDs
     const validBoxIds = new Set(
-      highlightBoxes.filter((b) => activeBoxIds.includes(b.id)).map((b) => b.id)
+      highlightBoxes
+        ?.filter((b) => activeBoxIds.includes(b.id))
+        .map((b) => b.id)
     );
 
     // Remove old layers not in current valid list
@@ -104,7 +106,7 @@ export function HighlightBoxLayer({
     });
 
     // Add new layers for valid boxes not yet added
-    highlightBoxes.forEach((box) => {
+    highlightBoxes?.forEach((box) => {
       const layerId = `highlight-box-${box.id}`;
       if (!activeBoxIds.includes(box.id)) return;
       if (addedLayerIdsRef.current.has(layerId)) return;
