@@ -144,7 +144,7 @@ export function SourcesLayer({
       map.removeOverlay(popupOverlay);
       map.removeInteraction(select);
     };
-  }, []);
+  }, [mapRef.current]);
 
   useEffect(() => {
     if (mapRef.current) {
@@ -157,7 +157,7 @@ export function SourcesLayer({
       handleSourceClickRef.current = handleSourceClick;
       selectInteractionRef.current?.on('select', handleSourceClick);
     }
-  }, [handleSourceClick]);
+  }, [handleSourceClick, selectInteractionRef.current]);
 
   useEffect(() => {
     const map = mapRef.current;
