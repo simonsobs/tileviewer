@@ -14,7 +14,13 @@ interface Props
     | 'setActiveBoxIds'
     | 'setBoxes'
     | 'addOptimisticHighlightBox'
+    | 'dispatchBaselayersChange'
   > {
+  onBaselayerChange: (
+    selectedBaselayerId: string,
+    context: 'layerMenu' | 'goBack' | 'goForward',
+    flipped?: boolean
+  ) => void;
   activeBaselayerId?: number | string;
   sourceLists: SourceList[];
   isFlipped: boolean;
@@ -23,7 +29,7 @@ interface Props
 
 export function LayerSelector({
   internalBaselayers,
-  onBaseLayerChange,
+  onBaselayerChange,
   activeBaselayerId,
   sourceLists,
   onSelectedSourceListsChange,
@@ -69,7 +75,7 @@ export function LayerSelector({
                 value={band.id}
                 name="baselayer"
                 checked={band.id === activeBaselayerId}
-                onChange={(e) => onBaseLayerChange(e.target.value)}
+                onChange={(e) => onBaselayerChange(e.target.value, 'layerMenu')}
               />
               <label htmlFor={String(band.id)}>{makeLayerName(band)}</label>
             </div>
@@ -78,6 +84,11 @@ export function LayerSelector({
             <div
               className={`input-container ${bl.disabledState(isFlipped) ? 'disabled' : ''}`}
               key={bl.id}
+              title={
+                bl.disabledState(isFlipped)
+                  ? 'The current RA range is incompatible with this baselayer.'
+                  : undefined
+              }
             >
               <input
                 type="radio"
@@ -85,7 +96,7 @@ export function LayerSelector({
                 value={bl.id}
                 name="baselayer"
                 checked={bl.id === activeBaselayerId}
-                onChange={(e) => onBaseLayerChange(e.target.value)}
+                onChange={(e) => onBaselayerChange(e.target.value, 'layerMenu')}
                 disabled={bl.disabledState(isFlipped)}
               />
               <label htmlFor={bl.id}>{bl.name}</label>

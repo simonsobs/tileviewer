@@ -33,17 +33,22 @@ import { AddHighlightBoxLayer } from './layers/AddHighlightBoxLayer';
 import { generateSearchContent } from '../utils/externalSearchUtils';
 import './styles/highlight-controls.css';
 import './styles/area-selection.css';
-import { assertBand } from '../reducers/baselayersReducer';
+import {
+  Action,
+  assertBand,
+  CHANGE_BASELAYER,
+} from '../reducers/baselayersReducer';
 import {
   getBaselayerResolutions,
   transformCoords,
   transformGraticuleCoords,
 } from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
+import Control from 'ol/control/Control';
 
 export type MapProps = {
   baselayersState: BaselayersState;
-  onBaseLayerChange: (baselayerId: string) => void;
+  dispatchBaselayersChange: React.ActionDispatch<[action: Action]>;
   sourceLists?: SourceList[];
   activeSourceListIds: number[];
   onSelectedSourceListsChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -58,7 +63,7 @@ export type MapProps = {
 
 export function OpenLayersMap({
   baselayersState,
-  onBaseLayerChange,
+  dispatchBaselayersChange,
   sourceLists = [],
   onSelectedSourceListsChange,
   activeSourceListIds,
@@ -83,7 +88,125 @@ export function OpenLayersMap({
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
   const [flipTiles, setFlipTiles] = useState(false);
 
+  const backBtnElRef = useRef<HTMLButtonElement>(null);
+  const prevBackNavHandlerRef = useRef<() => void>(null);
+  const forwardBtnElRef = useRef<HTMLButtonElement>(null);
+  const prevForwardNavHandlerRef = useRef<() => void>(null);
+
+  const [backHistoryStack, setBackHistoryStack] = useState<
+    { id: string; flipped: boolean }[]
+  >([]);
+  const [forwardHistoryStack, setForwardHistoryStack] = useState<
+    { id: string; flipped: boolean }[]
+  >([]);
+
   const { activeBaselayer, internalBaselayersState } = baselayersState;
+
+  /**
+   * Handler fires when user changes map layers. If the units of the new
+   * layer are the same as the active layer, then we just set a new active
+   * layer. If the units differ, we set new values for vmin, vmax, and cmap
+   * from the band's recommended values in order to prevent nonsensical
+   * TileLayer requests.
+   */
+  const onBaselayerChange = useCallback(
+    (
+      selectedBaselayerId: string,
+      context: 'layerMenu' | 'goBack' | 'goForward',
+      flipped?: boolean
+    ) => {
+      const isExternalBaselayer = selectedBaselayerId.includes('external');
+
+      const { activeBaselayer } = baselayersState;
+
+      const newActiveBaselayer = isExternalBaselayer
+        ? EXTERNAL_BASELAYERS.find((b) => b.id === selectedBaselayerId)
+        : baselayersState.internalBaselayersState?.find(
+            (b) => b.id === Number(selectedBaselayerId)
+          );
+      if (!newActiveBaselayer) return;
+
+      if (context === 'goBack') {
+        setBackHistoryStack((prev) => prev.slice(0, -1));
+        setForwardHistoryStack((prev) =>
+          [...prev].concat({
+            id: String(activeBaselayer?.id),
+            flipped: flipTiles,
+          })
+        );
+      } else if (context === 'goForward') {
+        setBackHistoryStack((prev) =>
+          [...prev].concat({
+            id: String(activeBaselayer?.id),
+            flipped: flipTiles,
+          })
+        );
+        setForwardHistoryStack((prev) => prev.slice(0, -1));
+      } else {
+        setBackHistoryStack((prev) =>
+          [...prev].concat({
+            id: String(activeBaselayer?.id),
+            flipped: flipTiles,
+          })
+        );
+        setForwardHistoryStack([]);
+      }
+
+      if (flipped !== undefined) {
+        setFlipTiles(flipped);
+      }
+
+      dispatchBaselayersChange({
+        type: CHANGE_BASELAYER,
+        newBaselayer: newActiveBaselayer,
+      });
+    },
+    [
+      baselayersState.internalBaselayersState,
+      baselayersState.activeBaselayer,
+      backHistoryStack,
+      flipTiles,
+      setFlipTiles,
+    ]
+  );
+
+  const goBack = useCallback(() => {
+    const baselayer = backHistoryStack[backHistoryStack.length - 1];
+    onBaselayerChange(baselayer.id, 'goBack', baselayer.flipped);
+  }, [onBaselayerChange, backHistoryStack]);
+
+  const goForward = useCallback(() => {
+    const baselayer = forwardHistoryStack[forwardHistoryStack.length - 1];
+    onBaselayerChange(baselayer.id, 'goForward', baselayer.flipped);
+  }, [onBaselayerChange, forwardHistoryStack]);
+
+  useEffect(() => {
+    if (prevBackNavHandlerRef.current) {
+      backBtnElRef.current?.removeEventListener(
+        'click',
+        prevBackNavHandlerRef.current
+      );
+    }
+    backBtnElRef.current?.addEventListener('click', goBack);
+    prevBackNavHandlerRef.current = goBack;
+    if (backBtnElRef.current) {
+      backBtnElRef.current.disabled = !backHistoryStack.length;
+    }
+  }, [goBack, backHistoryStack, backBtnElRef.current]);
+
+  useEffect(() => {
+    if (prevForwardNavHandlerRef.current) {
+      forwardBtnElRef.current?.removeEventListener(
+        'click',
+        prevForwardNavHandlerRef.current
+      );
+    }
+    forwardBtnElRef.current?.addEventListener('click', goForward);
+    prevForwardNavHandlerRef.current = goForward;
+    if (forwardBtnElRef.current) {
+      forwardBtnElRef.current.disabled = !forwardHistoryStack.length;
+    }
+  }, [goForward, forwardHistoryStack, backBtnElRef.current]);
 
   const tileLayers = useMemo(() => {
     return internalBaselayersState?.map((band) => {
@@ -197,6 +320,24 @@ export function OpenLayersMap({
           units: 'degrees',
         })
       );
+
+      const backBtnEl = document.createElement('button');
+      backBtnEl.className = 'baselayer-nav-btn back';
+      backBtnEl.textContent = 'Back';
+      const backBtn = new Control({
+        element: backBtnEl,
+      });
+      backBtnElRef.current = backBtnEl;
+      mapRef.current.addControl(backBtn);
+
+      const fwdBtnEl = document.createElement('button');
+      fwdBtnEl.className = 'baselayer-nav-btn fwd';
+      fwdBtnEl.textContent = 'Forward';
+      const fwdBtn = new Control({
+        element: fwdBtnEl,
+      });
+      forwardBtnElRef.current = fwdBtnEl;
+      mapRef.current.addControl(fwdBtn);
 
       // create a source and layer for the "add box" functionality
       const boxSource = new VectorSource({
@@ -383,7 +524,7 @@ export function OpenLayersMap({
       />
       <LayerSelector
         internalBaselayers={internalBaselayersState}
-        onBaseLayerChange={onBaseLayerChange}
+        onBaselayerChange={onBaselayerChange}
         activeBaselayerId={activeBaselayer?.id}
         sourceLists={sourceLists}
         activeSourceListIds={activeSourceListIds}

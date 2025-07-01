@@ -108,3 +108,15 @@ body {
   padding: 0;
   padding-left: 1em;
 }
+
+.baselayer-nav-btn {
+  position: absolute;
+  top: 12px;
+}
+
+.baselayer-nav-btn.back {
+  right: 150px;
+}
+.baselayer-nav-btn.fwd {
+  right: 80px;
+}
