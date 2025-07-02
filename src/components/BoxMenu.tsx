@@ -29,7 +29,7 @@ export function BoxMenu({
   return (
     <div
       className={
-        'highlight-box-hover-container no-background ' +
+        'box-menu-hover-container no-background ' +
         (isNewBox && !showMenuOverlay && 'hide')
       }
       style={{
@@ -37,55 +37,53 @@ export function BoxMenu({
         left: boxData.left,
       }}
     >
-      <div>
-        <div className="highlight-box-header">
-          <button
-            className={'menu-button highlight-box-menu-btn'}
-            onClick={() => setShowMenu(!showMenu)}
-          >
-            <MenuIcon />
-          </button>
-          {showMenu && (
-            <div className="menu-btns-container highlight-box-menu-btns-container">
-              {SUBMAP_DOWNLOAD_OPTIONS.map((option) => (
-                <button
-                  className="area-select-button highlight-box-button"
-                  key={option.display}
-                  disabled={!submapData}
-                  onClick={() => {
-                    if (submapData) {
-                      const boxPosition = transformBoxes(
-                        {
-                          top_left_ra: boxData.top_left_ra,
-                          top_left_dec: boxData.top_left_dec,
-                          bottom_right_ra: boxData.bottom_right_ra,
-                          bottom_right_dec: boxData.bottom_right_dec,
-                        },
-                        flipped
-                      );
-                      downloadSubmap(
-                        {
-                          ...submapData,
-                          top: boxPosition.top_left_dec,
-                          left: boxPosition.top_left_ra,
-                          bottom: boxPosition.bottom_right_dec,
-                          right: boxPosition.bottom_right_ra,
-                        },
-                        option.ext
-                      );
-                    }
-                  }}
-                >
-                  Download {option.display}
-                </button>
-              ))}
-              {...additionalButtons}
-            </div>
-          )}
-          {!isNewBox && 'name' in boxData && <h3>{boxData.name}</h3>}
-        </div>
-        {!isNewBox && 'description' in boxData && <p>{boxData.description}</p>}
+      <div className="box-menu-header">
+        <button
+          className={'map-btn menu-btn'}
+          onClick={() => setShowMenu(!showMenu)}
+        >
+          <MenuIcon />
+        </button>
+        {showMenu && (
+          <div className="box-menu-btns-container">
+            {SUBMAP_DOWNLOAD_OPTIONS.map((option) => (
+              <button
+                className="map-btn menu-btn"
+                key={option.display}
+                disabled={!submapData}
+                onClick={() => {
+                  if (submapData) {
+                    const boxPosition = transformBoxes(
+                      {
+                        top_left_ra: boxData.top_left_ra,
+                        top_left_dec: boxData.top_left_dec,
+                        bottom_right_ra: boxData.bottom_right_ra,
+                        bottom_right_dec: boxData.bottom_right_dec,
+                      },
+                      flipped
+                    );
+                    downloadSubmap(
+                      {
+                        ...submapData,
+                        top: boxPosition.top_left_dec,
+                        left: boxPosition.top_left_ra,
+                        bottom: boxPosition.bottom_right_dec,
+                        right: boxPosition.bottom_right_ra,
+                      },
+                      option.ext
+                    );
+                  }
+                }}
+              >
+                Download {option.display}
+              </button>
+            ))}
+            {...additionalButtons}
+          </div>
+        )}
+        {!isNewBox && 'name' in boxData && <h3>{boxData.name}</h3>}
       </div>
+      {!isNewBox && 'description' in boxData && <p>{boxData.description}</p>}
     </div>
   );
 }

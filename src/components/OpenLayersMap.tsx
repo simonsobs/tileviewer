@@ -31,19 +31,23 @@ import { GraticuleLayer } from './layers/GraticuleLayer';
 import { SourcesLayer } from './layers/SourcesLayer';
 import { AddHighlightBoxLayer } from './layers/AddHighlightBoxLayer';
 import { generateSearchContent } from '../utils/externalSearchUtils';
-import './styles/highlight-controls.css';
-import './styles/area-selection.css';
-import { assertBand } from '../reducers/baselayersReducer';
+import './styles/highlight-box.css';
+import {
+  Action,
+  assertBand,
+  CHANGE_BASELAYER,
+} from '../reducers/baselayersReducer';
 import {
   getBaselayerResolutions,
   transformCoords,
   transformGraticuleCoords,
 } from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
+import { BaselayerHistoryNavigation } from './BaselayerHistoryNavigation';
 
 export type MapProps = {
   baselayersState: BaselayersState;
-  onBaseLayerChange: (baselayerId: string) => void;
+  dispatchBaselayersChange: React.ActionDispatch<[action: Action]>;
   sourceLists?: SourceList[];
   activeSourceListIds: number[];
   onSelectedSourceListsChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -58,7 +62,7 @@ export type MapProps = {
 
 export function OpenLayersMap({
   baselayersState,
-  onBaseLayerChange,
+  dispatchBaselayersChange,
   sourceLists = [],
   onSelectedSourceListsChange,
   activeSourceListIds,
@@ -76,6 +80,7 @@ export function OpenLayersMap({
   const externalSearchMarkerRef = useRef<Feature | null>(null);
   const previousSearchOverlayHandlerRef =
     useRef<(e: MapBrowserEvent<any>) => void | null>(null);
+  const previousKeyboardHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
   const [coordinates, setCoordinates] = useState<number[] | undefined>(
     undefined
   );
@@ -83,7 +88,92 @@ export function OpenLayersMap({
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
   const [flipTiles, setFlipTiles] = useState(false);
 
+  const [backHistoryStack, setBackHistoryStack] = useState<
+    { id: string; flipped: boolean }[]
+  >([]);
+  const [forwardHistoryStack, setForwardHistoryStack] = useState<
+    { id: string; flipped: boolean }[]
+  >([]);
+
   const { activeBaselayer, internalBaselayersState } = baselayersState;
+
+  /**
+   * Handler fires when user changes map layers. If the units of the new
+   * layer are the same as the active layer, then we just set a new active
+   * layer. If the units differ, we set new values for vmin, vmax, and cmap
+   * from the band's recommended values in order to prevent nonsensical
+   * TileLayer requests.
+   */
+  const onBaselayerChange = useCallback(
+    (
+      selectedBaselayerId: string,
+      context: 'layerMenu' | 'goBack' | 'goForward',
+      flipped?: boolean
+    ) => {
+      const isExternalBaselayer = selectedBaselayerId.includes('external');
+
+      const { activeBaselayer } = baselayersState;
+
+      const newActiveBaselayer = isExternalBaselayer
+        ? EXTERNAL_BASELAYERS.find((b) => b.id === selectedBaselayerId)
+        : baselayersState.internalBaselayersState?.find(
+            (b) => b.id === Number(selectedBaselayerId)
+          );
+      if (!newActiveBaselayer) return;
+
+      if (context === 'goBack') {
+        setBackHistoryStack((prev) => prev.slice(0, -1));
+        setForwardHistoryStack((prev) =>
+          [...prev].concat({
+            id: String(activeBaselayer?.id),
+            flipped: flipTiles,
+          })
+        );
+      } else if (context === 'goForward') {
+        setBackHistoryStack((prev) =>
+          [...prev].concat({
+            id: String(activeBaselayer?.id),
+            flipped: flipTiles,
+          })
+        );
+        setForwardHistoryStack((prev) => prev.slice(0, -1));
+      } else {
+        setBackHistoryStack((prev) =>
+          [...prev].concat({
+            id: String(activeBaselayer?.id),
+            flipped: flipTiles,
+          })
+        );
+        setForwardHistoryStack([]);
+      }
+
+      if (flipped !== undefined) {
+        setFlipTiles(flipped);
+      }
+
+      dispatchBaselayersChange({
+        type: CHANGE_BASELAYER,
+        newBaselayer: newActiveBaselayer,
+      });
+    },
+    [
+      baselayersState.internalBaselayersState,
+      baselayersState.activeBaselayer,
+      backHistoryStack,
+      flipTiles,
+      setFlipTiles,
+    ]
+  );
+
+  const goBack = useCallback(() => {
+    const baselayer = backHistoryStack[backHistoryStack.length - 1];
+    onBaselayerChange(baselayer.id, 'goBack', baselayer.flipped);
+  }, [onBaselayerChange, backHistoryStack]);
+
+  const goForward = useCallback(() => {
+    const baselayer = forwardHistoryStack[forwardHistoryStack.length - 1];
+    onBaselayerChange(baselayer.id, 'goForward', baselayer.flipped);
+  }, [onBaselayerChange, forwardHistoryStack]);
 
   const tileLayers = useMemo(() => {
     return internalBaselayersState?.map((band) => {
@@ -326,6 +416,44 @@ export function OpenLayersMap({
     }
   }, [activeBaselayer, tileLayers]);
 
+  /**
+   * Add keyboard support for switching baselayers
+   */
+  useEffect(() => {
+    // Remove old handler if exists
+    if (previousKeyboardHandlerRef.current) {
+      document.removeEventListener(
+        'keypress',
+        previousKeyboardHandlerRef.current
+      );
+    }
+
+    // Create new handler
+    const newHandler = (e: KeyboardEvent) => {
+      // Return early if target is in an input
+      if ((e.target as HTMLElement)?.closest('input')) {
+        return;
+      }
+      if (backHistoryStack.length && e.key === 'h') {
+        goBack();
+      }
+      if (forwardHistoryStack.length && e.key === 'l') {
+        goForward();
+      }
+    };
+
+    // Add new handler and update the ref
+    document.addEventListener('keypress', newHandler);
+    previousKeyboardHandlerRef.current = newHandler;
+
+    // Remove handler when component unmounts
+    return () =>
+      document.removeEventListener(
+        'keypress',
+        previousKeyboardHandlerRef.current ?? newHandler
+      );
+  }, [backHistoryStack, forwardHistoryStack, goBack, goForward]);
+
   const disableToggleForNewBox = isDrawing || isNewBoxDrawn;
 
   /**
@@ -356,10 +484,10 @@ export function OpenLayersMap({
         }
       />
       <div ref={externalSearchRef} className="ol-popup"></div>
-      <div className="ol-zoom ol-control draw-box-btn-container">
+      <div className="draw-box-btn-container">
         <button
           type="button"
-          className="draw-box-btn"
+          className="map-btn"
           title="Draw a region on the map"
           onClick={() => setIsDrawing(true)}
           disabled={isDrawing}
@@ -367,6 +495,12 @@ export function OpenLayersMap({
           <CropIcon />
         </button>
       </div>
+      <BaselayerHistoryNavigation
+        disableGoBack={!backHistoryStack.length}
+        disableGoForward={!forwardHistoryStack.length}
+        goBack={goBack}
+        goForward={goForward}
+      />
       <SourcesLayer
         sourceLists={sourceLists}
         activeSourceListIds={activeSourceListIds}
@@ -396,7 +530,7 @@ export function OpenLayersMap({
       />
       <LayerSelector
         internalBaselayers={internalBaselayersState}
-        onBaseLayerChange={onBaseLayerChange}
+        onBaselayerChange={onBaselayerChange}
         activeBaselayerId={activeBaselayer?.id}
         sourceLists={sourceLists}
         activeSourceListIds={activeSourceListIds}

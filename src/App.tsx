@@ -9,7 +9,6 @@ import { fetchProducts } from './utils/fetchUtils';
 import {
   assertBand,
   baselayersReducer,
-  CHANGE_BASELAYER,
   CHANGE_CMAP_TYPE,
   CHANGE_CMAP_VALUES,
   initialBaselayersState,
@@ -19,11 +18,10 @@ import { useQuery } from './hooks/useQuery';
 import { useHighlightBoxes } from './hooks/useHighlightBoxes';
 import { OpenLayersMap } from './components/OpenLayersMap';
 import { handleSelectChange } from './utils/layerUtils';
-import { EXTERNAL_BASELAYERS } from './configs/mapSettings';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
-  const [baselayersState, dispatch] = useReducer(
+  const [baselayersState, dispatchBaselayersChange] = useReducer(
     baselayersReducer,
     initialBaselayersState
   );
@@ -58,7 +56,7 @@ function App() {
 
       // Set the baselayersState with the finalBands; note that this action will also set the
       // activeBaselayer to be finalBands[0]
-      dispatch({
+      dispatchBaselayersChange({
         type: SET_BASELAYERS_STATE,
         baselayers: finalBands,
       });
@@ -101,33 +99,6 @@ function App() {
 
   const [activeSourceListIds, setActiveSourceListIds] = useState<number[]>([]);
 
-  /**
-   * Handler fires when user changes map layers. If the units of the new
-   * layer are the same as the active layer, then we just set a new active
-   * layer. If the units differ, we set new values for vmin, vmax, and cmap
-   * from the band's recommended values in order to prevent nonsensical
-   * TileLayer requests.
-   */
-  const onBaseLayerChange = useCallback(
-    (selectedBaselayerId: string) => {
-      const isExternalBaselayer = selectedBaselayerId.includes('external');
-
-      const newActiveBaselayer = isExternalBaselayer
-        ? EXTERNAL_BASELAYERS.find((b) => b.id === selectedBaselayerId)
-        : baselayersState.internalBaselayersState?.find(
-            (b) => b.id === Number(selectedBaselayerId)
-          );
-
-      if (!newActiveBaselayer) return;
-
-      dispatch({
-        type: CHANGE_BASELAYER,
-        newBaselayer: newActiveBaselayer,
-      });
-    },
-    [baselayersState.internalBaselayersState]
-  );
-
   const onSelectedSourceListsChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       if (!sourceLists) return;
@@ -147,7 +118,7 @@ function App() {
   const onCmapValuesChange = useCallback(
     (values: number[]) => {
       if (baselayersState.activeBaselayer) {
-        dispatch({
+        dispatchBaselayersChange({
           type: CHANGE_CMAP_VALUES,
           activeBaselayer: baselayersState.activeBaselayer,
           cmapValues: {
@@ -163,7 +134,7 @@ function App() {
   const onCmapChange = useCallback(
     (cmap: string) => {
       if (baselayersState.activeBaselayer) {
-        dispatch({
+        dispatchBaselayersChange({
           type: CHANGE_CMAP_TYPE,
           activeBaselayer: baselayersState.activeBaselayer,
           cmap,
@@ -199,7 +170,7 @@ function App() {
       {activeBaselayer && internalBaselayersState && (
         <OpenLayersMap
           baselayersState={baselayersState}
-          onBaseLayerChange={onBaseLayerChange}
+          dispatchBaselayersChange={dispatchBaselayersChange}
           sourceLists={sourceLists}
           activeSourceListIds={activeSourceListIds}
           onSelectedSourceListsChange={onSelectedSourceListsChange}
