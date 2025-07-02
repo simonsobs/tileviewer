@@ -456,13 +456,26 @@ export function OpenLayersMap({
 
   const disableToggleForNewBox = isDrawing || isNewBoxDrawn;
 
+  /**
+   * Toggles the state of flipTiles and also preserves the center
+   * of the map's view
+   */
+  const handleFlipTiles = useCallback(() => {
+    const map = mapRef.current;
+    if (map) {
+      const view = map.getView();
+      const center = view.getCenter();
+      const newCenter = transformCoords(center ?? [0, 0], flipTiles, 'layer');
+      view.setCenter(newCenter);
+    }
+    setFlipTiles(!flipTiles);
+  }, [setFlipTiles, flipTiles, mapRef.current]);
+
   return (
     <div id="map" style={{ cursor: isDrawing ? 'crosshair' : 'auto' }}>
       <ToggleSwitch
         checked={flipTiles}
-        onChange={() => {
-          setFlipTiles(!flipTiles);
-        }}
+        onChange={handleFlipTiles}
         disabled={!assertBand(activeBaselayer) || disableToggleForNewBox}
         disabledMessage={
           disableToggleForNewBox
