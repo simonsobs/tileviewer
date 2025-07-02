@@ -31,8 +31,7 @@ import { GraticuleLayer } from './layers/GraticuleLayer';
 import { SourcesLayer } from './layers/SourcesLayer';
 import { AddHighlightBoxLayer } from './layers/AddHighlightBoxLayer';
 import { generateSearchContent } from '../utils/externalSearchUtils';
-import './styles/highlight-controls.css';
-import './styles/area-selection.css';
+import './styles/highlight-box.css';
 import {
   Action,
   assertBand,
@@ -44,7 +43,7 @@ import {
   transformGraticuleCoords,
 } from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
-import Control from 'ol/control/Control';
+import { BaselayerHistoryNavigation } from './BaselayerHistoryNavigation';
 
 export type MapProps = {
   baselayersState: BaselayersState;
@@ -87,11 +86,6 @@ export function OpenLayersMap({
   const [isDrawing, setIsDrawing] = useState(false);
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
   const [flipTiles, setFlipTiles] = useState(false);
-
-  const backBtnElRef = useRef<HTMLButtonElement>(null);
-  const prevBackNavHandlerRef = useRef<() => void>(null);
-  const forwardBtnElRef = useRef<HTMLButtonElement>(null);
-  const prevForwardNavHandlerRef = useRef<() => void>(null);
 
   const [backHistoryStack, setBackHistoryStack] = useState<
     { id: string; flipped: boolean }[]
@@ -179,34 +173,6 @@ export function OpenLayersMap({
     const baselayer = forwardHistoryStack[forwardHistoryStack.length - 1];
     onBaselayerChange(baselayer.id, 'goForward', baselayer.flipped);
   }, [onBaselayerChange, forwardHistoryStack]);
-
-  useEffect(() => {
-    if (prevBackNavHandlerRef.current) {
-      backBtnElRef.current?.removeEventListener(
-        'click',
-        prevBackNavHandlerRef.current
-      );
-    }
-    backBtnElRef.current?.addEventListener('click', goBack);
-    prevBackNavHandlerRef.current = goBack;
-    if (backBtnElRef.current) {
-      backBtnElRef.current.disabled = !backHistoryStack.length;
-    }
-  }, [goBack, backHistoryStack, backBtnElRef.current]);
-
-  useEffect(() => {
-    if (prevForwardNavHandlerRef.current) {
-      forwardBtnElRef.current?.removeEventListener(
-        'click',
-        prevForwardNavHandlerRef.current
-      );
-    }
-    forwardBtnElRef.current?.addEventListener('click', goForward);
-    prevForwardNavHandlerRef.current = goForward;
-    if (forwardBtnElRef.current) {
-      forwardBtnElRef.current.disabled = !forwardHistoryStack.length;
-    }
-  }, [goForward, forwardHistoryStack, backBtnElRef.current]);
 
   const tileLayers = useMemo(() => {
     return internalBaselayersState?.map((band) => {
@@ -320,24 +286,6 @@ export function OpenLayersMap({
           units: 'degrees',
         })
       );
-
-      const backBtnEl = document.createElement('button');
-      backBtnEl.className = 'baselayer-nav-btn back';
-      backBtnEl.textContent = 'Back';
-      const backBtn = new Control({
-        element: backBtnEl,
-      });
-      backBtnElRef.current = backBtnEl;
-      mapRef.current.addControl(backBtn);
-
-      const fwdBtnEl = document.createElement('button');
-      fwdBtnEl.className = 'baselayer-nav-btn fwd';
-      fwdBtnEl.textContent = 'Forward';
-      const fwdBtn = new Control({
-        element: fwdBtnEl,
-      });
-      forwardBtnElRef.current = fwdBtnEl;
-      mapRef.current.addControl(fwdBtn);
 
       // create a source and layer for the "add box" functionality
       const boxSource = new VectorSource({
@@ -484,10 +432,10 @@ export function OpenLayersMap({
         }
       />
       <div ref={externalSearchRef} className="ol-popup"></div>
-      <div className="ol-zoom ol-control draw-box-btn-container">
+      <div className="draw-box-btn-container">
         <button
           type="button"
-          className="draw-box-btn"
+          className="map-btn"
           title="Draw a region on the map"
           onClick={() => setIsDrawing(true)}
           disabled={isDrawing}
@@ -495,6 +443,12 @@ export function OpenLayersMap({
           <CropIcon />
         </button>
       </div>
+      <BaselayerHistoryNavigation
+        disableGoBack={!backHistoryStack.length}
+        disableGoForward={!forwardHistoryStack.length}
+        goBack={goBack}
+        goForward={goForward}
+      />
       <SourcesLayer
         sourceLists={sourceLists}
         activeSourceListIds={activeSourceListIds}
