@@ -1,4 +1,4 @@
-import { MouseEvent, useCallback, useRef, useState } from 'react';
+import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { BandWithCmapValues, SourceList } from '../types/maps';
 import { makeLayerName } from '../utils/layerUtils';
 import { LayersIcon } from './icons/LayersIcon';
@@ -41,6 +41,45 @@ export function LayerSelector({
 }: Props) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [lockMenu, setLockMenu] = useState(false);
+  const previousLockMenuHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
+
+  useEffect(() => {
+    if (previousLockMenuHandlerRef.current) {
+      document.removeEventListener(
+        'keypress',
+        previousLockMenuHandlerRef.current
+      );
+    }
+
+    // Create new handler
+    const newHandler = (e: KeyboardEvent) => {
+      // Return early if target is in an input
+      if ((e.target as HTMLElement)?.closest('input')) {
+        return;
+      }
+      if (e.key === 'm') {
+        setLockMenu(!lockMenu);
+        if (menuRef.current?.classList.contains('hide')) {
+          menuRef.current.classList.remove('hide');
+        } else {
+          if (lockMenu) {
+            menuRef.current?.classList.add('hide');
+          }
+        }
+      }
+    };
+
+    // Add new handler and update the ref
+    document.addEventListener('keypress', newHandler);
+    previousLockMenuHandlerRef.current = newHandler;
+
+    // Remove handler when component unmounts
+    return () =>
+      document.removeEventListener(
+        'keypress',
+        previousLockMenuHandlerRef.current ?? newHandler
+      );
+  }, [setLockMenu, lockMenu, menuRef.current]);
 
   const toggleMenu = useCallback(
     (e: MouseEvent) => {
@@ -66,7 +105,10 @@ export function LayerSelector({
         className={'layer-selector-container menu hide'}
         onMouseLeave={toggleMenu}
       >
-        <div className="lock-menu-container">
+        <div
+          className="lock-menu-container"
+          title="Type 'm' or click to enable/disable this feature."
+        >
           <label htmlFor="lock-menu">Keep open</label>
           <input
             id="lock-menu"

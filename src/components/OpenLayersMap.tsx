@@ -430,6 +430,7 @@ export function OpenLayersMap({
 
     // Create new handler
     const newHandler = (e: KeyboardEvent) => {
+      // Return early if target is in an input
       if ((e.target as HTMLElement)?.closest('input')) {
         return;
       }
