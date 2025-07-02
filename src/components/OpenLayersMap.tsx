@@ -80,6 +80,7 @@ export function OpenLayersMap({
   const externalSearchMarkerRef = useRef<Feature | null>(null);
   const previousSearchOverlayHandlerRef =
     useRef<(e: MapBrowserEvent<any>) => void | null>(null);
+  const previousKeyboardHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
   const [coordinates, setCoordinates] = useState<number[] | undefined>(
     undefined
   );
@@ -414,6 +415,43 @@ export function OpenLayersMap({
       }
     }
   }, [activeBaselayer, tileLayers]);
+
+  /**
+   * Add keyboard support for switching baselayers
+   */
+  useEffect(() => {
+    // Remove old handler if exists
+    if (previousKeyboardHandlerRef.current) {
+      document.removeEventListener(
+        'keypress',
+        previousKeyboardHandlerRef.current
+      );
+    }
+
+    // Create new handler
+    const newHandler = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.closest('input')) {
+        return;
+      }
+      if (backHistoryStack.length && e.key === 'h') {
+        goBack();
+      }
+      if (forwardHistoryStack.length && e.key === 'l') {
+        goForward();
+      }
+    };
+
+    // Add new handler and update the ref
+    document.addEventListener('keypress', newHandler);
+    previousKeyboardHandlerRef.current = newHandler;
+
+    // Remove handler when component unmounts
+    return () =>
+      document.removeEventListener(
+        'keypress',
+        previousKeyboardHandlerRef.current ?? newHandler
+      );
+  }, [backHistoryStack, forwardHistoryStack, goBack, goForward]);
 
   const disableToggleForNewBox = isDrawing || isNewBoxDrawn;
 
