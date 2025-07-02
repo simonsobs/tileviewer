@@ -15,7 +15,7 @@ export function ToggleSwitch({
 }: ToggleSwitchProps) {
   return (
     <div
-      className="toggle-container"
+      className={'toggle-container' + (disabled ? ' disabled' : '')}
       title={disabled ? disabledMessage : undefined}
     >
       <input

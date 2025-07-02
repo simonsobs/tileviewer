@@ -151,14 +151,14 @@ export function AddHighlightBoxLayer({
           additionalButtons={[
             <button
               key="add-new-box"
-              className="area-select-button highlight-box-button"
+              className="map-btn menu-btn"
               onClick={() => setShowAddBoxDialog(true)}
             >
               Add as Box
             </button>,
             <button
               key="remove-region"
-              className="area-select-button highlight-box-button"
+              className="map-btn menu-btn"
               onClick={handleAddBoxCleanup}
             >
               Remove Region

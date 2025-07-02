@@ -51,7 +51,7 @@ type SetBaselayersAction = {
   baselayers: BandWithCmapValues[];
 };
 
-type Action =
+export type Action =
   | ChangeCmapAction
   | ChangeCmapValuesAction
   | ChangeBaselayerAction
