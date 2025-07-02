@@ -1,4 +1,4 @@
-import { MouseEvent, useCallback, useRef } from 'react';
+import { MouseEvent, useCallback, useRef, useState } from 'react';
 import { BandWithCmapValues, SourceList } from '../types/maps';
 import { makeLayerName } from '../utils/layerUtils';
 import { LayersIcon } from './icons/LayersIcon';
@@ -40,10 +40,11 @@ export function LayerSelector({
   isFlipped,
 }: Props) {
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const [lockMenu, setLockMenu] = useState(false);
 
   const toggleMenu = useCallback(
     (e: MouseEvent) => {
-      if (!menuRef.current) return;
+      if (!menuRef.current || lockMenu) return;
       const target = (e.target as HTMLElement).closest('div');
       if (target && target.classList.contains('btn')) {
         menuRef.current.classList.remove('hide');
@@ -52,7 +53,7 @@ export function LayerSelector({
         menuRef.current.classList.add('hide');
       }
     },
-    [menuRef.current]
+    [menuRef.current, lockMenu]
   );
 
   return (
@@ -65,6 +66,15 @@ export function LayerSelector({
         className={'layer-selector-container menu hide'}
         onMouseLeave={toggleMenu}
       >
+        <div className="lock-menu-container">
+          <label htmlFor="lock-menu">Keep open</label>
+          <input
+            id="lock-menu"
+            type="checkbox"
+            checked={lockMenu}
+            onChange={() => setLockMenu(!lockMenu)}
+          />
+        </div>
         <fieldset>
           <legend>Baselayers</legend>
           {internalBaselayers?.map((band) => (
