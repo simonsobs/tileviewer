@@ -1,0 +1,58 @@
+.box-menu-icon {
+  height: 1.25em;
+  width: 1.25em;
+}
+
+.box-menu-btns-container {
+  position: absolute;
+  top: 5px;
+  left: 35px;
+  display: flex;
+  flex-direction: column;
+  row-gap: 2px;
+}
+
+.box-menu-btns-container > button {
+  padding: 3px;
+  text-wrap: nowrap;
+}
+
+.draw-box-btn-container {
+  position: absolute;
+  top: 65px;
+  left: 9px;
+  z-index: 1000;
+}
+
+.draw-box-icon {
+  height: 1.375em;
+  width: 1.375em;
+}
+
+.box-menu-hover-container {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  position: absolute;
+  z-index: 600;
+  padding: 5px;
+}
+
+.no-background {
+  background: none;
+}
+
+.box-menu-header {
+  display: flex;
+  align-items: center;
+  column-gap: 5px;
+}
+
+.box-menu-header > h3 {
+  margin: 0;
+}
+
+.menu-btn {
+  color: black !important;
+  margin-bottom: auto;
+}

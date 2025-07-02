@@ -251,7 +251,7 @@ export function HighlightBoxLayer({
     <>
       <div
         ref={boxOverlayRef}
-        className="highlight-box-hover-container"
+        className="box-menu-hover-container"
         style={{
           width: selectedBoxData && selectedBoxData.width,
           height: selectedBoxData && selectedBoxData.height,
@@ -259,9 +259,9 @@ export function HighlightBoxLayer({
       >
         {!showMenu && selectedBoxData && (
           <div>
-            <div className="highlight-box-header">
+            <div className="box-menu-header">
               <button
-                className={'menu-button highlight-box-menu-btn'}
+                className={'map-btn menu-btn'}
                 onClick={() => setShowMenu(!showMenu)}
               >
                 <MenuIcon />
@@ -281,7 +281,7 @@ export function HighlightBoxLayer({
           showMenu={showMenu}
           additionalButtons={[
             <button
-              className="area-select-button highlight-box-button"
+              className="map-btn menu-btn"
               key="hide-box"
               onClick={() => {
                 setActiveBoxIds((prev) =>
@@ -298,7 +298,7 @@ export function HighlightBoxLayer({
             </button>,
             <button
               key="delete-box"
-              className="area-select-button highlight-box-button delete-box-button"
+              className="map-btn menu-btn danger-action"
               onClick={() => {
                 deleteSubmapBox(selectedBoxData.id, setBoxes, setActiveBoxIds);
                 setShowMenu(false);
