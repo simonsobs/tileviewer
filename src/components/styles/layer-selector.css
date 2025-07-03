@@ -1,6 +1,6 @@
 .layer-selector-container {
   position: absolute;
-  top: 38px;
+  top: 8px;
   right: 1em;
   z-index: 1000;
   background-color: #fff;
@@ -8,8 +8,45 @@
   border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
+.layer-selector-header {
+  display: flex;
+  align-items: center;
+  column-gap: 1em;
+  padding: 0 2px;
+}
+
+.layer-selector-header > h3 {
+  margin: 0;
+}
+
+.lock-menu-btn {
+  margin-right: auto;
+  background: none;
+  color: #666666;
+  border: 1px solid white;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.lock-menu-btn:hover {
+  border: 1px solid black;
+  color: black;
+}
+
+.lock-icon {
+  height: 0.9em;
+  width: 0.9em;
+}
+
+.locked > svg {
+  color: #479f76;
+}
+
 .layer-selector-container > fieldset {
-  padding-top: 0;
+  padding: 0.25em 0.5em;
 }
 
 .layer-selector-container.btn {
@@ -20,7 +57,7 @@
 }
 
 .layer-selector-container.menu {
-  padding: 0.25em 0.5em 0.75em 0.5em;
+  padding: 0.5em;
 }
 
 .input-container {
@@ -56,4 +93,10 @@ input[type='radio']:disabled {
 
 .lock-menu-container > input {
   height: 12px;
+}
+
+.left-arrow-icon,
+.right-arrow-icon {
+  height: 1em;
+  width: 1em;
 }

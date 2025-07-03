@@ -5,10 +5,16 @@ import { LayersIcon } from './icons/LayersIcon';
 import './styles/layer-selector.css';
 import { MapProps } from './OpenLayersMap';
 import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
+import {
+  BaselayerHistoryNavigation,
+  BaselayerHistoryNavigationProps,
+} from './BaselayerHistoryNavigation';
+import { LockClosedIcon } from './icons/LockClosedIcon';
+import { LockOpenIcon } from './icons/LockOpenIcon';
 
 interface Props
   extends Omit<
-    MapProps,
+    MapProps & BaselayerHistoryNavigationProps,
     | 'baselayersState'
     | 'sourceLists'
     | 'setActiveBoxIds'
@@ -38,6 +44,10 @@ export function LayerSelector({
   activeBoxIds,
   onSelectedHighlightBoxChange,
   isFlipped,
+  disableGoBack,
+  disableGoForward,
+  goBack,
+  goForward,
 }: Props) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [lockMenu, setLockMenu] = useState(false);
@@ -105,16 +115,20 @@ export function LayerSelector({
         className={'layer-selector-container menu hide'}
         onMouseLeave={toggleMenu}
       >
-        <div
-          className="lock-menu-container"
-          title="Type 'm' or click to enable/disable this feature."
-        >
-          <label htmlFor="lock-menu">Keep open</label>
-          <input
-            id="lock-menu"
-            type="checkbox"
-            checked={lockMenu}
-            onChange={() => setLockMenu(!lockMenu)}
+        <div className="layer-selector-header">
+          <h3>Select Layer</h3>
+          <button
+            className={'lock-menu-btn' + (lockMenu ? ' locked' : '')}
+            onClick={() => setLockMenu(!lockMenu)}
+            title="Type 'm' or click to lock/unlock the layer menu."
+          >
+            {lockMenu ? <LockClosedIcon /> : <LockOpenIcon />}
+          </button>
+          <BaselayerHistoryNavigation
+            disableGoBack={disableGoBack}
+            disableGoForward={disableGoForward}
+            goBack={goBack}
+            goForward={goForward}
           />
         </div>
         <fieldset>
