@@ -11,10 +11,10 @@
 .cmap-values-container {
   display: flex;
   justify-content: center;
-  background-color: white;
-  box-shadow: 0px 2px 6px #aaa;
-  border: 2px solid rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  background-color: var(--standard-bg-color);
+  box-shadow: var(--standard-box-shadow);
+  border: 1px solid var(--border-color-unhovered);
+  border-radius: var(--standard-border-radius);
   padding: 2px 0;
 }
 
