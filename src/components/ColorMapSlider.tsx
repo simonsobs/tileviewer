@@ -108,7 +108,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              boxShadow: '0px 2px 6px #AAA',
+              boxShadow: '0 0 5px #bbb',
             }}
           >
             <div
