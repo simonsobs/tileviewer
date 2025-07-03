@@ -1,20 +1,22 @@
 import { LeftArrowIcon } from './icons/LeftArrowIcon';
 import { RightArrowIcon } from './icons/RightArrowIcon';
 
+export type BaselayerHistoryNavigationProps = {
+  disableGoBack: boolean;
+  disableGoForward: boolean;
+  goBack: () => void;
+  goForward: () => void;
+};
+
 export function BaselayerHistoryNavigation({
   disableGoBack,
   disableGoForward,
   goBack,
   goForward,
-}: {
-  disableGoBack: boolean;
-  disableGoForward: boolean;
-  goBack: () => void;
-  goForward: () => void;
-}) {
+}: BaselayerHistoryNavigationProps) {
   return (
     <>
-      <div className="bl-nav-btn-container back-btn-container">
+      <div>
         <button
           type="button"
           className="map-btn"
@@ -25,7 +27,7 @@ export function BaselayerHistoryNavigation({
           <LeftArrowIcon />
         </button>
       </div>
-      <div className="bl-nav-btn-container fwd-btn-container">
+      <div>
         <button
           type="button"
           className="map-btn"

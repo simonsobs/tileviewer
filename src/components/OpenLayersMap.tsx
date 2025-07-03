@@ -43,7 +43,6 @@ import {
   transformGraticuleCoords,
 } from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
-import { BaselayerHistoryNavigation } from './BaselayerHistoryNavigation';
 
 export type MapProps = {
   baselayersState: BaselayersState;
@@ -495,12 +494,6 @@ export function OpenLayersMap({
           <CropIcon />
         </button>
       </div>
-      <BaselayerHistoryNavigation
-        disableGoBack={!backHistoryStack.length}
-        disableGoForward={!forwardHistoryStack.length}
-        goBack={goBack}
-        goForward={goForward}
-      />
       <SourcesLayer
         sourceLists={sourceLists}
         activeSourceListIds={activeSourceListIds}
@@ -539,6 +532,10 @@ export function OpenLayersMap({
         activeBoxIds={activeBoxIds}
         onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
         isFlipped={flipTiles}
+        disableGoBack={!backHistoryStack.length}
+        disableGoForward={!forwardHistoryStack.length}
+        goBack={goBack}
+        goForward={goForward}
       />
       <GraticuleLayer mapRef={mapRef} flipped={flipTiles} />
       {coordinates && (
