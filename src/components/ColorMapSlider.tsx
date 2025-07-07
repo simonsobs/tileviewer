@@ -33,6 +33,47 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
    */
   const [tempValues, setTempValues] = useState([values[0], values[1]]);
 
+  useEffect(() => {
+    // const heldKeyRef = { current: null as string | null };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.closest('input')) return;
+
+      // Avoid repeated firing if key is held down
+      onCmapValuesChange(tempValues);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.closest('input')) return;
+
+      // if (e.key !== heldKeyRef.current) return; // Ignore if different key
+      // heldKeyRef.current = null;
+
+      switch (e.key) {
+        case 'a':
+          setTempValues((prev) => [prev[0] - 1, prev[1] - 1]);
+          break;
+        case 'f':
+          setTempValues((prev) => [prev[0] + 1, prev[1] + 1]);
+          break;
+        case 's':
+          setTempValues((prev) => [prev[0] - 1, prev[1] + 1]);
+          break;
+        case 'd':
+          setTempValues((prev) => [prev[0] + 1, prev[1] - 1]);
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [tempValues, setTempValues, onCmapValuesChange]);
+
   /** Sync the temp values  */
   useEffect(() => {
     setTempValues([values[0], values[1]]);
