@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Range as RangeSlider, getTrackBackground } from 'react-range';
 import { formatNumberForDisplay } from '../utils/numberUtils';
 import { ColorMapControlsProps } from './ColorMapControls';
@@ -32,6 +32,54 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
    * the RangeSlider has an onFinalChange handler that will set the global state once a user releases the slider handle
    */
   const [tempValues, setTempValues] = useState([values[0], values[1]]);
+  const prevKeyUpHandler = useRef<(e: KeyboardEvent) => void>(null);
+  const prevKeyDownHandler = useRef<(e: KeyboardEvent) => void>(null);
+
+  useEffect(() => {
+    if (prevKeyUpHandler.current) {
+      document.removeEventListener('keyup', prevKeyUpHandler.current);
+    }
+    if (prevKeyDownHandler.current) {
+      document.removeEventListener('keydown', prevKeyDownHandler.current);
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.closest('input')) return;
+
+      // Only set and fetch cmap settings when keyup is fired
+      // so we're not fetching while keydown is firing
+      onCmapValuesChange(tempValues);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.closest('input')) return;
+
+      switch (e.key) {
+        case 'a':
+          setTempValues((prev) => [prev[0] - 1, prev[1] - 1]);
+          break;
+        case 'd':
+          setTempValues((prev) => [prev[0] + 1, prev[1] + 1]);
+          break;
+        case 'w':
+          setTempValues((prev) => [prev[0] - 1, prev[1] + 1]);
+          break;
+        case 's':
+          setTempValues((prev) => [prev[0] + 1, prev[1] - 1]);
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    prevKeyDownHandler.current = handleKeyDown;
+
+    document.addEventListener('keyup', handleKeyUp);
+    prevKeyUpHandler.current = handleKeyUp;
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [tempValues, setTempValues, onCmapValuesChange]);
 
   /** Sync the temp values  */
   useEffect(() => {
