@@ -37,7 +37,7 @@ export function getBaselayerResolutions(
 ) {
   const resolutionZ0 = worldWidth / tileSize;
   const resolutions = [];
-  for (let i = 0; i < maxZoom; i++) {
+  for (let i = 0; i <= maxZoom; i++) {
     resolutions.push(resolutionZ0 / 2 ** i);
   }
   return resolutions;
