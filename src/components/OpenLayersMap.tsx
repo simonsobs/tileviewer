@@ -211,7 +211,7 @@ export function OpenLayersMap({
             resolutions: getBaselayerResolutions(
               b.extent[2] - b.extent[0],
               256,
-              9
+              b.maxZoom
             ),
             origin: [b.extent[0], b.extent[3]],
           }),

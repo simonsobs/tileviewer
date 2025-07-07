@@ -113,6 +113,7 @@ export type ExternalBaselayer = {
   projection: string;
   url: string | TileUrlFunction;
   extent: number[];
+  maxZoom: number;
   disabledState: (state: boolean) => boolean;
 };
 
