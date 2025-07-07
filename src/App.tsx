@@ -18,6 +18,7 @@ import { useQuery } from './hooks/useQuery';
 import { useHighlightBoxes } from './hooks/useHighlightBoxes';
 import { OpenLayersMap } from './components/OpenLayersMap';
 import { handleSelectChange } from './utils/layerUtils';
+import { Login } from './components/Login';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
@@ -167,6 +168,7 @@ function App() {
   const { activeBaselayer, internalBaselayersState } = baselayersState;
   return (
     <>
+      <Login />
       {activeBaselayer && internalBaselayersState && (
         <OpenLayersMap
           baselayersState={baselayersState}
