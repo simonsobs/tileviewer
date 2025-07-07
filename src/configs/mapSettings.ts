@@ -55,4 +55,4 @@ export const NUMBER_OF_FIXED_GRATICULE_DECIMALS = 3;
 
 export const LOGIN_URL =
   'https://identity.simonsobservatory.org/login/0686c201-b234-70fe-8000-3036b7a36d47';
-export const LOGOUT_URL = 'https://identity.simonsobservatory.org/logout';
+export const LOGOUT_URL = 'https://maps.simonsobservatory.org/logout';
