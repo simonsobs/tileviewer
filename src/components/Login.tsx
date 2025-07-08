@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { LOGIN_URL, LOGOUT_URL } from '../configs/mapSettings';
 import { getCookie } from '../utils/fetchUtils';
 import './styles/login.css';
 
-export function Login() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-
+export function Login({
+  isAuthenticated,
+  setIsAuthenticated,
+}: {
+  isAuthenticated: boolean | null;
+  setIsAuthenticated: (isAuthenticated: boolean) => void;
+}) {
   useEffect(() => {
     const hasAccessToken = getCookie('validate_access_token');
     const hasRefreshToken = getCookie('valid_refresh_token');
