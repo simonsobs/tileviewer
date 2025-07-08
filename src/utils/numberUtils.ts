@@ -74,10 +74,10 @@ export function safeLog(x: number) {
   }
 }
 
-export function formatNumber(number: number, toFixed: number = 2) {
+export function formatNumber(number: number, sigFigs: number = 2) {
   if (Number.isInteger(number)) {
     return number;
   } else {
-    return Number(number.toFixed(toFixed));
+    return Number(number.toPrecision(sigFigs));
   }
 }
