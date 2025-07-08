@@ -44,10 +44,22 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
     }
     const handleKeyUp = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest('input')) return;
-
       // Only set and fetch cmap settings when keyup is fired
       // so we're not fetching while keydown is firing
-      onCmapValuesChange(tempValues);
+      switch (e.key) {
+        case 'a':
+          onCmapValuesChange(tempValues);
+          break;
+        case 'd':
+          onCmapValuesChange(tempValues);
+          break;
+        case 'w':
+          onCmapValuesChange(tempValues);
+          break;
+        case 's':
+          onCmapValuesChange(tempValues);
+          break;
+      }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
