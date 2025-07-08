@@ -27,10 +27,12 @@ function App() {
     initialBaselayersState
   );
 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
   /** query the bands to use as the baselayers of the map */
   useQuery<BandWithCmapValues[] | undefined>({
     initialData: undefined,
-    queryKey: [],
+    queryKey: [isAuthenticated],
     queryFn: async () => {
       // Fetch the maps and the map metadata in order to get the list of bands used as
       // map baselayers
@@ -69,7 +71,7 @@ function App() {
   /** sourceLists are used as FeatureGroups in the map, which can be toggled on/off in the map legend */
   const { data: sourceLists } = useQuery<SourceList[] | undefined>({
     initialData: undefined,
-    queryKey: [],
+    queryKey: [isAuthenticated],
     queryFn: async () => {
       // Fetch the source catalogs and sources
       const { catalogs, sources } = await fetchProducts('sources');
@@ -93,7 +95,7 @@ function App() {
     // The optimistic version of highlightBoxes for when we add boxes in the UI
     optimisticHighlightBoxes,
     addOptimisticHighlightBox,
-  } = useHighlightBoxes();
+  } = useHighlightBoxes(isAuthenticated);
 
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
@@ -168,24 +170,30 @@ function App() {
   const { activeBaselayer, internalBaselayersState } = baselayersState;
   return (
     <>
-      <Login />
-      {activeBaselayer && internalBaselayersState && (
-        <OpenLayersMap
-          baselayersState={baselayersState}
-          dispatchBaselayersChange={dispatchBaselayersChange}
-          sourceLists={sourceLists}
-          activeSourceListIds={activeSourceListIds}
-          onSelectedSourceListsChange={onSelectedSourceListsChange}
-          highlightBoxes={optimisticHighlightBoxes}
-          setBoxes={updateHighlightBoxes}
-          activeBoxIds={activeBoxIds}
-          setActiveBoxIds={setActiveBoxIds}
-          onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
-          submapData={submapData}
-          addOptimisticHighlightBox={addOptimisticHighlightBox}
-        />
-      )}
-      {assertBand(activeBaselayer) &&
+      <Login
+        isAuthenticated={isAuthenticated}
+        setIsAuthenticated={setIsAuthenticated}
+      />
+      {isAuthenticated !== null &&
+        activeBaselayer &&
+        internalBaselayersState && (
+          <OpenLayersMap
+            baselayersState={baselayersState}
+            dispatchBaselayersChange={dispatchBaselayersChange}
+            sourceLists={sourceLists}
+            activeSourceListIds={activeSourceListIds}
+            onSelectedSourceListsChange={onSelectedSourceListsChange}
+            highlightBoxes={optimisticHighlightBoxes}
+            setBoxes={updateHighlightBoxes}
+            activeBoxIds={activeBoxIds}
+            setActiveBoxIds={setActiveBoxIds}
+            onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
+            submapData={submapData}
+            addOptimisticHighlightBox={addOptimisticHighlightBox}
+          />
+        )}
+      {isAuthenticated !== null &&
+        assertBand(activeBaselayer) &&
         activeBaselayer.cmap &&
         activeBaselayer.cmapValues && (
           <ColorMapControls

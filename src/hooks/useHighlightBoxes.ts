@@ -9,7 +9,9 @@ type UseHighlightBoxesReturn = {
   addOptimisticHighlightBox: (action: Box) => void;
 };
 
-export function useHighlightBoxes(): UseHighlightBoxesReturn {
+export function useHighlightBoxes(
+  isAuthenticated: boolean | null
+): UseHighlightBoxesReturn {
   // Represents the box regions users can add to maps
   const [highlightBoxes, updateHighlightBoxes] = useState<Box[] | undefined>(
     undefined
@@ -34,7 +36,7 @@ export function useHighlightBoxes(): UseHighlightBoxesReturn {
       updateHighlightBoxes(boxes);
     }
     getBoxes();
-  }, []);
+  }, [isAuthenticated]);
 
   return {
     highlightBoxes,
