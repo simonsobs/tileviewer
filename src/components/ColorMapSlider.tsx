@@ -138,6 +138,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
     <>
       {cmapImage && (
         <img
+          className="histo-img"
           src={cmapImage}
           style={{
             width: `${cmapWidth}%`,

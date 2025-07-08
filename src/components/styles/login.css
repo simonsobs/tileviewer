@@ -1,11 +1,20 @@
-.login-container {
+.login-btn {
   position: absolute;
-  right: 11px;
-  top: 50px;
+  top: 9px;
+  right: 55px;
   z-index: 999;
+  column-gap: 0.25em;
+  padding: 2px 5px !important;
 }
 
-.login-container > a,
-.login-container > a:visited {
+.login-btn > a,
+.login-btn > a:visited {
+  text-decoration: none;
+  font-size: 0.9em;
   color: black;
+}
+
+.login-btn > img {
+  height: 1.25em;
+  width: 1.25em;
 }
