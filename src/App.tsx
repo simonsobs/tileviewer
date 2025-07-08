@@ -201,6 +201,7 @@ function App() {
               activeBaselayer.cmapValues.min,
               activeBaselayer.cmapValues.max,
             ]}
+            cmapRange={activeBaselayer.cmapValues.recommendedRange}
             onCmapValuesChange={onCmapValuesChange}
             cmap={activeBaselayer.cmap}
             onCmapChange={onCmapChange}

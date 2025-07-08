@@ -64,6 +64,7 @@ export async function fetchProducts(
               cmapValues: {
                 min: recommended_cmap_min,
                 max: recommended_cmap_max,
+                recommendedRange: recommended_cmap_max - recommended_cmap_min,
               },
             };
           }),

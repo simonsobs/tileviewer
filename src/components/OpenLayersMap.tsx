@@ -187,7 +187,7 @@ export function OpenLayersMap({
             resolutions: getBaselayerResolutions(
               180,
               band.tile_size,
-              band.levels
+              band.levels - 1
             ),
           }),
           interpolate: false,

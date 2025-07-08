@@ -90,6 +90,8 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
           cmapValues: {
             min: action.cmapValues.min,
             max: action.cmapValues.max,
+            recommendedRange:
+              action.activeBaselayer.cmapValues.recommendedRange,
           },
         };
         return {
