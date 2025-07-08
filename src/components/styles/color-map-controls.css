@@ -46,7 +46,7 @@ select {
   display: none;
 }
 
-img {
+.histo-img {
   position: absolute;
   height: 60px;
   bottom: 30px;

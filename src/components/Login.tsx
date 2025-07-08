@@ -19,12 +19,13 @@ export function Login({
 
   if (isAuthenticated === null) return null;
 
-  const linkText = isAuthenticated ? 'Log out' : 'Log in';
+  const linkText = isAuthenticated ? 'Log Out' : 'Log In';
   const href = isAuthenticated ? LOGOUT_URL : LOGIN_URL;
 
   return (
-    <div className="login-container">
+    <button className="map-btn login-btn">
       <a href={href}>{linkText}</a>
-    </div>
+      <img className="login-icon" src="/so-tileviewer.png" />
+    </button>
   );
 }
