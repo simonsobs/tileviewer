@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Range as RangeSlider, getTrackBackground } from 'react-range';
-import { formatNumberForDisplay } from '../utils/numberUtils';
+import { formatNumber, formatNumberForDisplay } from '../utils/numberUtils';
 import { ColorMapControlsProps } from './ColorMapControls';
 import './styles/color-map-controls.css';
 
@@ -26,6 +26,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
     sliderAttributes,
     quantity,
     values,
+    cmapRange,
   } = props;
   /**
    * Create temporary values for range slider min/max to maintain component state without setting the global state;
@@ -34,6 +35,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
   const [tempValues, setTempValues] = useState([values[0], values[1]]);
   const prevKeyUpHandler = useRef<(e: KeyboardEvent) => void>(null);
   const prevKeyDownHandler = useRef<(e: KeyboardEvent) => void>(null);
+  const stepValue = cmapRange * 0.05;
 
   useEffect(() => {
     if (prevKeyUpHandler.current) {
@@ -67,16 +69,28 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
 
       switch (e.key) {
         case 'a':
-          setTempValues((prev) => [prev[0] - 1, prev[1] - 1]);
+          setTempValues((prev) => [
+            formatNumber(prev[0] - stepValue),
+            formatNumber(prev[1] - stepValue),
+          ]);
           break;
         case 'd':
-          setTempValues((prev) => [prev[0] + 1, prev[1] + 1]);
+          setTempValues((prev) => [
+            formatNumber(prev[0] + stepValue),
+            formatNumber(prev[1] + stepValue),
+          ]);
           break;
         case 'w':
-          setTempValues((prev) => [prev[0] - 1, prev[1] + 1]);
+          setTempValues((prev) => [
+            formatNumber(prev[0] - stepValue),
+            formatNumber(prev[1] + stepValue),
+          ]);
           break;
         case 's':
-          setTempValues((prev) => [prev[0] + 1, prev[1] - 1]);
+          setTempValues((prev) => [
+            formatNumber(prev[0] + stepValue),
+            formatNumber(prev[1] - stepValue),
+          ]);
           break;
       }
     };

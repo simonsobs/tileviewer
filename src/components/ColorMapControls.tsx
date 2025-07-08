@@ -20,6 +20,8 @@ import { CustomColorMapDialog } from './CustomColorMapDialog';
 export type ColorMapControlsProps = {
   /** the selected or default min and max values for the slider */
   values: number[];
+  /** used to determine increment/decrement value for keyboard controls */
+  cmapRange: number;
   /** handler to set new user-specified values for slider */
   onCmapValuesChange: (values: number[]) => void;
   /** the color map selected in the cmap selector */
@@ -44,6 +46,7 @@ export type ColorMapControlsProps = {
 export function ColorMapControls(props: ColorMapControlsProps) {
   const {
     values,
+    cmapRange,
     onCmapValuesChange,
     cmap,
     onCmapChange,
@@ -175,6 +178,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
           <ColorMapSlider
             cmapImage={cmapImage}
             values={values}
+            cmapRange={cmapRange}
             onCmapValuesChange={onCmapValuesChange}
             units={units}
             quantity={quantity}

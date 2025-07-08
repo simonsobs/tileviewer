@@ -39,6 +39,7 @@ type BandCmapValues = {
   cmapValues: {
     min: number;
     max: number;
+    recommendedRange: number;
   };
 };
 

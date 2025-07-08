@@ -73,3 +73,11 @@ export function safeLog(x: number) {
     return Math.log(x);
   }
 }
+
+export function formatNumber(number: number, toFixed: number = 2) {
+  if (Number.isInteger(number)) {
+    return number;
+  } else {
+    return Number(number.toFixed(toFixed));
+  }
+}
