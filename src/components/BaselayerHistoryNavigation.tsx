@@ -20,7 +20,7 @@ export function BaselayerHistoryNavigation({
         <button
           type="button"
           className="map-btn"
-          title="Type 'h' or click to go back one baselayer"
+          title="Type 'H' or click to go back one baselayer"
           disabled={disableGoBack}
           onClick={goBack}
         >
@@ -31,7 +31,7 @@ export function BaselayerHistoryNavigation({
         <button
           type="button"
           className="map-btn"
-          title="Type 'l' or click to go forward one baselayer"
+          title="Type 'L' or click to go forward one baselayer"
           disabled={disableGoForward}
           onClick={goForward}
         >
