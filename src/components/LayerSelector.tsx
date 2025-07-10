@@ -1,18 +1,17 @@
 import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { BandWithCmapValues, SourceList } from '../types/maps';
-import { makeLayerName } from '../utils/layerUtils';
+import { MapMetadataResponseWithClientBand, SourceList } from '../types/maps';
 import { LayersIcon } from './icons/LayersIcon';
 import './styles/layer-selector.css';
 import { MapProps } from './OpenLayersMap';
-import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
 import {
   BaselayerHistoryNavigation,
   BaselayerHistoryNavigationProps,
 } from './BaselayerHistoryNavigation';
 import { LockClosedIcon } from './icons/LockClosedIcon';
 import { LockOpenIcon } from './icons/LockOpenIcon';
+import { BaselayerSections } from './BaselayerSections';
 
-interface Props
+export interface LayerSelectorProps
   extends Omit<
     MapProps & BaselayerHistoryNavigationProps,
     | 'baselayersState'
@@ -24,17 +23,18 @@ interface Props
   > {
   onBaselayerChange: (
     selectedBaselayerId: string,
+    selectedMapId: string | undefined,
     context: 'layerMenu' | 'goBack' | 'goForward',
     flipped?: boolean
   ) => void;
   activeBaselayerId?: number | string;
   sourceLists: SourceList[];
   isFlipped: boolean;
-  internalBaselayers: BandWithCmapValues[] | undefined;
+  internalBaselayerMaps: MapMetadataResponseWithClientBand[] | undefined;
 }
 
 export function LayerSelector({
-  internalBaselayers,
+  internalBaselayerMaps,
   onBaselayerChange,
   activeBaselayerId,
   sourceLists,
@@ -48,7 +48,7 @@ export function LayerSelector({
   disableGoForward,
   goBack,
   goForward,
-}: Props) {
+}: LayerSelectorProps) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [lockMenu, setLockMenu] = useState(false);
   const previousLockMenuHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
@@ -133,41 +133,12 @@ export function LayerSelector({
         </div>
         <fieldset>
           <legend>Baselayers</legend>
-          {internalBaselayers?.map((band) => (
-            <div className="input-container" key={band.map_id + '-' + band.id}>
-              <input
-                type="radio"
-                id={String(band.id)}
-                value={band.id}
-                name="baselayer"
-                checked={band.id === activeBaselayerId}
-                onChange={(e) => onBaselayerChange(e.target.value, 'layerMenu')}
-              />
-              <label htmlFor={String(band.id)}>{makeLayerName(band)}</label>
-            </div>
-          ))}
-          {EXTERNAL_BASELAYERS.map((bl) => (
-            <div
-              className={`input-container ${bl.disabledState(isFlipped) ? 'disabled' : ''}`}
-              key={bl.id}
-              title={
-                bl.disabledState(isFlipped)
-                  ? 'The current RA range is incompatible with this baselayer.'
-                  : undefined
-              }
-            >
-              <input
-                type="radio"
-                id={bl.id}
-                value={bl.id}
-                name="baselayer"
-                checked={bl.id === activeBaselayerId}
-                onChange={(e) => onBaselayerChange(e.target.value, 'layerMenu')}
-                disabled={bl.disabledState(isFlipped)}
-              />
-              <label htmlFor={bl.id}>{bl.name}</label>
-            </div>
-          ))}
+          <BaselayerSections
+            internalBaselayerMaps={internalBaselayerMaps}
+            activeBaselayerId={activeBaselayerId}
+            isFlipped={isFlipped}
+            onBaselayerChange={onBaselayerChange}
+          />
         </fieldset>
         {sourceLists.length ? (
           <fieldset>
