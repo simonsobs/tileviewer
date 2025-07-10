@@ -22,19 +22,6 @@ export const DEFAULT_INTERNAL_MAP_SETTINGS = {
 
 export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
   {
-    id: 'external-unwise-neo4',
-    name: 'Legacy Survey | unWISE neo4',
-    projection: 'EPSG:3857',
-    url: 'https://imagine.legacysurvey.org/static/tiles/unwise-neo4/1/{z}/{x}/{y}.jpg',
-    extent: transformExtent(
-      [-180, -MERCATOR_MAX_LAT, 180, MERCATOR_MAX_LAT],
-      'EPSG:4326',
-      'EPSG:3857'
-    ),
-    maxZoom: 8,
-    disabledState: (isFlipped: boolean) => !isFlipped,
-  },
-  {
     id: 'external-unwise-neo6',
     name: 'Legacy Survey | unWISE neo6',
     projection: 'EPSG:3857',
@@ -45,6 +32,19 @@ export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
       'EPSG:3857'
     ),
     maxZoom: 10,
+    disabledState: (isFlipped: boolean) => !isFlipped,
+  },
+  {
+    id: 'external-unwise-neo4',
+    name: 'Legacy Survey | unWISE neo4',
+    projection: 'EPSG:3857',
+    url: 'https://imagine.legacysurvey.org/static/tiles/unwise-neo4/1/{z}/{x}/{y}.jpg',
+    extent: transformExtent(
+      [-180, -MERCATOR_MAX_LAT, 180, MERCATOR_MAX_LAT],
+      'EPSG:4326',
+      'EPSG:3857'
+    ),
+    maxZoom: 8,
     disabledState: (isFlipped: boolean) => !isFlipped,
   },
 ];
