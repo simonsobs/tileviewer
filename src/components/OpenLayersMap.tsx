@@ -17,7 +17,14 @@ import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
 import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
-import { BaselayersState, Box, SourceList, SubmapData } from '../types/maps';
+import {
+  BandWithCmapValues,
+  BaselayersState,
+  Box,
+  ExternalBaselayer,
+  SourceList,
+  SubmapData,
+} from '../types/maps';
 import {
   DEFAULT_INTERNAL_MAP_SETTINGS,
   EXTERNAL_BASELAYERS,
@@ -88,13 +95,13 @@ export function OpenLayersMap({
   const [flipTiles, setFlipTiles] = useState(true);
 
   const [backHistoryStack, setBackHistoryStack] = useState<
-    { id: string; flipped: boolean }[]
+    { id: string; mapId: string | undefined; flipped: boolean }[]
   >([]);
   const [forwardHistoryStack, setForwardHistoryStack] = useState<
-    { id: string; flipped: boolean }[]
+    { id: string; mapId: string | undefined; flipped: boolean }[]
   >([]);
 
-  const { activeBaselayer, internalBaselayersState } = baselayersState;
+  const { activeBaselayer, internalBaselayerMaps } = baselayersState;
 
   /**
    * Handler fires when user changes map layers. If the units of the new
@@ -106,6 +113,7 @@ export function OpenLayersMap({
   const onBaselayerChange = useCallback(
     (
       selectedBaselayerId: string,
+      selectedBaselayerMapId: string | undefined,
       context: 'layerMenu' | 'goBack' | 'goForward',
       flipped?: boolean
     ) => {
@@ -113,11 +121,24 @@ export function OpenLayersMap({
 
       const { activeBaselayer } = baselayersState;
 
-      const newActiveBaselayer = isExternalBaselayer
-        ? EXTERNAL_BASELAYERS.find((b) => b.id === selectedBaselayerId)
-        : baselayersState.internalBaselayersState?.find(
-            (b) => b.id === Number(selectedBaselayerId)
-          );
+      let newActiveBaselayer:
+        | ExternalBaselayer
+        | BandWithCmapValues
+        | undefined = undefined;
+
+      if (isExternalBaselayer) {
+        newActiveBaselayer = EXTERNAL_BASELAYERS.find(
+          (b) => b.id === selectedBaselayerId
+        );
+      } else {
+        const map = baselayersState.internalBaselayerMaps?.find(
+          (map) => map.id === Number(selectedBaselayerMapId)
+        );
+        newActiveBaselayer = map?.bands.find(
+          (b) => b.id === Number(selectedBaselayerId)
+        );
+      }
+
       if (!newActiveBaselayer) return;
 
       if (context === 'goBack') {
@@ -125,6 +146,10 @@ export function OpenLayersMap({
         setForwardHistoryStack((prev) =>
           [...prev].concat({
             id: String(activeBaselayer?.id),
+            mapId:
+              activeBaselayer && 'map_id' in activeBaselayer
+                ? String(activeBaselayer.map_id)
+                : undefined,
             flipped: flipTiles,
           })
         );
@@ -132,6 +157,10 @@ export function OpenLayersMap({
         setBackHistoryStack((prev) =>
           [...prev].concat({
             id: String(activeBaselayer?.id),
+            mapId:
+              activeBaselayer && 'map_id' in activeBaselayer
+                ? String(activeBaselayer.map_id)
+                : undefined,
             flipped: flipTiles,
           })
         );
@@ -140,6 +169,10 @@ export function OpenLayersMap({
         setBackHistoryStack((prev) =>
           [...prev].concat({
             id: String(activeBaselayer?.id),
+            mapId:
+              activeBaselayer && 'map_id' in activeBaselayer
+                ? String(activeBaselayer.map_id)
+                : undefined,
             flipped: flipTiles,
           })
         );
@@ -156,7 +189,7 @@ export function OpenLayersMap({
       });
     },
     [
-      baselayersState.internalBaselayersState,
+      baselayersState.internalBaselayerMaps,
       baselayersState.activeBaselayer,
       backHistoryStack,
       flipTiles,
@@ -166,37 +199,55 @@ export function OpenLayersMap({
 
   const goBack = useCallback(() => {
     const baselayer = backHistoryStack[backHistoryStack.length - 1];
-    onBaselayerChange(baselayer.id, 'goBack', baselayer.flipped);
+    onBaselayerChange(
+      baselayer.id,
+      baselayer.mapId,
+      'goBack',
+      baselayer.flipped
+    );
   }, [onBaselayerChange, backHistoryStack]);
 
   const goForward = useCallback(() => {
     const baselayer = forwardHistoryStack[forwardHistoryStack.length - 1];
-    onBaselayerChange(baselayer.id, 'goForward', baselayer.flipped);
+    onBaselayerChange(
+      baselayer.id,
+      baselayer.mapId,
+      'goForward',
+      baselayer.flipped
+    );
   }, [onBaselayerChange, forwardHistoryStack]);
 
   const tileLayers = useMemo(() => {
-    return internalBaselayersState?.map((band) => {
-      return new TileLayer({
-        properties: { id: 'baselayer-' + band.id },
-        source: new XYZ({
-          url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${band.cmap}&vmin=${band.cmapValues.min}&vmax=${band.cmapValues.max}&flip=${flipTiles}`,
-          tileGrid: new TileGrid({
-            extent: [-180, -90, 180, 90],
-            origin: [-180, 90],
-            tileSize: band.tile_size,
-            resolutions: getBaselayerResolutions(
-              180,
-              band.tile_size,
-              band.levels - 1
-            ),
-          }),
-          interpolate: false,
-          projection: 'EPSG:4326',
-          tilePixelRatio: band.tile_size / 256,
-        }),
+    const tempTileLayers: TileLayer<XYZ>[] = [];
+
+    internalBaselayerMaps?.forEach((map) => {
+      map.bands.forEach((band) => {
+        tempTileLayers.push(
+          new TileLayer({
+            properties: { id: 'baselayer-' + band.id },
+            source: new XYZ({
+              url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${band.cmap}&vmin=${band.cmapValues.min}&vmax=${band.cmapValues.max}&flip=${flipTiles}`,
+              tileGrid: new TileGrid({
+                extent: [-180, -90, 180, 90],
+                origin: [-180, 90],
+                tileSize: band.tile_size,
+                resolutions: getBaselayerResolutions(
+                  180,
+                  band.tile_size,
+                  band.levels - 1
+                ),
+              }),
+              interpolate: false,
+              projection: 'EPSG:4326',
+              tilePixelRatio: band.tile_size / 256,
+            }),
+          })
+        );
       });
     });
-  }, [internalBaselayersState, flipTiles]);
+
+    return tempTileLayers;
+  }, [internalBaselayerMaps, flipTiles]);
 
   const externalTileLayers = useMemo(() => {
     return EXTERNAL_BASELAYERS.map((b) => {
@@ -522,7 +573,7 @@ export function OpenLayersMap({
         flipped={flipTiles}
       />
       <LayerSelector
-        internalBaselayers={internalBaselayersState}
+        internalBaselayerMaps={internalBaselayerMaps}
         onBaselayerChange={onBaselayerChange}
         activeBaselayerId={activeBaselayer?.id}
         sourceLists={sourceLists}

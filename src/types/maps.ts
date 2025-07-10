@@ -121,8 +121,8 @@ export type ExternalBaselayer = {
 export type BaselayersState = {
   /** the active baselayer selected in the map's legend */
   activeBaselayer?: BandWithCmapValues | ExternalBaselayer;
-  /** the bands used as internal baselayers */
-  internalBaselayersState?: BandWithCmapValues[];
+  /** the internal maps whose bands are used as internal baselayers */
+  internalBaselayerMaps?: MapMetadataResponseWithClientBand[];
 };
 
 export type SubmapData = {

@@ -2,6 +2,7 @@ import {
   BandWithCmapValues,
   BaselayersState,
   ExternalBaselayer,
+  MapMetadataResponseWithClientBand,
 } from '../types/maps';
 
 export function assertExternalBaselayer(
@@ -18,7 +19,7 @@ export function assertBand(
 
 export const initialBaselayersState: BaselayersState = {
   activeBaselayer: undefined,
-  internalBaselayersState: undefined,
+  internalBaselayerMaps: undefined,
 };
 
 export const CHANGE_CMAP_TYPE = 'CHANGE_CMAP';
@@ -48,7 +49,7 @@ type ChangeBaselayerAction = {
 
 type SetBaselayersAction = {
   type: typeof SET_BASELAYERS_STATE;
-  baselayers: BandWithCmapValues[];
+  baselayerMaps: MapMetadataResponseWithClientBand[];
 };
 
 export type Action =
@@ -61,8 +62,8 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
   switch (action.type) {
     case 'SET_BASELAYERS_STATE': {
       return {
-        internalBaselayersState: action.baselayers,
-        activeBaselayer: action.baselayers[0],
+        internalBaselayerMaps: action.baselayerMaps,
+        activeBaselayer: action.baselayerMaps[0].bands[0],
       };
     }
     case 'CHANGE_CMAP': {
@@ -72,9 +73,21 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
           cmap: action.cmap,
         };
         return {
-          internalBaselayersState: state.internalBaselayersState?.map((b) =>
-            b.id === action.activeBaselayer.id ? activeBaselayer : b
-          ),
+          internalBaselayerMaps: state.internalBaselayerMaps?.map((map) => {
+            if (
+              'map_id' in action.activeBaselayer &&
+              map.id === action.activeBaselayer.map_id
+            ) {
+              return {
+                ...map,
+                bands: map.bands.map((b) =>
+                  b.id === action.activeBaselayer.id ? activeBaselayer : b
+                ),
+              };
+            } else {
+              return map;
+            }
+          }),
           activeBaselayer,
         };
       } else {
@@ -95,9 +108,21 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
           },
         };
         return {
-          internalBaselayersState: state.internalBaselayersState?.map((b) =>
-            b.id === action.activeBaselayer.id ? activeBaselayer : b
-          ),
+          internalBaselayerMaps: state.internalBaselayerMaps?.map((map) => {
+            if (
+              'map_id' in action.activeBaselayer &&
+              map.id === action.activeBaselayer.map_id
+            ) {
+              return {
+                ...map,
+                bands: map.bands.map((b) =>
+                  b.id === action.activeBaselayer.id ? activeBaselayer : b
+                ),
+              };
+            } else {
+              return map;
+            }
+          }),
           activeBaselayer,
         };
       } else {

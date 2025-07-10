@@ -1,9 +1,5 @@
 import { useCallback, useMemo, useState, useReducer, ChangeEvent } from 'react';
-import {
-  MapMetadataResponseWithClientBand,
-  BandWithCmapValues,
-  SourceList,
-} from './types/maps';
+import { MapMetadataResponseWithClientBand, SourceList } from './types/maps';
 import { ColorMapControls } from './components/ColorMapControls';
 import { fetchProducts } from './utils/fetchUtils';
 import {
@@ -30,7 +26,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   /** query the bands to use as the baselayers of the map */
-  useQuery<BandWithCmapValues[] | undefined>({
+  useQuery<MapMetadataResponseWithClientBand[] | undefined>({
     initialData: undefined,
     queryKey: [isAuthenticated],
     queryFn: async () => {
@@ -38,33 +34,17 @@ function App() {
       // map baselayers
       const mapsMetadata = await fetchProducts('maps');
 
-      // Loop through each map's metadata and reduce the map's bands
-      // into a single array
-      const finalBands = mapsMetadata.reduce(
-        (
-          prev: BandWithCmapValues[],
-          curr: MapMetadataResponseWithClientBand
-        ) => {
-          if (curr.bands.length) {
-            return prev.concat(curr.bands);
-          } else {
-            return prev;
-          }
-        },
-        []
-      );
-
-      // If we end up with no bands for some reason, return early
-      if (!finalBands.length) return;
+      // // If we end up with no maps for some reason, return early
+      if (!mapsMetadata.length) return;
 
       // Set the baselayersState with the finalBands; note that this action will also set the
       // activeBaselayer to be finalBands[0]
       dispatchBaselayersChange({
         type: SET_BASELAYERS_STATE,
-        baselayers: finalBands,
+        baselayerMaps: mapsMetadata,
       });
 
-      return finalBands;
+      return mapsMetadata;
     },
   });
 
@@ -167,31 +147,29 @@ function App() {
     }
   }, [baselayersState.activeBaselayer]);
 
-  const { activeBaselayer, internalBaselayersState } = baselayersState;
+  const { activeBaselayer, internalBaselayerMaps } = baselayersState;
   return (
     <>
       <Login
         isAuthenticated={isAuthenticated}
         setIsAuthenticated={setIsAuthenticated}
       />
-      {isAuthenticated !== null &&
-        activeBaselayer &&
-        internalBaselayersState && (
-          <OpenLayersMap
-            baselayersState={baselayersState}
-            dispatchBaselayersChange={dispatchBaselayersChange}
-            sourceLists={sourceLists}
-            activeSourceListIds={activeSourceListIds}
-            onSelectedSourceListsChange={onSelectedSourceListsChange}
-            highlightBoxes={optimisticHighlightBoxes}
-            setBoxes={updateHighlightBoxes}
-            activeBoxIds={activeBoxIds}
-            setActiveBoxIds={setActiveBoxIds}
-            onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
-            submapData={submapData}
-            addOptimisticHighlightBox={addOptimisticHighlightBox}
-          />
-        )}
+      {isAuthenticated !== null && activeBaselayer && internalBaselayerMaps && (
+        <OpenLayersMap
+          baselayersState={baselayersState}
+          dispatchBaselayersChange={dispatchBaselayersChange}
+          sourceLists={sourceLists}
+          activeSourceListIds={activeSourceListIds}
+          onSelectedSourceListsChange={onSelectedSourceListsChange}
+          highlightBoxes={optimisticHighlightBoxes}
+          setBoxes={updateHighlightBoxes}
+          activeBoxIds={activeBoxIds}
+          setActiveBoxIds={setActiveBoxIds}
+          onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
+          submapData={submapData}
+          addOptimisticHighlightBox={addOptimisticHighlightBox}
+        />
+      )}
       {isAuthenticated !== null &&
         assertBand(activeBaselayer) &&
         activeBaselayer.cmap &&
