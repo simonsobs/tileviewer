@@ -85,7 +85,7 @@ export function OpenLayersMap({
   );
   const [isDrawing, setIsDrawing] = useState(false);
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
-  const [flipTiles, setFlipTiles] = useState(false);
+  const [flipTiles, setFlipTiles] = useState(true);
 
   const [backHistoryStack, setBackHistoryStack] = useState<
     { id: string; flipped: boolean }[]
@@ -309,7 +309,7 @@ export function OpenLayersMap({
 
   const handleSearchOverlay = useCallback(
     (e: MapBrowserEvent) => {
-      if (e.originalEvent.metaKey) {
+      if (e.originalEvent.shiftKey) {
         const simbadOverlay = e.map.getOverlayById('simbad-search-overlay');
         if (simbadOverlay) {
           if (externalSearchRef.current) {
