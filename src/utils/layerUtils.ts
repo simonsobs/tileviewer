@@ -2,6 +2,9 @@ import { Feature } from 'ol';
 import { BandWithCmapValues, BoxExtent } from '../types/maps';
 import { Source } from '../types/maps';
 import { NUMBER_OF_FIXED_COORDINATE_DECIMALS } from '../configs/mapSettings';
+import { Point } from 'ol/geom';
+import { Fill, Stroke, Style } from 'ol/style';
+import { FeatureLike } from 'ol/Feature';
 
 /**
  * A utility function to format a layer's name.
@@ -171,4 +174,27 @@ export function createSourcePopupContent(
 
   containerEl.appendChild(createSourceP('coord', data));
   containerEl.appendChild(createSourceP('flux', data));
+}
+
+/**
+ * Used to override default styling of the Draw feature so we can
+ * remove the blue Point that tracks the mouse cursor
+ */
+export function drawStyle(feature: FeatureLike) {
+  const geometry = feature.getGeometry();
+
+  // Hide the sketch point
+  if (geometry instanceof Point) {
+    return undefined;
+  }
+
+  return new Style({
+    stroke: new Stroke({
+      color: '#3399CC',
+      width: 2,
+    }),
+    fill: new Fill({
+      color: 'rgba(0, 0, 255, 0.1)',
+    }),
+  });
 }

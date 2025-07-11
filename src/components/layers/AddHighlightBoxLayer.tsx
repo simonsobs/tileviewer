@@ -6,6 +6,7 @@ import { BoxMenu } from '../BoxMenu';
 import VectorLayer from 'ol/layer/Vector';
 import { Map } from 'ol';
 import { MapProps } from '../OpenLayersMap';
+import { drawStyle } from '../../utils/layerUtils';
 
 type AddHightlightBoxLayerProps = {
   mapRef: React.RefObject<Map | null>;
@@ -56,6 +57,7 @@ export function AddHighlightBoxLayer({
           type: 'Circle',
           geometryFunction: createBox(),
           geometryName: 'drawn-box-feature',
+          style: drawStyle,
         });
 
         draw.on('drawend', (e) => {
