@@ -89,8 +89,6 @@ export function AddHighlightBoxLayer({
               top_left_dec,
               bottom_right_ra,
               bottom_right_dec,
-              top: topLeftBoxPosition[1],
-              left: topLeftBoxPosition[0],
               width: boxWidth,
               height: boxHeight,
             });
@@ -144,6 +142,7 @@ export function AddHighlightBoxLayer({
     <>
       {newBoxData && (
         <BoxMenu
+          mapRef={mapRef}
           isNewBox={true}
           flipped={flipped}
           boxData={newBoxData}

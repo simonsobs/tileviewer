@@ -1,19 +1,21 @@
 import { ReactNode } from 'react';
-import { BoxWithPositionalData, NewBoxData, SubmapData } from '../types/maps';
+import { BoxWithDimensions, NewBoxData, SubmapData } from '../types/maps';
 import { MenuIcon } from './icons/MenuIcon';
 import { SUBMAP_DOWNLOAD_OPTIONS } from '../configs/submapConfigs';
 import { downloadSubmap } from '../utils/fetchUtils';
 import { transformBoxes } from '../utils/layerUtils';
+import { Map } from 'ol';
 
 type BoxMenuProps = {
   isNewBox: boolean;
-  boxData: BoxWithPositionalData | NewBoxData;
+  boxData: BoxWithDimensions | NewBoxData;
   setShowMenu: (showMenu: boolean) => void;
   showMenu: boolean;
   additionalButtons?: ReactNode[];
   submapData?: SubmapData;
   showMenuOverlay?: boolean;
   flipped: boolean;
+  mapRef: React.RefObject<Map | null>;
 };
 
 export function BoxMenu({
@@ -25,7 +27,15 @@ export function BoxMenu({
   submapData,
   showMenuOverlay,
   flipped,
+  mapRef,
 }: BoxMenuProps) {
+  const map = mapRef.current;
+
+  const topLeftBoxPosition = map?.getPixelFromCoordinate([
+    boxData.top_left_ra,
+    boxData.top_left_dec,
+  ]);
+
   return (
     <div
       className={
@@ -33,8 +43,8 @@ export function BoxMenu({
         (isNewBox && !showMenuOverlay && 'hide')
       }
       style={{
-        top: boxData.top,
-        left: boxData.left,
+        top: topLeftBoxPosition ? topLeftBoxPosition[1] : 0,
+        left: topLeftBoxPosition ? topLeftBoxPosition[0] : 0,
       }}
     >
       <div className="box-menu-header">
