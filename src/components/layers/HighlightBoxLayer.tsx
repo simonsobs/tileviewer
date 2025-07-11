@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Box, BoxWithPositionalData } from '../../types/maps';
+import { Box, BoxWithDimensions } from '../../types/maps';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Feature, Map, MapBrowserEvent, Overlay } from 'ol';
@@ -31,7 +31,7 @@ export function HighlightBoxLayer({
 }: HightlightBoxLayerProps) {
   const boxOverlayRef = useRef<HTMLDivElement | null>(null);
   const [selectedBoxData, setSelectedBoxData] = useState<
-    BoxWithPositionalData | undefined
+    BoxWithDimensions | undefined
   >(undefined);
   const [showMenu, setShowMenu] = useState(false);
   const addedLayerIdsRef = useRef<Set<string>>(new Set());
@@ -70,8 +70,6 @@ export function HighlightBoxLayer({
 
         setSelectedBoxData({
           ...boxData,
-          top: topLeft[1],
-          left: topLeft[0],
           width,
           height,
         });
@@ -274,6 +272,7 @@ export function HighlightBoxLayer({
       </div>
       {showMenu && selectedBoxData && (
         <BoxMenu
+          mapRef={mapRef}
           isNewBox={false}
           flipped={flipped}
           boxData={selectedBoxData}

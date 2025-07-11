@@ -140,16 +140,12 @@ export type SubmapDataWithBounds = SubmapData & {
   right: number;
 };
 
-export type BoxWithPositionalData = Box & {
-  top: number;
-  left: number;
+export type BoxWithDimensions = Box & {
   width: number;
   height: number;
 };
 
 export type NewBoxData = Omit<Box, 'id' | 'name' | 'description'> & {
-  top: number;
-  left: number;
   width: number;
   height: number;
 };

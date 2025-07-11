@@ -6,6 +6,7 @@ import { BoxMenu } from '../BoxMenu';
 import VectorLayer from 'ol/layer/Vector';
 import { Map } from 'ol';
 import { MapProps } from '../OpenLayersMap';
+import { drawStyle } from '../../utils/layerUtils';
 
 type AddHightlightBoxLayerProps = {
   mapRef: React.RefObject<Map | null>;
@@ -56,6 +57,7 @@ export function AddHighlightBoxLayer({
           type: 'Circle',
           geometryFunction: createBox(),
           geometryName: 'drawn-box-feature',
+          style: drawStyle,
         });
 
         draw.on('drawend', (e) => {
@@ -87,8 +89,6 @@ export function AddHighlightBoxLayer({
               top_left_dec,
               bottom_right_ra,
               bottom_right_dec,
-              top: topLeftBoxPosition[1],
-              left: topLeftBoxPosition[0],
               width: boxWidth,
               height: boxHeight,
             });
@@ -142,6 +142,7 @@ export function AddHighlightBoxLayer({
     <>
       {newBoxData && (
         <BoxMenu
+          mapRef={mapRef}
           isNewBox={true}
           flipped={flipped}
           boxData={newBoxData}
