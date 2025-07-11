@@ -19,7 +19,11 @@ export function BaselayerSections({
   return (
     <>
       {internalBaselayerMaps?.map((map, index) => (
-        <CollapsibleSection summary={map.name} defaultOpen={index === 0}>
+        <CollapsibleSection
+          key={'section-internal-map-' + map.id}
+          summary={map.name}
+          defaultOpen={index === 0}
+        >
           {map.bands.map((band) => (
             <div className="input-container" key={band.map_id + '-' + band.id}>
               <input
@@ -42,7 +46,11 @@ export function BaselayerSections({
         </CollapsibleSection>
       ))}
       {
-        <CollapsibleSection summary="Comparison maps" defaultOpen={true}>
+        <CollapsibleSection
+          key="section-comparison-maps"
+          summary="Comparison maps"
+          defaultOpen={true}
+        >
           {EXTERNAL_BASELAYERS.map((bl) => (
             <div
               className={`input-container ${bl.disabledState(isFlipped) ? 'disabled' : ''}`}
