@@ -151,3 +151,7 @@ body {
   background-color: #921925 !important;
   color: white !important;
 }
+
+summary {
+  cursor: default;
+}
