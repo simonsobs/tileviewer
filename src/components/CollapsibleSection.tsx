@@ -4,12 +4,18 @@ type Props = {
   summary: ReactNode;
   children: ReactNode;
   defaultOpen: boolean;
+  tooltip?: string;
 };
 
-export function CollapsibleSection({ summary, defaultOpen, children }: Props) {
+export function CollapsibleSection({
+  summary,
+  defaultOpen,
+  children,
+  tooltip,
+}: Props) {
   return (
     <details open={defaultOpen}>
-      <summary>{summary}</summary>
+      <summary title={tooltip}>{summary}</summary>
       {children}
     </details>
   );

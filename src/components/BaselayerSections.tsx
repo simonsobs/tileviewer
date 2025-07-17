@@ -1,6 +1,5 @@
 import { LayerSelectorProps } from './LayerSelector';
 import { CollapsibleSection } from './CollapsibleSection';
-import { makeLayerName } from '../utils/layerUtils';
 import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
 
 type BaselayerSectionsProps = {
@@ -23,6 +22,7 @@ export function BaselayerSections({
           key={'section-internal-map-' + map.id}
           summary={map.name}
           defaultOpen={index === 0}
+          tooltip={map.description}
         >
           {map.bands.map((band) => (
             <div className="input-container" key={band.map_id + '-' + band.id}>
@@ -40,7 +40,7 @@ export function BaselayerSections({
                   )
                 }
               />
-              <label htmlFor={String(band.id)}>{makeLayerName(band)}</label>
+              <label htmlFor={String(band.id)}>{band.band_display_name}</label>
             </div>
           ))}
         </CollapsibleSection>

@@ -13,6 +13,7 @@ export type BandResponseBase = {
   id: number;
   map_id: number;
   map_name: string;
+  band_display_name: string;
   units: string;
   tiles_available: boolean;
   tile_size: number;
