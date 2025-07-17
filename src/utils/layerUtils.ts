@@ -1,24 +1,10 @@
 import { Feature } from 'ol';
-import { BandWithCmapValues, BoxExtent } from '../types/maps';
+import { BoxExtent } from '../types/maps';
 import { Source } from '../types/maps';
 import { NUMBER_OF_FIXED_COORDINATE_DECIMALS } from '../configs/mapSettings';
 import { Point } from 'ol/geom';
 import { Fill, Stroke, Style } from 'ol/style';
 import { FeatureLike } from 'ol/Feature';
-
-/**
- * A utility function to format a layer's name.
- * @param band The band object
- * @returns A string of map_name + stokes_parameter + quantity, where quantity
- *  and stokes_parameter are conditionally rendered based on their truthiness
- */
-export function makeLayerName(band: BandWithCmapValues) {
-  return (
-    band.map_name +
-    (band.stokes_parameter ? ` ${band.stokes_parameter}` : '') +
-    (band.quantity ? ` ${band.quantity}` : '')
-  );
-}
 
 export function handleSelectChange(
   event: React.ChangeEvent<HTMLInputElement>,
