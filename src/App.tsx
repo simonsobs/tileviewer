@@ -15,6 +15,7 @@ import { useHighlightBoxes } from './hooks/useHighlightBoxes';
 import { OpenLayersMap } from './components/OpenLayersMap';
 import { handleSelectChange } from './utils/layerUtils';
 import { Login } from './components/Login';
+import { safeLog } from './utils/numberUtils';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
@@ -147,6 +148,25 @@ function App() {
     }
   }, [baselayersState.activeBaselayer]);
 
+  const [isLogScale, setIsLogScale] = useState(false);
+
+  const onLogScaleChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      if (!assertBand(baselayersState.activeBaselayer)) return;
+
+      const { min, max } = baselayersState.activeBaselayer.cmapValues;
+      setIsLogScale(e.target.checked);
+
+      if (e.target.checked) {
+        const safeLogMin = safeLog(min);
+        onCmapValuesChange([safeLogMin === 0 ? 1 : safeLogMin, safeLog(max)]);
+      } else {
+        onCmapValuesChange([Math.pow(10, min), Math.pow(10, max)]);
+      }
+    },
+    [baselayersState.activeBaselayer, onCmapValuesChange]
+  );
+
   const { activeBaselayer, internalBaselayerMaps } = baselayersState;
   return (
     <>
@@ -168,6 +188,7 @@ function App() {
           onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
           submapData={submapData}
           addOptimisticHighlightBox={addOptimisticHighlightBox}
+          isLogScale={isLogScale}
         />
       )}
       {isAuthenticated !== null &&
@@ -186,6 +207,8 @@ function App() {
             activeBaselayerId={activeBaselayer.id}
             units={activeBaselayer.units}
             quantity={activeBaselayer.quantity}
+            isLogScale={isLogScale}
+            onLogScaleChange={onLogScaleChange}
           />
         )}
     </>

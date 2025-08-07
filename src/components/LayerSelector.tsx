@@ -20,6 +20,7 @@ export interface LayerSelectorProps
     | 'setBoxes'
     | 'addOptimisticHighlightBox'
     | 'dispatchBaselayersChange'
+    | 'isLogScale'
   > {
   onBaselayerChange: (
     selectedBaselayerId: string,

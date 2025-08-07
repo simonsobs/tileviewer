@@ -64,6 +64,7 @@ export type MapProps = {
   onSelectedHighlightBoxChange: (e: ChangeEvent<HTMLInputElement>) => void;
   submapData?: SubmapData;
   addOptimisticHighlightBox: (action: Box) => void;
+  isLogScale: boolean;
 };
 
 export function OpenLayersMap({
@@ -79,6 +80,7 @@ export function OpenLayersMap({
   onSelectedHighlightBoxChange,
   submapData,
   addOptimisticHighlightBox,
+  isLogScale,
 }: MapProps) {
   const mapRef = useRef<Map | null>(null);
   const drawBoxRef = useRef<VectorLayer | null>(null);
@@ -226,7 +228,7 @@ export function OpenLayersMap({
           new TileLayer({
             properties: { id: 'baselayer-' + band.id },
             source: new XYZ({
-              url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${band.cmap}&vmin=${band.cmapValues.min}&vmax=${band.cmapValues.max}&flip=${flipTiles}`,
+              url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${band.cmap}&vmin=${isLogScale ? Math.pow(10, band.cmapValues.min) : band.cmapValues.min}&vmax=${isLogScale ? Math.pow(10, band.cmapValues.max) : band.cmapValues.max}&flip=${flipTiles}&log_norm=${isLogScale}`,
               tileGrid: new TileGrid({
                 extent: [-180, -90, 180, 90],
                 origin: [-180, 90],
@@ -247,7 +249,7 @@ export function OpenLayersMap({
     });
 
     return tempTileLayers;
-  }, [internalBaselayerMaps, flipTiles]);
+  }, [internalBaselayerMaps, flipTiles, isLogScale]);
 
   const externalTileLayers = useMemo(() => {
     return EXTERNAL_BASELAYERS.map((b) => {
