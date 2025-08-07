@@ -6,6 +6,7 @@
   left: 10px;
   z-index: 400;
   height: 90px;
+  overflow: hidden;
 }
 
 .cmap-values-container {
@@ -16,6 +17,16 @@
   border: 1px solid var(--border-color-unhovered);
   border-radius: var(--standard-border-radius);
   padding: 2px 0;
+}
+
+.cmap-slider-container {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
 }
 
 .cmap-label {
@@ -33,9 +44,9 @@
 .cmap-selector-container {
   display: flex;
   justify-content: space-between;
-  height: 25px;
-  margin-bottom: auto;
   z-index: 2;
+  position: absolute;
+  width: 100%;
 }
 
 select {
@@ -63,8 +74,45 @@ select {
 .dialog-popout-btn {
   background-color: #2b2b2b;
   border: 1px solid #616161;
+  font-size: 11px;
+  padding: 0;
+  height: 1.5em;
+  width: 1.5em;
 }
 
 .dialog-popout-btn:hover {
   background-color: #565656;
+}
+
+.cmap-inputs {
+  display: flex;
+  justify-content: space-between;
+  flex-grow: 1;
+}
+
+.cmap-toggle,
+.cmap-toggle > select {
+  font-size: 9px;
+}
+
+.cmap-toggle.checkbox {
+  display: flex;
+  flex-direction: row;
+  column-gap: 4px;
+  align-items: center;
+  margin: 3px 0;
+}
+
+.cmap-toggle > input {
+  margin: 0;
+}
+
+.cmap-toggles {
+  margin-right: 8px;
+}
+
+.cmap-toggle.checkbox > input[type='checkbox']:disabled,
+.cmap-toggle.checkbox.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }

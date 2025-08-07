@@ -70,7 +70,7 @@ export function safeLog(x: number) {
   if (x <= 0) {
     return 0;
   } else {
-    return Math.log(x);
+    return Math.log10(x);
   }
 }
 
