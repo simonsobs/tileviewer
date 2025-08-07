@@ -5,41 +5,38 @@ import {
   HISTOGRAM_SIZE_X,
   HISTOGRAM_SIZE_Y,
 } from '../configs/cmapControlSettings';
-import { safeLog } from '../utils/numberUtils';
 
 type Props = {
   /** The data from the histogram response */
-  data: HistogramResponse;
+  data?: HistogramResponse;
   /** The user's min and max values for the range slider to use as edgeStart or edgeEnd
       in the event the user sets these beyond the histogram's min or max edges */
   userMinAndMaxValues: { min: number; max: number };
 };
 
 export function ColorMapHistogram({ data, userMinAndMaxValues }: Props) {
-  const { edges, histogram } = data;
-
   /**
    * The polygon constructed for use as the SVG for the histogram.
    * We memoized polygon so that it's only generated when the
    * props change.
    */
   const polygon = useMemo(() => {
-    /** Convert the histogram into log values using the safeLog utility function */
-    const logarithmicHistogram = histogram.map(safeLog);
+    if (!data) return;
+    const { edges, histogram } = data;
     /** Include user's min value in case we need to rescale the histogram accordingly */
     const edgeStart = Math.min(...edges, userMinAndMaxValues.min);
     /** Include user's max value in case we need to rescale the histogram accordingly */
     const edgeEnd = Math.max(...edges, userMinAndMaxValues.max);
 
-    const histogramStart = Math.min(...logarithmicHistogram);
+    const histogramStart = Math.min(...histogram);
     // Add a little buffer; we don't want the histogram to touch the top of the image
-    const histogramEnd = Math.max(...logarithmicHistogram) * 1.05;
+    const histogramEnd = Math.max(...histogram) * 1.05;
 
     return generatePolygon(
       edges.map((x) => {
         return translateDatum(x, edgeStart, edgeEnd, HISTOGRAM_SIZE_X);
       }),
-      logarithmicHistogram.map((y) => {
+      histogram.map((y) => {
         return translateDatum(
           y,
           histogramStart,
@@ -50,7 +47,7 @@ export function ColorMapHistogram({ data, userMinAndMaxValues }: Props) {
       HISTOGRAM_SIZE_X,
       HISTOGRAM_SIZE_Y
     );
-  }, [edges, histogram, userMinAndMaxValues.min, userMinAndMaxValues.max]);
+  }, [data, userMinAndMaxValues.min, userMinAndMaxValues.max]);
 
   return (
     <svg
@@ -58,7 +55,9 @@ export function ColorMapHistogram({ data, userMinAndMaxValues }: Props) {
       width={HISTOGRAM_SIZE_X}
       height={HISTOGRAM_SIZE_Y}
     >
-      <polyline opacity={0.65} fill="black" points={polygon.toString()} />
+      {polygon && (
+        <polyline opacity={0.65} fill="black" points={polygon.toString()} />
+      )}
     </svg>
   );
 }

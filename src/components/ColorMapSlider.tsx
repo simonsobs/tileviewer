@@ -4,10 +4,14 @@ import { formatNumber, formatNumberForDisplay } from '../utils/numberUtils';
 import { ColorMapControlsProps } from './ColorMapControls';
 import './styles/color-map-controls.css';
 
-interface ColorMapSlideProps
+interface ColorMapSliderProps
   extends Omit<
     ColorMapControlsProps,
-    'activeBaselayerId' | 'cmap' | 'onCmapChange'
+    | 'activeBaselayerId'
+    | 'cmap'
+    | 'onCmapChange'
+    | 'onLogScaleChange'
+    | 'isLogScale'
   > {
   /** The URL to the color map image */
   cmapImage?: string;
@@ -18,7 +22,7 @@ interface ColorMapSlideProps
 
 const regexToFindPercents = /\b\d+(\.\d+)?%/g;
 
-export function ColorMapSlider(props: ColorMapSlideProps) {
+export function ColorMapSlider(props: ColorMapSliderProps) {
   const {
     cmapImage,
     onCmapValuesChange,
@@ -35,7 +39,6 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
   const [tempValues, setTempValues] = useState([values[0], values[1]]);
   const prevKeyUpHandler = useRef<(e: KeyboardEvent) => void>(null);
   const prevKeyDownHandler = useRef<(e: KeyboardEvent) => void>(null);
-  const stepValue = cmapRange * 0.05;
 
   useEffect(() => {
     if (prevKeyUpHandler.current) {
@@ -66,6 +69,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest('input')) return;
+      const stepValue = cmapRange * 0.05;
 
       switch (e.key) {
         case 'a':
@@ -105,7 +109,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [tempValues, setTempValues, onCmapValuesChange]);
+  }, [tempValues, cmapRange, setTempValues, onCmapValuesChange]);
 
   /** Sync the temp values  */
   useEffect(() => {
@@ -149,7 +153,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
       : 'unknown';
 
   return (
-    <>
+    <div className="cmap-slider-container">
       {cmapImage && (
         <img
           className="histo-img"
@@ -230,6 +234,6 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
           {formatNumberForDisplay(tempValues[1], 7)}
         </span>
       </div>
-    </>
+    </div>
   );
 }
