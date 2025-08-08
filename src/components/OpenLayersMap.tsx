@@ -47,7 +47,11 @@ import {
   assertBand,
   CHANGE_BASELAYER,
 } from '../reducers/baselayersReducer';
-import { getBaselayerResolutions, transformCoords } from '../utils/layerUtils';
+import {
+  getBaselayerResolutions,
+  transformCoords,
+  transformGraticuleCoords,
+} from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
 import { CenterMapFeature } from './CenterMapFeature';
 
@@ -366,7 +370,7 @@ export function OpenLayersMap({
           externalSearchRef,
           externalSearchMarkerRef,
           e.coordinate,
-          flipTiles
+          transformGraticuleCoords(e.coordinate, flipTiles)
         );
       } else {
         const simbadOverlay = e.map.getOverlayById('simbad-search-overlay');
@@ -534,7 +538,7 @@ export function OpenLayersMap({
         mapRef={mapRef}
         externalSearchRef={externalSearchRef}
         externalSearchMarkerRef={externalSearchMarkerRef}
-        flipTiles={flipTiles}
+        flipped={flipTiles}
       />
       <SourcesLayer
         sourceLists={sourceLists}
@@ -581,7 +585,13 @@ export function OpenLayersMap({
       />
       <GraticuleLayer mapRef={mapRef} flipped={flipTiles} />
       {coordinates && (
-        <CoordinatesDisplay coordinates={coordinates} flipped={flipTiles} />
+        <CoordinatesDisplay
+          coordinates={coordinates}
+          flipped={flipTiles}
+          mapRef={mapRef}
+          externalSearchRef={externalSearchRef}
+          externalSearchMarkerRef={externalSearchMarkerRef}
+        />
       )}
     </div>
   );

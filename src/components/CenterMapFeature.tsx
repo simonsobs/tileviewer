@@ -5,19 +5,20 @@ import { Map, Feature } from 'ol';
 import './styles/center-map-feature.css';
 import { Geometry } from 'ol/geom';
 import { searchOverlayHelper } from '../utils/externalSearchUtils';
+import { transformGraticuleCoords } from '../utils/layerUtils';
 
 type CenterMapFeatureProps = {
   mapRef: React.RefObject<Map | null>;
   externalSearchRef: React.RefObject<HTMLDivElement | null>;
   externalSearchMarkerRef: React.RefObject<Feature<Geometry> | null>;
-  flipTiles: boolean;
+  flipped: boolean;
 };
 
 export function CenterMapFeature({
   mapRef,
   externalSearchRef,
   externalSearchMarkerRef,
-  flipTiles,
+  flipped,
 }: CenterMapFeatureProps) {
   const [showDialog, setShowDialog] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -52,13 +53,17 @@ export function CenterMapFeature({
         const dec = parseFloat(decStr);
 
         if (!isNaN(ra) && !isNaN(dec)) {
-          mapRef.current.getView().setCenter([ra, dec]);
+          const transformedCoords = transformGraticuleCoords(
+            [ra, dec],
+            flipped
+          );
+          mapRef.current.getView().setCenter(transformedCoords);
           searchOverlayHelper(
             mapRef.current,
             externalSearchRef,
             externalSearchMarkerRef,
-            [ra, dec],
-            flipTiles
+            transformedCoords,
+            [ra, dec]
           );
           setShowDialog(false);
           if (error) {
@@ -67,7 +72,7 @@ export function CenterMapFeature({
         }
       }
     },
-    [mapRef, externalSearchRef, externalSearchMarkerRef, flipTiles]
+    [mapRef, externalSearchRef, externalSearchMarkerRef, flipped, error]
   );
 
   const closeDialog = useCallback(() => {
@@ -92,7 +97,10 @@ export function CenterMapFeature({
           closeDialog={closeDialog}
           headerText="Go to Feature"
         >
-          <form className="center-feature-form" onSubmit={onSubmit}>
+          <form
+            className="center-feature-form generic-form"
+            onSubmit={onSubmit}
+          >
             <label>
               Feature Name:
               <input
