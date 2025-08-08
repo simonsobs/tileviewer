@@ -88,7 +88,7 @@ export function CenterMapFeature({
         title="Go to a feature's position"
         onClick={() => setShowDialog(!showDialog)}
       >
-        <MagnifyingGlass width={18} height={18} />
+        <MagnifyingGlass />
       </button>
       {showDialog && (
         <Dialog

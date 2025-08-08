@@ -5,7 +5,7 @@ type Props = {
   height?: CSSProperties['height'];
 };
 
-export function MagnifyingGlass({ width = 24, height = 24 }: Props) {
+export function MagnifyingGlass({ width = 18, height = 18 }: Props) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
