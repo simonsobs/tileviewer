@@ -14,12 +14,6 @@ header {
   margin-left: 2em;
 }
 
-form {
-  display: flex;
-  flex-direction: column;
-  row-gap: 2em;
-}
-
 label {
   font-size: 1.25em;
   display: flex;

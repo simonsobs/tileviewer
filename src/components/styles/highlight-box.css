@@ -24,11 +24,6 @@
   z-index: 1000;
 }
 
-.draw-box-icon {
-  height: 1.375em;
-  width: 1.375em;
-}
-
 .box-menu-hover-container {
   display: flex;
   flex-direction: column;
