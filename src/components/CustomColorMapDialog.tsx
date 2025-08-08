@@ -74,6 +74,7 @@ export function CustomColorMapDialog({
       headerText="Custom Colormap Parameters"
     >
       <form
+        className="generic-form"
         onSubmit={(e) => {
           e.preventDefault();
           handleUpdate();

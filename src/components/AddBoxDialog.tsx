@@ -84,6 +84,7 @@ export function AddBoxDialog({
       headerText="Add New Box Layer"
     >
       <form
+        className="generic-form"
         onSubmit={(e) => {
           e.preventDefault();
           handleSubmit(e);
