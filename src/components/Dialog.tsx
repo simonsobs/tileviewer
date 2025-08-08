@@ -3,7 +3,7 @@ import { useRef, useEffect, ReactNode } from 'react';
 type DialogProps = {
   dialogKey: string;
   openDialog: boolean;
-  setOpenDialog: (openDialog: boolean) => void;
+  closeDialog: () => void;
   headerText?: string;
   children: ReactNode;
 };
@@ -11,7 +11,7 @@ type DialogProps = {
 export function Dialog({
   dialogKey,
   openDialog,
-  setOpenDialog,
+  closeDialog,
   headerText,
   children,
 }: DialogProps) {
@@ -29,14 +29,10 @@ export function Dialog({
   }, [openDialog]);
 
   return (
-    <dialog key={dialogKey} ref={ref} onCancel={() => setOpenDialog(false)}>
+    <dialog key={dialogKey} ref={ref} onCancel={closeDialog}>
       <header>
         {headerText && <h1>{headerText}</h1>}
-        <button
-          className="close-dialog"
-          title="Close"
-          onClick={() => setOpenDialog(false)}
-        >
+        <button className="close-dialog" title="Close" onClick={closeDialog}>
           &#9747;
         </button>
       </header>

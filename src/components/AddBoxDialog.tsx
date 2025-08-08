@@ -80,7 +80,7 @@ export function AddBoxDialog({
     <Dialog
       dialogKey="add-box-dialog"
       openDialog={showAddBoxDialog}
-      setOpenDialog={setShowAddBoxDialog}
+      closeDialog={() => setShowAddBoxDialog(false)}
       headerText="Add New Box Layer"
     >
       <form

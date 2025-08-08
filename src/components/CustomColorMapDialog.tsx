@@ -70,7 +70,7 @@ export function CustomColorMapDialog({
     <Dialog
       dialogKey="custom-cmap-dialog"
       openDialog={isOpen}
-      setOpenDialog={closeModal}
+      closeDialog={closeModal}
       headerText="Custom Colormap Parameters"
     >
       <form
