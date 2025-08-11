@@ -151,13 +151,13 @@ function App() {
   const [isLogScale, setIsLogScale] = useState(false);
 
   const onLogScaleChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
+    (checked: boolean) => {
       if (!assertBand(baselayersState.activeBaselayer)) return;
 
       const { min, max } = baselayersState.activeBaselayer.cmapValues;
-      setIsLogScale(e.target.checked);
+      setIsLogScale(checked);
 
-      if (e.target.checked) {
+      if (checked) {
         const safeLogMin = safeLog(min);
         onCmapValuesChange([safeLogMin === 0 ? 1 : safeLogMin, safeLog(max)]);
       } else {
