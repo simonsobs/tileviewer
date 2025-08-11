@@ -1,3 +1,7 @@
+import { Feature, Map } from 'ol';
+import { Coordinate } from 'ol/coordinate';
+import { Geometry, Point } from 'ol/geom';
+
 export function generateSearchContent(coords: number[]): HTMLDivElement {
   const div = document.createElement('div');
   div.className = 'external-search-content';
@@ -39,4 +43,28 @@ function generateAnchorElement(
   a.href = href;
   a.text = `Search ${externalSiteName}`;
   return a;
+}
+
+export function searchOverlayHelper(
+  map: Map,
+  externalSearchRef: React.RefObject<HTMLDivElement | null>,
+  externalSearchMarkerRef: React.RefObject<Feature<Geometry> | null>,
+  overlayCoords: Coordinate,
+  searchCoords: Coordinate
+) {
+  if (!map) return;
+
+  const simbadOverlay = map.getOverlayById('simbad-search-overlay');
+  if (simbadOverlay) {
+    if (externalSearchRef.current) {
+      while (externalSearchRef.current.firstChild) {
+        externalSearchRef.current.removeChild(
+          externalSearchRef.current.firstChild
+        );
+      }
+    }
+    externalSearchRef.current?.append(generateSearchContent(searchCoords));
+    simbadOverlay.setPosition(overlayCoords);
+    externalSearchMarkerRef.current?.setGeometry(new Point(overlayCoords));
+  }
 }

@@ -80,10 +80,11 @@ export function AddBoxDialog({
     <Dialog
       dialogKey="add-box-dialog"
       openDialog={showAddBoxDialog}
-      setOpenDialog={setShowAddBoxDialog}
+      closeDialog={() => setShowAddBoxDialog(false)}
       headerText="Add New Box Layer"
     >
       <form
+        className="generic-form"
         onSubmit={(e) => {
           e.preventDefault();
           handleSubmit(e);

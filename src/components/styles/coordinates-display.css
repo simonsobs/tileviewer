@@ -12,14 +12,20 @@
   text-align: center;
   font-size: 1.3em;
   font-weight: 500;
+  user-select: none;
 }
 
-.coordinates-display > span {
+.coordinates-display > span,
+.coords-delimiter {
   display: inline-block;
 }
 
 .coords {
-  width: 110px;
+  width: 100px;
+}
+
+.coords-delimiter {
+  margin-left: 5px;
 }
 
 .coords.lat {
@@ -28,4 +34,9 @@
 
 .parens {
   width: 15px;
+}
+
+.coords-input {
+  width: 100px !important;
+  box-sizing: border-box;
 }

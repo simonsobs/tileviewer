@@ -1,0 +1,23 @@
+.center-feature-container {
+  position: absolute;
+  top: 96px;
+  left: 9px;
+  z-index: 1000;
+}
+
+.center-feature-form {
+  max-width: 400px;
+}
+
+.feature-search-error {
+  height: 50px;
+}
+
+.feature-search-error > h3,
+.feature-search-error > p {
+  margin: 0;
+}
+
+.feature-search-error > h3 {
+  color: red;
+}
