@@ -7,11 +7,7 @@ import './styles/color-map-controls.css';
 interface ColorMapSliderProps
   extends Omit<
     ColorMapControlsProps,
-    | 'activeBaselayerId'
-    | 'cmap'
-    | 'onCmapChange'
-    | 'onLogScaleChange'
-    | 'isLogScale'
+    'activeBaselayerId' | 'cmap' | 'onCmapChange' | 'onLogScaleChange'
   > {
   /** The URL to the color map image */
   cmapImage?: string;
@@ -31,6 +27,7 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
     quantity,
     values,
     cmapRange,
+    isLogScale,
   } = props;
   /**
    * Create temporary values for range slider min/max to maintain component state without setting the global state;
@@ -227,11 +224,17 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
       />
       <div className="cmap-values-container">
         <span className="cmap-value vmin">
-          {formatNumberForDisplay(tempValues[0], 7)}
+          {formatNumberForDisplay(
+            isLogScale ? Math.pow(10, tempValues[0]) : tempValues[0],
+            7
+          )}
         </span>
         <span className="cmap-label"> &lt; {rangeUnitsDisplay} &lt; </span>
         <span className="cmap-value">
-          {formatNumberForDisplay(tempValues[1], 7)}
+          {formatNumberForDisplay(
+            isLogScale ? Math.pow(10, tempValues[1]) : tempValues[1],
+            7
+          )}
         </span>
       </div>
     </div>

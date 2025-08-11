@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ColorMapControlsProps } from './ColorMapControls';
 import './styles/color-map-dialog.css';
 import { Dialog } from './Dialog';
+import { safeLog } from '../utils/numberUtils';
 
 /**
  * TODOS/QUESTIONS:
@@ -36,7 +37,7 @@ export function CustomColorMapDialog({
   // Create temporary values to maintain component state without setting the global state, which is only done during "Update Map"
   const [tempCmap, setTempCmap] = useState(cmap);
   const [tempValues, setTempValues] = useState<Array<string | undefined>>(
-    values.map((v) => String(v))
+    values.map((v) => (isLogScale ? String(Math.pow(10, v)) : String(v)))
   );
   const [tempIsLogScale, setTempIsLogScale] = useState(isLogScale);
 
@@ -47,8 +48,10 @@ export function CustomColorMapDialog({
 
   /** Sync the tempValues with higher-level values state changes */
   useEffect(() => {
-    setTempValues(values.map((v) => String(v)));
-  }, [values]);
+    setTempValues(
+      values.map((v) => (isLogScale ? String(Math.pow(10, v)) : String(v)))
+    );
+  }, [values, isLogScale]);
 
   /** Sync the tempIsLogScale with higher-level isLogScale state changes */
   useEffect(() => {
@@ -67,7 +70,11 @@ export function CustomColorMapDialog({
       Number(tempValues[0]) !== values[0] ||
       Number(tempValues[1]) !== values[1]
     ) {
-      onCmapValuesChange(tempValues.map((v) => (v ? Number(v) : 0)));
+      onCmapValuesChange(
+        tempValues.map((v) =>
+          v ? (isLogScale ? safeLog(Number(v)) : Number(v)) : 0
+        )
+      );
     }
 
     if (tempIsLogScale !== isLogScale) {

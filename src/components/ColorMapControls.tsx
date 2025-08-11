@@ -132,12 +132,9 @@ export function ColorMapControls(props: ColorMapControlsProps) {
     const min = Math.min(...processedHistogramData.edges, values[0]);
     const max = Math.max(...processedHistogramData.edges, values[1]);
     const stepCalc = (Math.abs(min) + Math.abs(max)) / STEPS_DIVISOR;
-    // Set step to 0.1 if log scale, otherwise calculate based on stepCalc
-    const step = isLogScale
-      ? 0.1
-      : stepCalc >= 1
-        ? Math.floor(stepCalc)
-        : stepCalc;
+
+    const step = stepCalc >= 1 ? Math.floor(stepCalc) : stepCalc;
+
     return { min, max, step };
   }, [processedHistogramData?.edges, values, isLogScale]);
 
@@ -218,6 +215,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
             units={units}
             quantity={quantity}
             sliderAttributes={sliderAttributes}
+            isLogScale={isLogScale}
           />
         )}
       </div>
