@@ -1,11 +1,9 @@
 import {
   ChangeEventHandler,
-  MouseEventHandler,
   useCallback,
   useEffect,
   useState,
   useMemo,
-  ChangeEvent,
 } from 'react';
 import { SERVICE_URL } from '../configs/mapSettings';
 import {
@@ -39,7 +37,7 @@ export type ColorMapControlsProps = {
   /** whether or not cmap x-axis is log scale */
   isLogScale: boolean;
   /** handler to update isLogScale state and to convert cmap values */
-  onLogScaleChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onLogScaleChange: (checked: boolean) => void;
 };
 
 /**
@@ -66,7 +64,6 @@ export function ColorMapControls(props: ColorMapControlsProps) {
   const [histogramData, setHistogramData] = useState<
     HistogramResponse | undefined
   >(undefined);
-  const [showCmapSelector, setShowCmapSelector] = useState(false);
   const [showCustomDialog, setShowCustomDialog] = useState(false);
   const [cmapOptions, setCmapOptions] = useState(CMAP_OPTIONS);
 
@@ -144,25 +141,6 @@ export function ColorMapControls(props: ColorMapControlsProps) {
     return { min, max, step };
   }, [processedHistogramData?.edges, values, isLogScale]);
 
-  /** Displays a <select> element for the color map when a user hovers over the histogram */
-  const onMouseEnter: MouseEventHandler = useCallback(() => {
-    if (!showCmapSelector) {
-      setShowCmapSelector(true);
-    }
-  }, [showCmapSelector, setShowCmapSelector]);
-
-  /** Hides the <select> element for the color map when a user mouses away from the histogram */
-  const onMouseLeave: MouseEventHandler = useCallback(
-    (e) => {
-      const el = e.target as HTMLElement;
-      const selectEl = el.closest('select');
-      if (showCmapSelector && !selectEl) {
-        setShowCmapSelector(false);
-      }
-    },
-    [showCmapSelector, setShowCmapSelector]
-  );
-
   /** Change handler for the color map <select> element */
   const handleCmapChange: ChangeEventHandler<HTMLSelectElement> = useCallback(
     (e) => {
@@ -185,51 +163,47 @@ export function ColorMapControls(props: ColorMapControlsProps) {
         // The width of the controls pane should equal the HISTOGRAM_SIZE_X constant set in
         // cmapControlSettings.ts, so let's just use an inline style for easier maintenance.
         style={{ width: `${HISTOGRAM_SIZE_X}px` }}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
       >
-        <div className="cmap-selector-container">
-          {showCmapSelector && (
-            <>
-              <div className="cmap-inputs">
-                <label className="cmap-toggle">
-                  Colormap
-                  <select value={cmap} onChange={handleCmapChange}>
-                    {cmapOptions.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="cmap-toggles">
-                  <label className="cmap-toggle checkbox">
-                    <input
-                      type="checkbox"
-                      checked={isLogScale}
-                      onChange={onLogScaleChange}
-                    />
-                    Log Scale
-                  </label>
-                  <label
-                    title="Coming soon"
-                    className="cmap-toggle checkbox disabled"
-                  >
-                    <input type="checkbox" disabled />
-                    Abs. Value
-                  </label>
-                </div>
-              </div>
-              {/* Button to "pop out" the CustomColorMapDialog component; button only displays when mouse enters the histogram */}
-              <button
-                className="dialog-popout-btn"
-                onClick={() => setShowCustomDialog(true)}
-                title="Customize parameters"
+        <div className="cmap-values-container static-cmap-controls">
+          <div className="cmap-inputs">
+            <select
+              className="cmap-select"
+              title="Select a colormap"
+              value={cmap}
+              onChange={handleCmapChange}
+            >
+              {cmapOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <div className="cmap-toggles">
+              <label className="cmap-toggle checkbox">
+                <input
+                  type="checkbox"
+                  checked={isLogScale}
+                  onChange={(e) => onLogScaleChange(e.target.checked)}
+                />
+                Log
+              </label>
+              <label
+                title="Coming soon"
+                className="cmap-toggle checkbox disabled"
               >
-                &#x2197;
-              </button>
-            </>
-          )}
+                <input type="checkbox" disabled />
+                Abs.
+              </label>
+            </div>
+          </div>
+          {/* Button to "pop out" the CustomColorMapDialog component; button only displays when mouse enters the histogram */}
+          <button
+            className="dialog-popout-btn"
+            onClick={() => setShowCustomDialog(true)}
+            title="Customize parameters"
+          >
+            &#x2197;
+          </button>
         </div>
         <ColorMapHistogram
           data={processedHistogramData}
