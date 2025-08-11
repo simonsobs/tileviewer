@@ -5,7 +5,7 @@ type Props = {
   height?: CSSProperties['height'];
 };
 
-export function CropIcon({ width = 18, height = 18 }: Props) {
+export function MagnifyingGlass({ width = 18, height = 18 }: Props) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -17,10 +17,10 @@ export function CropIcon({ width = 18, height = 18 }: Props) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="lucide lucide-menu"
+      className="lucide lucide-search-icon lucide-search"
     >
-      <path d="M6 2v14a2 2 0 0 0 2 2h14" />
-      <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+      <path d="m21 21-4.34-4.34" />
+      <circle cx="11" cy="11" r="8" />
     </svg>
   );
 }

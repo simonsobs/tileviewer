@@ -37,7 +37,10 @@ import { HighlightBoxLayer } from './layers/HighlightBoxLayer';
 import { GraticuleLayer } from './layers/GraticuleLayer';
 import { SourcesLayer } from './layers/SourcesLayer';
 import { AddHighlightBoxLayer } from './layers/AddHighlightBoxLayer';
-import { generateSearchContent } from '../utils/externalSearchUtils';
+import {
+  generateSearchContent,
+  searchOverlayHelper,
+} from '../utils/externalSearchUtils';
 import './styles/highlight-box.css';
 import {
   Action,
@@ -50,6 +53,7 @@ import {
   transformGraticuleCoords,
 } from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
+import { CenterMapFeature } from './CenterMapFeature';
 
 export type MapProps = {
   baselayersState: BaselayersState;
@@ -363,28 +367,13 @@ export function OpenLayersMap({
   const handleSearchOverlay = useCallback(
     (e: MapBrowserEvent) => {
       if (e.originalEvent.shiftKey) {
-        const simbadOverlay = e.map.getOverlayById('simbad-search-overlay');
-        if (simbadOverlay) {
-          if (externalSearchRef.current) {
-            while (externalSearchRef.current.firstChild) {
-              externalSearchRef.current.removeChild(
-                externalSearchRef.current.firstChild
-              );
-            }
-          }
-          const overlayCoords = e.coordinate;
-          const searchCoords = transformGraticuleCoords(
-            overlayCoords,
-            flipTiles
-          );
-          externalSearchRef.current?.append(
-            generateSearchContent(searchCoords)
-          );
-          simbadOverlay.setPosition(overlayCoords);
-          externalSearchMarkerRef.current?.setGeometry(
-            new Point(overlayCoords)
-          );
-        }
+        searchOverlayHelper(
+          e.map,
+          externalSearchRef,
+          externalSearchMarkerRef,
+          e.coordinate,
+          transformGraticuleCoords(e.coordinate, flipTiles)
+        );
       } else {
         const simbadOverlay = e.map.getOverlayById('simbad-search-overlay');
         if (simbadOverlay) {
@@ -547,6 +536,12 @@ export function OpenLayersMap({
           <CropIcon />
         </button>
       </div>
+      <CenterMapFeature
+        mapRef={mapRef}
+        externalSearchRef={externalSearchRef}
+        externalSearchMarkerRef={externalSearchMarkerRef}
+        flipped={flipTiles}
+      />
       <SourcesLayer
         sourceLists={sourceLists}
         activeSourceListIds={activeSourceListIds}
@@ -592,7 +587,13 @@ export function OpenLayersMap({
       />
       <GraticuleLayer mapRef={mapRef} flipped={flipTiles} />
       {coordinates && (
-        <CoordinatesDisplay coordinates={coordinates} flipped={flipTiles} />
+        <CoordinatesDisplay
+          coordinates={coordinates}
+          flipped={flipTiles}
+          mapRef={mapRef}
+          externalSearchRef={externalSearchRef}
+          externalSearchMarkerRef={externalSearchMarkerRef}
+        />
       )}
     </div>
   );
