@@ -42,6 +42,7 @@ type BandCmapValues = {
     max: number;
     recommendedRange: number;
   };
+  isLogScale: boolean;
 };
 
 export type BandWithCmapValues = BandResponseBase & BandCmapValues;

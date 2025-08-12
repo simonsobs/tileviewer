@@ -4,6 +4,7 @@ import {
   ExternalBaselayer,
   MapMetadataResponseWithClientBand,
 } from '../types/maps';
+import { safeLog } from '../utils/numberUtils';
 
 export function assertExternalBaselayer(
   baselayer: BandWithCmapValues | ExternalBaselayer | undefined
@@ -23,6 +24,7 @@ export const initialBaselayersState: BaselayersState = {
 };
 
 export const CHANGE_CMAP_TYPE = 'CHANGE_CMAP';
+export const CHANGE_LOG_SCALE = 'CHANGE_LOG_SCALE';
 export const CHANGE_CMAP_VALUES = 'CHANGE_CMAP_VALUES';
 export const CHANGE_BASELAYER = 'CHANGE_BASELAYER';
 export const SET_BASELAYERS_STATE = 'SET_BASELAYERS_STATE';
@@ -31,6 +33,12 @@ type ChangeCmapAction = {
   type: typeof CHANGE_CMAP_TYPE;
   activeBaselayer: BandWithCmapValues | ExternalBaselayer;
   cmap: string;
+};
+
+type ChangeLogScaleAction = {
+  type: typeof CHANGE_LOG_SCALE;
+  activeBaselayer: BandWithCmapValues | ExternalBaselayer;
+  isLogScale: boolean;
 };
 
 type ChangeCmapValuesAction = {
@@ -54,6 +62,7 @@ type SetBaselayersAction = {
 
 export type Action =
   | ChangeCmapAction
+  | ChangeLogScaleAction
   | ChangeCmapValuesAction
   | ChangeBaselayerAction
   | SetBaselayersAction;
@@ -89,6 +98,52 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
             }
           }),
           activeBaselayer,
+        };
+      } else {
+        return {
+          ...state,
+        };
+      }
+    }
+    case 'CHANGE_LOG_SCALE': {
+      if (assertBand(action.activeBaselayer)) {
+        const { activeBaselayer, isLogScale } = action;
+        const { min, max } = action.activeBaselayer.cmapValues;
+        const safeLogMin = safeLog(min);
+
+        const newCmapValues = {
+          ...activeBaselayer.cmapValues,
+          min: isLogScale
+            ? safeLogMin === 0
+              ? 1
+              : safeLogMin
+            : Math.pow(10, min),
+          max: isLogScale ? safeLog(max) : Math.pow(10, max),
+        };
+
+        const newActiveBaselayer = {
+          ...activeBaselayer,
+          cmapValues: newCmapValues,
+          isLogScale: action.isLogScale,
+        };
+
+        return {
+          internalBaselayerMaps: state.internalBaselayerMaps?.map((map) => {
+            if (
+              'map_id' in activeBaselayer &&
+              map.id === activeBaselayer.map_id
+            ) {
+              return {
+                ...map,
+                bands: map.bands.map((b) =>
+                  b.id === activeBaselayer.id ? newActiveBaselayer : b
+                ),
+              };
+            } else {
+              return map;
+            }
+          }),
+          activeBaselayer: newActiveBaselayer,
         };
       } else {
         return {

@@ -7,6 +7,7 @@ import {
   baselayersReducer,
   CHANGE_CMAP_TYPE,
   CHANGE_CMAP_VALUES,
+  CHANGE_LOG_SCALE,
   initialBaselayersState,
   SET_BASELAYERS_STATE,
 } from './reducers/baselayersReducer';
@@ -15,7 +16,6 @@ import { useHighlightBoxes } from './hooks/useHighlightBoxes';
 import { OpenLayersMap } from './components/OpenLayersMap';
 import { handleSelectChange } from './utils/layerUtils';
 import { Login } from './components/Login';
-import { safeLog } from './utils/numberUtils';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
@@ -148,23 +148,17 @@ function App() {
     }
   }, [baselayersState.activeBaselayer]);
 
-  const [isLogScale, setIsLogScale] = useState(false);
-
   const onLogScaleChange = useCallback(
     (checked: boolean) => {
-      if (!assertBand(baselayersState.activeBaselayer)) return;
-
-      const { min, max } = baselayersState.activeBaselayer.cmapValues;
-      setIsLogScale(checked);
-
-      if (checked) {
-        const safeLogMin = safeLog(min);
-        onCmapValuesChange([safeLogMin === 0 ? 1 : safeLogMin, safeLog(max)]);
-      } else {
-        onCmapValuesChange([Math.pow(10, min), Math.pow(10, max)]);
+      if (baselayersState.activeBaselayer) {
+        dispatchBaselayersChange({
+          type: CHANGE_LOG_SCALE,
+          activeBaselayer: baselayersState.activeBaselayer,
+          isLogScale: checked,
+        });
       }
     },
-    [baselayersState.activeBaselayer, onCmapValuesChange]
+    [baselayersState.activeBaselayer]
   );
 
   const { activeBaselayer, internalBaselayerMaps } = baselayersState;
@@ -188,7 +182,6 @@ function App() {
           onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
           submapData={submapData}
           addOptimisticHighlightBox={addOptimisticHighlightBox}
-          isLogScale={isLogScale}
         />
       )}
       {isAuthenticated !== null &&
@@ -207,7 +200,7 @@ function App() {
             activeBaselayerId={activeBaselayer.id}
             units={activeBaselayer.units}
             quantity={activeBaselayer.quantity}
-            isLogScale={isLogScale}
+            isLogScale={activeBaselayer.isLogScale}
             onLogScaleChange={onLogScaleChange}
           />
         )}
