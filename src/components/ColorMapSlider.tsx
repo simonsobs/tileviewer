@@ -4,10 +4,10 @@ import { formatNumber, formatNumberForDisplay } from '../utils/numberUtils';
 import { ColorMapControlsProps } from './ColorMapControls';
 import './styles/color-map-controls.css';
 
-interface ColorMapSlideProps
+interface ColorMapSliderProps
   extends Omit<
     ColorMapControlsProps,
-    'activeBaselayerId' | 'cmap' | 'onCmapChange'
+    'activeBaselayerId' | 'cmap' | 'onCmapChange' | 'onLogScaleChange'
   > {
   /** The URL to the color map image */
   cmapImage?: string;
@@ -18,7 +18,7 @@ interface ColorMapSlideProps
 
 const regexToFindPercents = /\b\d+(\.\d+)?%/g;
 
-export function ColorMapSlider(props: ColorMapSlideProps) {
+export function ColorMapSlider(props: ColorMapSliderProps) {
   const {
     cmapImage,
     onCmapValuesChange,
@@ -27,6 +27,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
     quantity,
     values,
     cmapRange,
+    isLogScale,
   } = props;
   /**
    * Create temporary values for range slider min/max to maintain component state without setting the global state;
@@ -35,7 +36,6 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
   const [tempValues, setTempValues] = useState([values[0], values[1]]);
   const prevKeyUpHandler = useRef<(e: KeyboardEvent) => void>(null);
   const prevKeyDownHandler = useRef<(e: KeyboardEvent) => void>(null);
-  const stepValue = cmapRange * 0.05;
 
   useEffect(() => {
     if (prevKeyUpHandler.current) {
@@ -66,6 +66,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest('input')) return;
+      const stepValue = cmapRange * 0.05;
 
       switch (e.key) {
         case 'a':
@@ -105,7 +106,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [tempValues, setTempValues, onCmapValuesChange]);
+  }, [tempValues, cmapRange, setTempValues, onCmapValuesChange]);
 
   /** Sync the temp values  */
   useEffect(() => {
@@ -149,7 +150,7 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
       : 'unknown';
 
   return (
-    <>
+    <div className="cmap-slider-container">
       {cmapImage && (
         <img
           className="histo-img"
@@ -223,13 +224,19 @@ export function ColorMapSlider(props: ColorMapSlideProps) {
       />
       <div className="cmap-values-container">
         <span className="cmap-value vmin">
-          {formatNumberForDisplay(tempValues[0], 7)}
+          {formatNumberForDisplay(
+            isLogScale ? Math.pow(10, tempValues[0]) : tempValues[0],
+            7
+          )}
         </span>
         <span className="cmap-label"> &lt; {rangeUnitsDisplay} &lt; </span>
         <span className="cmap-value">
-          {formatNumberForDisplay(tempValues[1], 7)}
+          {formatNumberForDisplay(
+            isLogScale ? Math.pow(10, tempValues[1]) : tempValues[1],
+            7
+          )}
         </span>
       </div>
-    </>
+    </div>
   );
 }

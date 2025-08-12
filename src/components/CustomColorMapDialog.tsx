@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ColorMapControlsProps } from './ColorMapControls';
 import './styles/color-map-dialog.css';
 import { Dialog } from './Dialog';
+import { safeLog } from '../utils/numberUtils';
 
 /**
  * TODOS/QUESTIONS:
@@ -30,12 +31,15 @@ export function CustomColorMapDialog({
   cmapOptions,
   setCmapOptions,
   units,
+  isLogScale,
+  onLogScaleChange,
 }: Props) {
   // Create temporary values to maintain component state without setting the global state, which is only done during "Update Map"
   const [tempCmap, setTempCmap] = useState(cmap);
   const [tempValues, setTempValues] = useState<Array<string | undefined>>(
-    values.map((v) => String(v))
+    values.map((v) => (isLogScale ? String(Math.pow(10, v)) : String(v)))
   );
+  const [tempIsLogScale, setTempIsLogScale] = useState(isLogScale);
 
   /** Sync the tempCmap with higher-level cmap state changes */
   useEffect(() => {
@@ -44,13 +48,39 @@ export function CustomColorMapDialog({
 
   /** Sync the tempValues with higher-level values state changes */
   useEffect(() => {
-    setTempValues(values.map((v) => String(v)));
-  }, [values]);
+    setTempValues(
+      values.map((v) => (isLogScale ? String(Math.pow(10, v)) : String(v)))
+    );
+  }, [values, isLogScale]);
+
+  /** Sync the tempIsLogScale with higher-level isLogScale state changes */
+  useEffect(() => {
+    setTempIsLogScale(isLogScale);
+  }, [isLogScale]);
 
   /** Handles "submitting" the temp values set in the dialog and closes the modal */
   const handleUpdate = useCallback(() => {
-    onCmapChange(tempCmap);
-    onCmapValuesChange(tempValues.map((v) => (v ? Number(v) : 0)));
+    // For each input, only fire the update handler if the value changed
+
+    if (tempCmap !== cmap) {
+      onCmapChange(tempCmap);
+    }
+
+    if (
+      Number(tempValues[0]) !== values[0] ||
+      Number(tempValues[1]) !== values[1]
+    ) {
+      onCmapValuesChange(
+        tempValues.map((v) =>
+          v ? (isLogScale ? safeLog(Number(v)) : Number(v)) : 0
+        )
+      );
+    }
+
+    if (tempIsLogScale !== isLogScale) {
+      onLogScaleChange(tempIsLogScale);
+    }
+
     // Check if tempCmap exists in cmapOptions and concat as a new option if not
     if (!cmapOptions.includes(tempCmap)) {
       setCmapOptions(cmapOptions.concat(tempCmap));
@@ -64,6 +94,11 @@ export function CustomColorMapDialog({
     closeModal,
     cmapOptions,
     setCmapOptions,
+    isLogScale,
+    tempIsLogScale,
+    cmap,
+    values,
+    onLogScaleChange,
   ]);
 
   return (
@@ -122,6 +157,20 @@ export function CustomColorMapDialog({
             }
           />
         </label>
+        <div className="cmap-toggles">
+          <label className="cmap-dialog-toggle">
+            <input
+              type="checkbox"
+              checked={tempIsLogScale}
+              onChange={(e) => setTempIsLogScale(e.target.checked)}
+            />
+            Log Scale
+          </label>
+          <label className="cmap-dialog-toggle disabled" title="Coming soon">
+            <input type="checkbox" disabled />
+            Abs. Value
+          </label>
+        </div>
         <input type="submit" value="Update Map" />
       </form>
     </Dialog>

@@ -66,6 +66,7 @@ export async function fetchProducts(
                 max: recommended_cmap_max,
                 recommendedRange: recommended_cmap_max - recommended_cmap_min,
               },
+              isLogScale: false,
             };
           }),
         };

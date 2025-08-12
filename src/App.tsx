@@ -7,6 +7,7 @@ import {
   baselayersReducer,
   CHANGE_CMAP_TYPE,
   CHANGE_CMAP_VALUES,
+  CHANGE_LOG_SCALE,
   initialBaselayersState,
   SET_BASELAYERS_STATE,
 } from './reducers/baselayersReducer';
@@ -147,6 +148,19 @@ function App() {
     }
   }, [baselayersState.activeBaselayer]);
 
+  const onLogScaleChange = useCallback(
+    (checked: boolean) => {
+      if (baselayersState.activeBaselayer) {
+        dispatchBaselayersChange({
+          type: CHANGE_LOG_SCALE,
+          activeBaselayer: baselayersState.activeBaselayer,
+          isLogScale: checked,
+        });
+      }
+    },
+    [baselayersState.activeBaselayer]
+  );
+
   const { activeBaselayer, internalBaselayerMaps } = baselayersState;
   return (
     <>
@@ -186,6 +200,8 @@ function App() {
             activeBaselayerId={activeBaselayer.id}
             units={activeBaselayer.units}
             quantity={activeBaselayer.quantity}
+            isLogScale={activeBaselayer.isLogScale}
+            onLogScaleChange={onLogScaleChange}
           />
         )}
     </>

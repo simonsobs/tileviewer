@@ -230,7 +230,7 @@ export function OpenLayersMap({
           new TileLayer({
             properties: { id: 'baselayer-' + band.id },
             source: new XYZ({
-              url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${band.cmap}&vmin=${band.cmapValues.min}&vmax=${band.cmapValues.max}&flip=${flipTiles}`,
+              url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${band.cmap}&vmin=${band.isLogScale ? Math.pow(10, band.cmapValues.min) : band.cmapValues.min}&vmax=${band.isLogScale ? Math.pow(10, band.cmapValues.max) : band.cmapValues.max}&flip=${flipTiles}&log_norm=${band.isLogScale}`,
               tileGrid: new TileGrid({
                 extent: [-180, -90, 180, 90],
                 origin: [-180, 90],

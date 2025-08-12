@@ -1,6 +1,5 @@
 import {
   ChangeEventHandler,
-  MouseEventHandler,
   useCallback,
   useEffect,
   useState,
@@ -16,6 +15,7 @@ import { ColorMapSlider } from './ColorMapSlider';
 import { HistogramResponse } from '../types/maps';
 import { ColorMapHistogram } from './ColorMapHistogram';
 import { CustomColorMapDialog } from './CustomColorMapDialog';
+import { safeLog } from '../utils/numberUtils';
 
 export type ColorMapControlsProps = {
   /** the selected or default min and max values for the slider */
@@ -34,6 +34,10 @@ export type ColorMapControlsProps = {
   units?: string;
   /** the quantity to display in the histogram range */
   quantity?: string;
+  /** whether or not cmap x-axis is log scale */
+  isLogScale: boolean;
+  /** handler to update isLogScale state and to convert cmap values */
+  onLogScaleChange: (checked: boolean) => void;
 };
 
 /**
@@ -53,14 +57,49 @@ export function ColorMapControls(props: ColorMapControlsProps) {
     activeBaselayerId,
     units,
     quantity,
+    isLogScale,
+    onLogScaleChange,
   } = props;
   const [cmapImage, setCmapImage] = useState<undefined | string>(undefined);
   const [histogramData, setHistogramData] = useState<
     HistogramResponse | undefined
   >(undefined);
-  const [showCmapSelector, setShowCmapSelector] = useState(false);
   const [showCustomDialog, setShowCustomDialog] = useState(false);
   const [cmapOptions, setCmapOptions] = useState(CMAP_OPTIONS);
+
+  /** Processes the histogram data so that it's ready to create the polygon in ColorMapHistogram  */
+  const processedHistogramData = useMemo(() => {
+    if (histogramData) {
+      let finalEdges;
+      let finalHistogram;
+
+      if (isLogScale) {
+        // Find where the first edge is positive
+        const sliceStartingIndex = histogramData.edges.findIndex((v) => v > 0);
+        // Use the found index to slice edge array into a new array of only positive values
+        const positiveEdges = histogramData.edges.slice(sliceStartingIndex);
+        // Transform edge values into log values
+        finalEdges = positiveEdges.map(safeLog);
+
+        // Slice the histogram data at the same point to make a new array
+        const slicedHistogram =
+          histogramData.histogram.slice(sliceStartingIndex);
+        // Transform histogram values into log values
+        finalHistogram = slicedHistogram.map(safeLog);
+      } else {
+        // Edges are unchanged if isLogScale is false
+        finalEdges = histogramData.edges;
+        // Transform all of the histogram values into log values
+        finalHistogram = histogramData.histogram.map(safeLog);
+      }
+
+      return {
+        edges: finalEdges,
+        histogram: finalHistogram,
+        band_id: histogramData.band_id,
+      };
+    }
+  }, [histogramData, isLogScale]);
 
   /** Fetch and set the URL to the color map image if/when cmap or its setter changes */
   useEffect(() => {
@@ -89,35 +128,15 @@ export function ColorMapControls(props: ColorMapControlsProps) {
         extend beyond the recommended cmap settings. The step attribute is the range of the
         histogram edges divided by STEPS_DIVISOR. */
   const sliderAttributes = useMemo(() => {
-    if (!histogramData) return;
-    const histogramMin = Math.min(...histogramData.edges);
-    const histogramMax = Math.max(...histogramData.edges);
-    const min = Math.min(histogramMin, values[0]);
-    const max = Math.max(histogramMax, values[1]);
-    const stepCalc =
-      (Math.abs(histogramMin) + Math.abs(histogramMax)) / STEPS_DIVISOR;
+    if (!processedHistogramData?.edges) return;
+    const min = Math.min(...processedHistogramData.edges, values[0]);
+    const max = Math.max(...processedHistogramData.edges, values[1]);
+    const stepCalc = (Math.abs(min) + Math.abs(max)) / STEPS_DIVISOR;
+
     const step = stepCalc >= 1 ? Math.floor(stepCalc) : stepCalc;
+
     return { min, max, step };
-  }, [histogramData, values]);
-
-  /** Displays a <select> element for the color map when a user hovers over the histogram */
-  const onMouseEnter: MouseEventHandler = useCallback(() => {
-    if (!showCmapSelector) {
-      setShowCmapSelector(true);
-    }
-  }, [showCmapSelector, setShowCmapSelector]);
-
-  /** Hides the <select> element for the color map when a user mouses away from the histogram */
-  const onMouseLeave: MouseEventHandler = useCallback(
-    (e) => {
-      const el = e.target as HTMLElement;
-      const selectEl = el.closest('select');
-      if (showCmapSelector && !selectEl) {
-        setShowCmapSelector(false);
-      }
-    },
-    [showCmapSelector, setShowCmapSelector]
-  );
+  }, [processedHistogramData?.edges, values, isLogScale]);
 
   /** Change handler for the color map <select> element */
   const handleCmapChange: ChangeEventHandler<HTMLSelectElement> = useCallback(
@@ -141,39 +160,52 @@ export function ColorMapControls(props: ColorMapControlsProps) {
         // The width of the controls pane should equal the HISTOGRAM_SIZE_X constant set in
         // cmapControlSettings.ts, so let's just use an inline style for easier maintenance.
         style={{ width: `${HISTOGRAM_SIZE_X}px` }}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
       >
-        <div className="cmap-selector-container">
-          {showCmapSelector && (
-            <>
-              <label>
-                Colormap:
-                <select value={cmap} onChange={handleCmapChange}>
-                  {cmapOptions.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+        <div className="cmap-values-container static-cmap-controls">
+          <div className="cmap-inputs">
+            <select
+              className="cmap-select"
+              title="Select a colormap"
+              value={cmap}
+              onChange={handleCmapChange}
+            >
+              {cmapOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <div className="cmap-toggles">
+              <label className="cmap-toggle checkbox">
+                <input
+                  type="checkbox"
+                  checked={isLogScale}
+                  onChange={(e) => onLogScaleChange(e.target.checked)}
+                />
+                Log
               </label>
-              {/* Button to "pop out" the CustomColorMapDialog component; button only displays when mouse enters the histogram */}
-              <button
-                className="dialog-popout-btn"
-                onClick={() => setShowCustomDialog(true)}
-                title="Customize parameters"
+              <label
+                title="Coming soon"
+                className="cmap-toggle checkbox disabled"
               >
-                &#x2197;
-              </button>
-            </>
-          )}
+                <input type="checkbox" disabled />
+                Abs.
+              </label>
+            </div>
+          </div>
+          {/* Button to "pop out" the CustomColorMapDialog component; button only displays when mouse enters the histogram */}
+          <button
+            className="dialog-popout-btn"
+            onClick={() => setShowCustomDialog(true)}
+            title="Customize parameters"
+          >
+            &#x2197;
+          </button>
         </div>
-        {histogramData && (
-          <ColorMapHistogram
-            data={histogramData}
-            userMinAndMaxValues={{ min: values[0], max: values[1] }}
-          />
-        )}
+        <ColorMapHistogram
+          data={processedHistogramData}
+          userMinAndMaxValues={{ min: values[0], max: values[1] }}
+        />
         {sliderAttributes && (
           <ColorMapSlider
             cmapImage={cmapImage}
@@ -183,6 +215,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
             units={units}
             quantity={quantity}
             sliderAttributes={sliderAttributes}
+            isLogScale={isLogScale}
           />
         )}
       </div>
