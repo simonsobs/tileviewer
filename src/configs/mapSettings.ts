@@ -22,7 +22,7 @@ export const DEFAULT_INTERNAL_MAP_SETTINGS = {
 
 export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
   {
-    id: 'external-unwise-neo6',
+    layer_id: 'external-unwise-neo6',
     name: 'Legacy Survey | unWISE neo6',
     projection: 'EPSG:3857',
     url: 'https://s3.us-west-2.amazonaws.com/unwise-neo6.legacysurvey.org/{z}/{x}/{y}.jpg',
@@ -35,7 +35,7 @@ export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
     disabledState: (isFlipped: boolean) => !isFlipped,
   },
   {
-    id: 'external-unwise-neo4',
+    layer_id: 'external-unwise-neo4',
     name: 'Legacy Survey | unWISE neo4',
     projection: 'EPSG:3857',
     url: 'https://imagine.legacysurvey.org/static/tiles/unwise-neo4/1/{z}/{x}/{y}.jpg',

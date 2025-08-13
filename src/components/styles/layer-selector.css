@@ -107,3 +107,15 @@ input[type='radio']:disabled {
   height: 1em;
   width: 1em;
 }
+
+.layer-selecter-input-label {
+  font-size: 10px;
+  display: inline-block;
+  margin-right: 15px;
+}
+
+.layer-selecter-input-label > input {
+  margin: 0;
+  margin-right: 4px;
+  height: 12px;
+}

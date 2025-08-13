@@ -1,59 +1,58 @@
-export type MapResponse = {
-  id: number;
-  description: string;
-  tags: string;
-  telescope: string;
+export type MapGroupResponse = {
+  grant: string;
   name: string;
-  data_release: string;
-  season: string;
-  patch: string;
+  description: string;
+  maps: MapResponse[];
 };
 
-export type BandResponseBase = {
-  id: number;
-  map_id: number;
-  map_name: string;
-  band_display_name: string;
-  units: string;
-  tiles_available: boolean;
-  tile_size: number;
-  frequency: number;
-  levels: number;
-  stokes_parameter: string;
-  quantity: string;
-  bounding_top: number;
-  bounding_right: number;
-  bounding_bottom: number;
-  bounding_left: number;
-};
-
-type BandCmapResponse = {
-  recommended_cmap: string;
-  recommended_cmap_min: number;
-  recommended_cmap_max: number;
-};
-
-type BandResponse = BandResponseBase & BandCmapResponse;
-
-type BandCmapValues = {
-  cmap: string;
-  cmapValues: {
-    min: number;
-    max: number;
-    recommendedRange: number;
-  };
-  isLogScale: boolean;
-};
-
-export type BandWithCmapValues = BandResponseBase & BandCmapValues;
-
-export type MapMetadataResponse = MapResponse & {
+export type MapResponse = {
+  grant: string;
+  map_id: string;
+  name: string;
+  description: string;
   bands: BandResponse[];
 };
 
-export type MapMetadataResponseWithClientBand = MapResponse & {
-  bands: BandWithCmapValues[];
+export type BandResponse = {
+  grant: string;
+  band_id: string;
+  name: string;
+  description: string;
+  layers: LayerResponse[];
 };
+
+export type LayerResponse = {
+  grant: string;
+  layer_id: string;
+  name: string;
+  description: string;
+  provider: {
+    provider_name: string;
+    filename: string;
+    hdu: number;
+    index: number;
+  };
+  bounding_left: number;
+  bounding_right: number;
+  bounding_top: number;
+  bounding_bottom: number;
+  quantity: string;
+  units: string;
+  number_of_levels: number;
+  tile_size: number;
+  vmin: number;
+  vmax: number;
+  cmap: string;
+};
+
+type EnhancedLayerAttributes = {
+  mapId: string;
+  bandId: string;
+  recommendedCmapValuesRange: number;
+  isLogScale: boolean;
+};
+
+export type InternalBaselayer = LayerResponse & EnhancedLayerAttributes;
 
 export type HistogramResponse = {
   edges: number[];
@@ -102,16 +101,20 @@ export type BoxExtent = {
   bottom_right_dec: number;
 };
 
-export type Box = BoxExtent & {
-  id: number;
+export type BoxResponse = BoxExtent & {
+  grant: string;
   name: string;
   description: string;
+};
+
+export type Box = BoxResponse & {
+  id: number;
 };
 
 type TileUrlFunction = (x: number[]) => string;
 
 export type ExternalBaselayer = {
-  id: string;
+  layer_id: string;
   name: string;
   projection: string;
   url: string | TileUrlFunction;
@@ -122,14 +125,13 @@ export type ExternalBaselayer = {
 
 export type BaselayersState = {
   /** the active baselayer selected in the map's legend */
-  activeBaselayer?: BandWithCmapValues | ExternalBaselayer;
-  /** the internal maps whose bands are used as internal baselayers */
-  internalBaselayerMaps?: MapMetadataResponseWithClientBand[];
+  activeBaselayer?: InternalBaselayer | ExternalBaselayer;
+  /** the internal SO layers used as baselayers */
+  internalBaselayers?: InternalBaselayer[];
 };
 
 export type SubmapData = {
-  mapId: number;
-  bandId: number;
+  layer_id: string;
   vmin: number | undefined;
   vmax: number | undefined;
   cmap: string | undefined;
@@ -147,7 +149,7 @@ export type BoxWithDimensions = Box & {
   height: number;
 };
 
-export type NewBoxData = Omit<Box, 'id' | 'name' | 'description'> & {
+export type NewBoxData = Omit<Box, 'id' | 'name' | 'description' | 'grant'> & {
   width: number;
   height: number;
 };

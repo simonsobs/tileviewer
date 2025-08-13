@@ -29,7 +29,7 @@ export type ColorMapControlsProps = {
   /** handler to set new color map */
   onCmapChange: (cmap: string) => void;
   /** the id of the selected map baselayer */
-  activeBaselayerId: number;
+  activeBaselayerId: string;
   /** the units to display in the histogram range */
   units?: string;
   /** the quantity to display in the histogram range */
