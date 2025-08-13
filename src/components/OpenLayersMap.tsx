@@ -18,12 +18,13 @@ import { Point } from 'ol/geom';
 import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
 import {
-  BandWithCmapValues,
+  InternalBaselayer,
   BaselayersState,
   Box,
   ExternalBaselayer,
   SourceList,
   SubmapData,
+  MapGroupResponse,
 } from '../types/maps';
 import {
   DEFAULT_INTERNAL_MAP_SETTINGS,
@@ -44,7 +45,7 @@ import {
 import './styles/highlight-box.css';
 import {
   Action,
-  assertBand,
+  assertInternalBaselayer,
   CHANGE_BASELAYER,
 } from '../reducers/baselayersReducer';
 import {
@@ -56,33 +57,31 @@ import { ToggleSwitch } from './ToggleSwitch';
 import { CenterMapFeature } from './CenterMapFeature';
 
 export type MapProps = {
+  mapGroups: MapGroupResponse[];
   baselayersState: BaselayersState;
   dispatchBaselayersChange: React.ActionDispatch<[action: Action]>;
   sourceLists?: SourceList[];
   activeSourceListIds: number[];
   onSelectedSourceListsChange: (e: ChangeEvent<HTMLInputElement>) => void;
   highlightBoxes: Box[] | undefined;
-  setBoxes: (boxes: Box[]) => void;
   activeBoxIds: number[];
   setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
   onSelectedHighlightBoxChange: (e: ChangeEvent<HTMLInputElement>) => void;
   submapData?: SubmapData;
-  addOptimisticHighlightBox: (action: Box) => void;
 };
 
 export function OpenLayersMap({
+  mapGroups,
   baselayersState,
   dispatchBaselayersChange,
   sourceLists = [],
   onSelectedSourceListsChange,
   activeSourceListIds,
   highlightBoxes,
-  setBoxes,
   activeBoxIds,
   setActiveBoxIds,
   onSelectedHighlightBoxChange,
   submapData,
-  addOptimisticHighlightBox,
 }: MapProps) {
   const mapRef = useRef<Map | null>(null);
   const drawBoxRef = useRef<VectorLayer | null>(null);
@@ -99,13 +98,13 @@ export function OpenLayersMap({
   const [flipTiles, setFlipTiles] = useState(true);
 
   const [backHistoryStack, setBackHistoryStack] = useState<
-    { id: string; mapId: string | undefined; flipped: boolean }[]
+    { id: string; flipped: boolean }[]
   >([]);
   const [forwardHistoryStack, setForwardHistoryStack] = useState<
-    { id: string; mapId: string | undefined; flipped: boolean }[]
+    { id: string; flipped: boolean }[]
   >([]);
 
-  const { activeBaselayer, internalBaselayerMaps } = baselayersState;
+  const { activeBaselayer, internalBaselayers } = baselayersState;
 
   /**
    * Handler fires when user changes map layers. If the units of the new
@@ -117,29 +116,25 @@ export function OpenLayersMap({
   const onBaselayerChange = useCallback(
     (
       selectedBaselayerId: string,
-      selectedBaselayerMapId: string | undefined,
       context: 'layerMenu' | 'goBack' | 'goForward',
       flipped?: boolean
     ) => {
       const isExternalBaselayer = selectedBaselayerId.includes('external');
 
-      const { activeBaselayer } = baselayersState;
+      const { activeBaselayer, internalBaselayers } = baselayersState;
 
       let newActiveBaselayer:
         | ExternalBaselayer
-        | BandWithCmapValues
+        | InternalBaselayer
         | undefined = undefined;
 
       if (isExternalBaselayer) {
         newActiveBaselayer = EXTERNAL_BASELAYERS.find(
-          (b) => b.id === selectedBaselayerId
+          (b) => b.layer_id === selectedBaselayerId
         );
       } else {
-        const map = baselayersState.internalBaselayerMaps?.find(
-          (map) => map.id === Number(selectedBaselayerMapId)
-        );
-        newActiveBaselayer = map?.bands.find(
-          (b) => b.id === Number(selectedBaselayerId)
+        newActiveBaselayer = internalBaselayers?.find(
+          (b) => b.layer_id === selectedBaselayerId
         );
       }
 
@@ -149,22 +144,14 @@ export function OpenLayersMap({
         setBackHistoryStack((prev) => prev.slice(0, -1));
         setForwardHistoryStack((prev) =>
           [...prev].concat({
-            id: String(activeBaselayer?.id),
-            mapId:
-              activeBaselayer && 'map_id' in activeBaselayer
-                ? String(activeBaselayer.map_id)
-                : undefined,
+            id: String(activeBaselayer?.layer_id),
             flipped: flipTiles,
           })
         );
       } else if (context === 'goForward') {
         setBackHistoryStack((prev) =>
           [...prev].concat({
-            id: String(activeBaselayer?.id),
-            mapId:
-              activeBaselayer && 'map_id' in activeBaselayer
-                ? String(activeBaselayer.map_id)
-                : undefined,
+            id: String(activeBaselayer?.layer_id),
             flipped: flipTiles,
           })
         );
@@ -172,11 +159,7 @@ export function OpenLayersMap({
       } else {
         setBackHistoryStack((prev) =>
           [...prev].concat({
-            id: String(activeBaselayer?.id),
-            mapId:
-              activeBaselayer && 'map_id' in activeBaselayer
-                ? String(activeBaselayer.map_id)
-                : undefined,
+            id: String(activeBaselayer?.layer_id),
             flipped: flipTiles,
           })
         );
@@ -193,7 +176,7 @@ export function OpenLayersMap({
       });
     },
     [
-      baselayersState.internalBaselayerMaps,
+      baselayersState.internalBaselayers,
       baselayersState.activeBaselayer,
       backHistoryStack,
       flipTiles,
@@ -203,60 +186,43 @@ export function OpenLayersMap({
 
   const goBack = useCallback(() => {
     const baselayer = backHistoryStack[backHistoryStack.length - 1];
-    onBaselayerChange(
-      baselayer.id,
-      baselayer.mapId,
-      'goBack',
-      baselayer.flipped
-    );
+    onBaselayerChange(baselayer.id, 'goBack', baselayer.flipped);
   }, [onBaselayerChange, backHistoryStack]);
 
   const goForward = useCallback(() => {
     const baselayer = forwardHistoryStack[forwardHistoryStack.length - 1];
-    onBaselayerChange(
-      baselayer.id,
-      baselayer.mapId,
-      'goForward',
-      baselayer.flipped
-    );
+    onBaselayerChange(baselayer.id, 'goForward', baselayer.flipped);
   }, [onBaselayerChange, forwardHistoryStack]);
 
   const tileLayers = useMemo(() => {
-    const tempTileLayers: TileLayer<XYZ>[] = [];
-
-    internalBaselayerMaps?.forEach((map) => {
-      map.bands.forEach((band) => {
-        tempTileLayers.push(
-          new TileLayer({
-            properties: { id: 'baselayer-' + band.id },
-            source: new XYZ({
-              url: `${SERVICE_URL}/maps/${band.map_id}/${band.id}/{z}/{-y}/{x}/tile.png?cmap=${band.cmap}&vmin=${band.isLogScale ? Math.pow(10, band.cmapValues.min) : band.cmapValues.min}&vmax=${band.isLogScale ? Math.pow(10, band.cmapValues.max) : band.cmapValues.max}&flip=${flipTiles}&log_norm=${band.isLogScale}`,
-              tileGrid: new TileGrid({
-                extent: [-180, -90, 180, 90],
-                origin: [-180, 90],
-                tileSize: band.tile_size,
-                resolutions: getBaselayerResolutions(
-                  180,
-                  band.tile_size,
-                  band.levels - 1
-                ),
-              }),
-              interpolate: false,
-              projection: 'EPSG:4326',
-              tilePixelRatio: band.tile_size / 256,
+    return internalBaselayers?.map(
+      (layer) =>
+        new TileLayer({
+          properties: { id: 'baselayer-' + layer.layer_id },
+          source: new XYZ({
+            url: `${SERVICE_URL}/maps/${layer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${layer.cmap}&vmin=${layer.isLogScale ? Math.pow(10, layer.vmin) : layer.vmin}&vmax=${layer.isLogScale ? Math.pow(10, layer.vmax) : layer.vmax}&flip=${flipTiles}&log_norm=${layer.isLogScale}`,
+            tileGrid: new TileGrid({
+              extent: [-180, -90, 180, 90],
+              origin: [-180, 90],
+              tileSize: layer.tile_size,
+              resolutions: getBaselayerResolutions(
+                180,
+                layer.tile_size,
+                layer.number_of_levels - 1
+              ),
             }),
-          })
-        );
-      });
-    });
-
-    return tempTileLayers;
-  }, [internalBaselayerMaps, flipTiles]);
+            interpolate: false,
+            projection: 'EPSG:4326',
+            tilePixelRatio: layer.tile_size / 256,
+          }),
+        })
+    );
+  }, [internalBaselayers, flipTiles]);
 
   const externalTileLayers = useMemo(() => {
     return EXTERNAL_BASELAYERS.map((b) => {
       return new TileLayer({
-        properties: { id: b.id },
+        properties: { id: b.layer_id },
         source: new XYZ({
           url: typeof b.url === 'string' ? b.url : undefined,
           tileUrlFunction: typeof b.url !== 'string' ? b.url : undefined,
@@ -435,17 +401,17 @@ export function OpenLayersMap({
           mapRef.current?.removeLayer(layer);
         }
       });
-      if (assertBand(activeBaselayer)) {
+      if (assertInternalBaselayer(activeBaselayer)) {
         const activeLayer = tileLayers!.find(
-          (t) => t.get('id') === 'baselayer-' + activeBaselayer!.id
+          (t) => t.get('id') === 'baselayer-' + activeBaselayer!.layer_id
         )!;
         mapRef.current.addLayer(activeLayer);
       } else {
         const externalBaselayer = EXTERNAL_BASELAYERS.find(
-          (b) => b.id === activeBaselayer.id
+          (b) => b.layer_id === activeBaselayer.layer_id
         );
         const activeLayer = externalTileLayers.find(
-          (t) => t.get('id') === activeBaselayer.id
+          (t) => t.get('id') === activeBaselayer.layer_id
         )!;
 
         if (!externalBaselayer || !activeLayer) return;
@@ -515,7 +481,9 @@ export function OpenLayersMap({
       <ToggleSwitch
         checked={flipTiles}
         onChange={handleFlipTiles}
-        disabled={!assertBand(activeBaselayer) || disableToggleForNewBox}
+        disabled={
+          !assertInternalBaselayer(activeBaselayer) || disableToggleForNewBox
+        }
         disabledMessage={
           disableToggleForNewBox
             ? 'You cannot switch when drawing a new highlight region.'
@@ -551,7 +519,6 @@ export function OpenLayersMap({
         activeBoxIds={activeBoxIds}
         mapRef={mapRef}
         setActiveBoxIds={setActiveBoxIds}
-        setBoxes={setBoxes}
         submapData={submapData}
         flipped={flipTiles}
       />
@@ -562,15 +529,12 @@ export function OpenLayersMap({
         setIsDrawing={setIsDrawing}
         setIsNewBoxDrawn={setIsNewBoxDrawn}
         submapData={submapData}
-        setBoxes={setBoxes}
-        setActiveBoxIds={setActiveBoxIds}
-        addOptimisticHighlightBox={addOptimisticHighlightBox}
         flipped={flipTiles}
       />
       <LayerSelector
-        internalBaselayerMaps={internalBaselayerMaps}
+        mapGroups={mapGroups}
         onBaselayerChange={onBaselayerChange}
-        activeBaselayerId={activeBaselayer?.id}
+        activeBaselayerId={activeBaselayer?.layer_id}
         sourceLists={sourceLists}
         activeSourceListIds={activeSourceListIds}
         onSelectedSourceListsChange={onSelectedSourceListsChange}

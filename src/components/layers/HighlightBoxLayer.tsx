@@ -6,7 +6,6 @@ import { Feature, Map, MapBrowserEvent, Overlay } from 'ol';
 import Polygon, { fromExtent } from 'ol/geom/Polygon';
 import { MenuIcon } from '../icons/MenuIcon';
 import { MapProps } from '../OpenLayersMap';
-import { deleteSubmapBox } from '../../utils/fetchUtils';
 import { BoxMenu } from '../BoxMenu';
 import { transformBoxes, isBoxSynced } from '../../utils/layerUtils';
 
@@ -15,7 +14,6 @@ type HightlightBoxLayerProps = {
   activeBoxIds: MapProps['activeBoxIds'];
   mapRef: React.RefObject<Map | null>;
   setActiveBoxIds: MapProps['setActiveBoxIds'];
-  setBoxes: MapProps['setBoxes'];
   submapData: MapProps['submapData'];
   flipped: boolean;
 };
@@ -25,7 +23,6 @@ export function HighlightBoxLayer({
   activeBoxIds,
   mapRef,
   setActiveBoxIds,
-  setBoxes,
   submapData,
   flipped,
 }: HightlightBoxLayerProps) {
@@ -294,20 +291,6 @@ export function HighlightBoxLayer({
               }}
             >
               Hide Box
-            </button>,
-            <button
-              key="delete-box"
-              className="map-btn menu-btn danger-action"
-              onClick={() => {
-                deleteSubmapBox(selectedBoxData.id, setBoxes, setActiveBoxIds);
-                setShowMenu(false);
-                setSelectedBoxData(undefined);
-                mapRef.current
-                  ?.getOverlayById('box-overlay')
-                  ?.setPosition(undefined);
-              }}
-            >
-              Delete Box
             </button>,
           ]}
           submapData={submapData}

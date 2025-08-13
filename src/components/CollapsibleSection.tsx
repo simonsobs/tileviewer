@@ -5,6 +5,7 @@ type Props = {
   children: ReactNode;
   defaultOpen: boolean;
   tooltip?: string;
+  nestedDepth?: number;
 };
 
 export function CollapsibleSection({
@@ -12,9 +13,10 @@ export function CollapsibleSection({
   defaultOpen,
   children,
   tooltip,
+  nestedDepth = 0,
 }: Props) {
   return (
-    <details open={defaultOpen}>
+    <details style={{ marginLeft: nestedDepth * 5 }} open={defaultOpen}>
       <summary title={tooltip}>{summary}</summary>
       {children}
     </details>

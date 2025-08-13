@@ -1,5 +1,5 @@
 import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { MapMetadataResponseWithClientBand, SourceList } from '../types/maps';
+import { SourceList } from '../types/maps';
 import { LayersIcon } from './icons/LayersIcon';
 import './styles/layer-selector.css';
 import { MapProps } from './OpenLayersMap';
@@ -24,18 +24,16 @@ export interface LayerSelectorProps
   > {
   onBaselayerChange: (
     selectedBaselayerId: string,
-    selectedMapId: string | undefined,
     context: 'layerMenu' | 'goBack' | 'goForward',
     flipped?: boolean
   ) => void;
   activeBaselayerId?: number | string;
   sourceLists: SourceList[];
   isFlipped: boolean;
-  internalBaselayerMaps: MapMetadataResponseWithClientBand[] | undefined;
 }
 
 export function LayerSelector({
-  internalBaselayerMaps,
+  mapGroups,
   onBaselayerChange,
   activeBaselayerId,
   sourceLists,
@@ -135,7 +133,7 @@ export function LayerSelector({
         <fieldset>
           <legend>Baselayers</legend>
           <BaselayerSections
-            internalBaselayerMaps={internalBaselayerMaps}
+            mapGroups={mapGroups}
             activeBaselayerId={activeBaselayerId}
             isFlipped={isFlipped}
             onBaselayerChange={onBaselayerChange}

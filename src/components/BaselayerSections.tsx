@@ -3,45 +3,72 @@ import { CollapsibleSection } from './CollapsibleSection';
 import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
 
 type BaselayerSectionsProps = {
-  internalBaselayerMaps: LayerSelectorProps['internalBaselayerMaps'];
+  mapGroups: LayerSelectorProps['mapGroups'];
   activeBaselayerId: LayerSelectorProps['activeBaselayerId'];
   isFlipped: LayerSelectorProps['isFlipped'];
   onBaselayerChange: LayerSelectorProps['onBaselayerChange'];
 };
 
 export function BaselayerSections({
-  internalBaselayerMaps,
+  mapGroups,
   activeBaselayerId,
   isFlipped,
   onBaselayerChange,
 }: BaselayerSectionsProps) {
   return (
     <>
-      {internalBaselayerMaps?.map((map, index) => (
+      {mapGroups.map((group, groupIndex) => (
         <CollapsibleSection
-          key={'section-internal-map-' + map.id}
-          summary={map.name}
-          defaultOpen={index === 0}
-          tooltip={map.description}
+          key={'section-internal-mapGroup-' + groupIndex}
+          summary={group.name}
+          defaultOpen={groupIndex === 0}
+          tooltip={group.description}
         >
-          {map.bands.map((band) => (
-            <div className="input-container" key={band.map_id + '-' + band.id}>
-              <input
-                type="radio"
-                id={String(band.id)}
-                value={band.id}
-                name="baselayer"
-                checked={band.id === activeBaselayerId}
-                onChange={() =>
-                  onBaselayerChange(
-                    String(band.id),
-                    String(band.map_id),
-                    'layerMenu'
-                  )
-                }
-              />
-              <label htmlFor={String(band.id)}>{band.band_display_name}</label>
-            </div>
+          {group.maps.map((map, mapIndex) => (
+            <CollapsibleSection
+              key={
+                'section-internal-mapGroup-' + groupIndex + '-map-' + map.map_id
+              }
+              summary={map.name}
+              defaultOpen={mapIndex === 0}
+              tooltip={map.description}
+              nestedDepth={1}
+            >
+              {map.bands.map((band, bandIndex) => (
+                <CollapsibleSection
+                  key={
+                    'section-internal-mapGroup-' +
+                    groupIndex +
+                    '-map-' +
+                    map.map_id +
+                    '-band-' +
+                    band.band_id
+                  }
+                  summary={band.name}
+                  defaultOpen={bandIndex === 0}
+                  tooltip={band.description}
+                  nestedDepth={2}
+                >
+                  {band.layers.map((layer) => (
+                    <div className="input-container" key={layer.layer_id}>
+                      <input
+                        type="radio"
+                        id={String(layer.layer_id)}
+                        value={layer.layer_id}
+                        name="baselayer"
+                        checked={layer.layer_id === activeBaselayerId}
+                        onChange={() =>
+                          onBaselayerChange(String(layer.layer_id), 'layerMenu')
+                        }
+                      />
+                      <label htmlFor={String(layer.layer_id)}>
+                        {layer.name}
+                      </label>
+                    </div>
+                  ))}
+                </CollapsibleSection>
+              ))}
+            </CollapsibleSection>
           ))}
         </CollapsibleSection>
       ))}
@@ -54,7 +81,7 @@ export function BaselayerSections({
           {EXTERNAL_BASELAYERS.map((bl) => (
             <div
               className={`input-container ${bl.disabledState(isFlipped) ? 'disabled' : ''}`}
-              key={bl.id}
+              key={bl.layer_id}
               title={
                 bl.disabledState(isFlipped)
                   ? 'The current RA range is incompatible with this baselayer.'
@@ -63,16 +90,14 @@ export function BaselayerSections({
             >
               <input
                 type="radio"
-                id={bl.id}
-                value={bl.id}
+                id={bl.layer_id}
+                value={bl.layer_id}
                 name="baselayer"
-                checked={bl.id === activeBaselayerId}
-                onChange={() =>
-                  onBaselayerChange(bl.id, undefined, 'layerMenu')
-                }
+                checked={bl.layer_id === activeBaselayerId}
+                onChange={() => onBaselayerChange(bl.layer_id, 'layerMenu')}
                 disabled={bl.disabledState(isFlipped)}
               />
-              <label htmlFor={bl.id}>{bl.name}</label>
+              <label htmlFor={bl.layer_id}>{bl.name}</label>
             </div>
           ))}
         </CollapsibleSection>

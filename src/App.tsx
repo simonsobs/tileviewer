@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState, useReducer, ChangeEvent } from 'react';
-import { MapMetadataResponseWithClientBand, SourceList } from './types/maps';
+import { MapGroupResponse, SourceList, Box } from './types/maps';
 import { ColorMapControls } from './components/ColorMapControls';
-import { fetchProducts } from './utils/fetchUtils';
+import { fetchBoxes, fetchMaps, fetchSources } from './utils/fetchUtils';
 import {
-  assertBand,
+  assertInternalBaselayer,
   baselayersReducer,
   CHANGE_CMAP_TYPE,
   CHANGE_CMAP_VALUES,
@@ -12,7 +12,6 @@ import {
   SET_BASELAYERS_STATE,
 } from './reducers/baselayersReducer';
 import { useQuery } from './hooks/useQuery';
-import { useHighlightBoxes } from './hooks/useHighlightBoxes';
 import { OpenLayersMap } from './components/OpenLayersMap';
 import { handleSelectChange } from './utils/layerUtils';
 import { Login } from './components/Login';
@@ -26,26 +25,26 @@ function App() {
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  /** query the bands to use as the baselayers of the map */
-  useQuery<MapMetadataResponseWithClientBand[] | undefined>({
+  /** query the map groups to use as the baselayers of the map */
+  const { data: mapGroups } = useQuery<MapGroupResponse[] | undefined>({
     initialData: undefined,
     queryKey: [isAuthenticated],
     queryFn: async () => {
       // Fetch the maps and the map metadata in order to get the list of bands used as
       // map baselayers
-      const mapsMetadata = await fetchProducts('maps');
+      const { mapGroups, internalBaselayers } = await fetchMaps();
 
       // // If we end up with no maps for some reason, return early
-      if (!mapsMetadata.length) return;
+      if (!mapGroups.length || !internalBaselayers.length) return;
 
       // Set the baselayersState with the finalBands; note that this action will also set the
       // activeBaselayer to be finalBands[0]
       dispatchBaselayersChange({
         type: SET_BASELAYERS_STATE,
-        baselayerMaps: mapsMetadata,
+        internalBaselayers: internalBaselayers,
       });
 
-      return mapsMetadata;
+      return mapGroups;
     },
   });
 
@@ -55,7 +54,7 @@ function App() {
     queryKey: [isAuthenticated],
     queryFn: async () => {
       // Fetch the source catalogs and sources
-      const { catalogs, sources } = await fetchProducts('sources');
+      const { catalogs, sources } = await fetchSources();
 
       // Map through the source catalogs in order to link the appropriate sources
       // to each catalog
@@ -69,14 +68,17 @@ function App() {
     },
   });
 
-  const {
-    // Regions users have added to a map
-    highlightBoxes,
-    updateHighlightBoxes,
-    // The optimistic version of highlightBoxes for when we add boxes in the UI
-    optimisticHighlightBoxes,
-    addOptimisticHighlightBox,
-  } = useHighlightBoxes(isAuthenticated);
+  /** highlight boxes allow users to download submaps and to highlight regions of the map */
+  const { data: highlightBoxes } = useQuery<Box[] | undefined>({
+    initialData: undefined,
+    queryKey: [isAuthenticated],
+    queryFn: async () => {
+      // Fetch the highlight boxes
+      const boxes = await fetchBoxes();
+
+      return boxes;
+    },
+  });
 
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
@@ -105,10 +107,8 @@ function App() {
         dispatchBaselayersChange({
           type: CHANGE_CMAP_VALUES,
           activeBaselayer: baselayersState.activeBaselayer,
-          cmapValues: {
-            min: values[0],
-            max: values[1],
-          },
+          vmin: values[0],
+          vmax: values[1],
         });
       }
     },
@@ -131,18 +131,12 @@ function App() {
   /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
     composed from state at this level, we must construct it here and pass it down. */
   const submapData = useMemo(() => {
-    if (assertBand(baselayersState.activeBaselayer)) {
-      const {
-        map_id: mapId,
-        id: bandId,
-        cmap,
-        cmapValues,
-      } = baselayersState.activeBaselayer;
+    if (assertInternalBaselayer(baselayersState.activeBaselayer)) {
+      const { layer_id, cmap, vmin, vmax } = baselayersState.activeBaselayer;
       return {
-        mapId,
-        bandId,
-        vmin: cmapValues?.min,
-        vmax: cmapValues?.max,
+        layer_id,
+        vmin,
+        vmax,
         cmap,
       };
     }
@@ -161,43 +155,43 @@ function App() {
     [baselayersState.activeBaselayer]
   );
 
-  const { activeBaselayer, internalBaselayerMaps } = baselayersState;
+  const { activeBaselayer, internalBaselayers } = baselayersState;
   return (
     <>
       <Login
         isAuthenticated={isAuthenticated}
         setIsAuthenticated={setIsAuthenticated}
       />
-      {isAuthenticated !== null && activeBaselayer && internalBaselayerMaps && (
-        <OpenLayersMap
-          baselayersState={baselayersState}
-          dispatchBaselayersChange={dispatchBaselayersChange}
-          sourceLists={sourceLists}
-          activeSourceListIds={activeSourceListIds}
-          onSelectedSourceListsChange={onSelectedSourceListsChange}
-          highlightBoxes={optimisticHighlightBoxes}
-          setBoxes={updateHighlightBoxes}
-          activeBoxIds={activeBoxIds}
-          setActiveBoxIds={setActiveBoxIds}
-          onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
-          submapData={submapData}
-          addOptimisticHighlightBox={addOptimisticHighlightBox}
-        />
-      )}
       {isAuthenticated !== null &&
-        assertBand(activeBaselayer) &&
+        activeBaselayer &&
+        internalBaselayers &&
+        mapGroups && (
+          <OpenLayersMap
+            mapGroups={mapGroups}
+            baselayersState={baselayersState}
+            dispatchBaselayersChange={dispatchBaselayersChange}
+            sourceLists={sourceLists}
+            activeSourceListIds={activeSourceListIds}
+            onSelectedSourceListsChange={onSelectedSourceListsChange}
+            highlightBoxes={highlightBoxes}
+            activeBoxIds={activeBoxIds}
+            setActiveBoxIds={setActiveBoxIds}
+            onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
+            submapData={submapData}
+          />
+        )}
+      {isAuthenticated !== null &&
+        assertInternalBaselayer(activeBaselayer) &&
         activeBaselayer.cmap &&
-        activeBaselayer.cmapValues && (
+        activeBaselayer.vmin &&
+        activeBaselayer.vmax && (
           <ColorMapControls
-            values={[
-              activeBaselayer.cmapValues.min,
-              activeBaselayer.cmapValues.max,
-            ]}
-            cmapRange={activeBaselayer.cmapValues.recommendedRange}
+            values={[activeBaselayer.vmin, activeBaselayer.vmax]}
+            cmapRange={activeBaselayer.recommendedCmapValuesRange}
             onCmapValuesChange={onCmapValuesChange}
             cmap={activeBaselayer.cmap}
             onCmapChange={onCmapChange}
-            activeBaselayerId={activeBaselayer.id}
+            activeBaselayerId={activeBaselayer.layer_id}
             units={activeBaselayer.units}
             quantity={activeBaselayer.quantity}
             isLogScale={activeBaselayer.isLogScale}
