@@ -50,8 +50,9 @@ export function BaselayerSections({
                   nestedDepth={2}
                 >
                   {band.layers.map((layer) => (
-                    <div className="input-container" key={layer.layer_id}>
+                    <label className="layer-selecter-input-label">
                       <input
+                        key={'baselayer-input-' + layer.layer_id}
                         type="radio"
                         id={String(layer.layer_id)}
                         value={layer.layer_id}
@@ -61,10 +62,8 @@ export function BaselayerSections({
                           onBaselayerChange(String(layer.layer_id), 'layerMenu')
                         }
                       />
-                      <label htmlFor={String(layer.layer_id)}>
-                        {layer.name}
-                      </label>
-                    </div>
+                      {layer.name}
+                    </label>
                   ))}
                 </CollapsibleSection>
               ))}
