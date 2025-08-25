@@ -24,6 +24,7 @@ export const initialBaselayersState: BaselayersState = {
 
 export const CHANGE_CMAP_TYPE = 'CHANGE_CMAP';
 export const CHANGE_LOG_SCALE = 'CHANGE_LOG_SCALE';
+export const CHANGE_ABSOLUTE_VALUE = 'CHANGE_ABSOLUTE_VALUE';
 export const CHANGE_CMAP_VALUES = 'CHANGE_CMAP_VALUES';
 export const CHANGE_BASELAYER = 'CHANGE_BASELAYER';
 export const SET_BASELAYERS_STATE = 'SET_BASELAYERS_STATE';
@@ -38,6 +39,12 @@ type ChangeLogScaleAction = {
   type: typeof CHANGE_LOG_SCALE;
   activeBaselayer: InternalBaselayer | ExternalBaselayer;
   isLogScale: boolean;
+};
+
+type ChangeAbsoluteValueAction = {
+  type: typeof CHANGE_ABSOLUTE_VALUE;
+  activeBaselayer: InternalBaselayer | ExternalBaselayer;
+  isAbsoluteValue: boolean;
 };
 
 type ChangeCmapValuesAction = {
@@ -60,6 +67,7 @@ type SetBaselayersAction = {
 export type Action =
   | ChangeCmapAction
   | ChangeLogScaleAction
+  | ChangeAbsoluteValueAction
   | ChangeCmapValuesAction
   | ChangeBaselayerAction
   | SetBaselayersAction;
@@ -116,6 +124,48 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
           vmin: newMin,
           vmax: newMax,
           isLogScale: action.isLogScale,
+        };
+
+        return {
+          internalBaselayers: state.internalBaselayers?.map((layer) => {
+            if (
+              layer.layer_id ===
+              (action.activeBaselayer as InternalBaselayer).layer_id
+            ) {
+              return updatedActiveBaselayer;
+            } else {
+              return layer;
+            }
+          }),
+          activeBaselayer: updatedActiveBaselayer,
+        };
+      } else {
+        return {
+          ...state,
+        };
+      }
+    }
+    case 'CHANGE_ABSOLUTE_VALUE': {
+      if (assertInternalBaselayer(action.activeBaselayer)) {
+        const { vmin, vmax, recommendedCmapValuesRange } =
+          action.activeBaselayer;
+
+        let min = vmin;
+        let max = vmax;
+
+        if (action.isAbsoluteValue && vmin < 0) {
+          min = 0;
+        }
+
+        if (action.isAbsoluteValue && vmax < 0) {
+          max = recommendedCmapValuesRange * 0.1;
+        }
+
+        const updatedActiveBaselayer = {
+          ...action.activeBaselayer,
+          isAbsoluteValue: action.isAbsoluteValue,
+          vmin: min,
+          vmax: max,
         };
 
         return {

@@ -8,6 +8,7 @@ import {
   CHANGE_CMAP_TYPE,
   CHANGE_CMAP_VALUES,
   CHANGE_LOG_SCALE,
+  CHANGE_ABSOLUTE_VALUE,
   initialBaselayersState,
   SET_BASELAYERS_STATE,
 } from './reducers/baselayersReducer';
@@ -155,6 +156,19 @@ function App() {
     [baselayersState.activeBaselayer]
   );
 
+  const onAbsoluteValueChange = useCallback(
+    (checked: boolean) => {
+      if (baselayersState.activeBaselayer) {
+        dispatchBaselayersChange({
+          type: CHANGE_ABSOLUTE_VALUE,
+          activeBaselayer: baselayersState.activeBaselayer,
+          isAbsoluteValue: checked,
+        });
+      }
+    },
+    [baselayersState.activeBaselayer]
+  );
+
   const { activeBaselayer, internalBaselayers } = baselayersState;
   return (
     <>
@@ -180,24 +194,22 @@ function App() {
             submapData={submapData}
           />
         )}
-      {isAuthenticated !== null &&
-        assertInternalBaselayer(activeBaselayer) &&
-        activeBaselayer.cmap &&
-        activeBaselayer.vmin &&
-        activeBaselayer.vmax && (
-          <ColorMapControls
-            values={[activeBaselayer.vmin, activeBaselayer.vmax]}
-            cmapRange={activeBaselayer.recommendedCmapValuesRange}
-            onCmapValuesChange={onCmapValuesChange}
-            cmap={activeBaselayer.cmap}
-            onCmapChange={onCmapChange}
-            activeBaselayerId={activeBaselayer.layer_id}
-            units={activeBaselayer.units}
-            quantity={activeBaselayer.quantity}
-            isLogScale={activeBaselayer.isLogScale}
-            onLogScaleChange={onLogScaleChange}
-          />
-        )}
+      {isAuthenticated !== null && assertInternalBaselayer(activeBaselayer) && (
+        <ColorMapControls
+          values={[activeBaselayer.vmin, activeBaselayer.vmax]}
+          cmapRange={activeBaselayer.recommendedCmapValuesRange}
+          onCmapValuesChange={onCmapValuesChange}
+          cmap={activeBaselayer.cmap}
+          onCmapChange={onCmapChange}
+          activeBaselayerId={activeBaselayer.layer_id}
+          units={activeBaselayer.units}
+          quantity={activeBaselayer.quantity}
+          isLogScale={activeBaselayer.isLogScale}
+          isAbsoluteValue={activeBaselayer.isAbsoluteValue}
+          onLogScaleChange={onLogScaleChange}
+          onAbsoluteValueChange={onAbsoluteValueChange}
+        />
+      )}
     </>
   );
 }

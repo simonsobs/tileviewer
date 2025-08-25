@@ -50,6 +50,7 @@ type EnhancedLayerAttributes = {
   bandId: string;
   recommendedCmapValuesRange: number;
   isLogScale: boolean;
+  isAbsoluteValue: boolean;
 };
 
 export type InternalBaselayer = LayerResponse & EnhancedLayerAttributes;

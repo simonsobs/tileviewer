@@ -200,7 +200,7 @@ export function OpenLayersMap({
         new TileLayer({
           properties: { id: 'baselayer-' + layer.layer_id },
           source: new XYZ({
-            url: `${SERVICE_URL}/maps/${layer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${layer.cmap}&vmin=${layer.isLogScale ? Math.pow(10, layer.vmin) : layer.vmin}&vmax=${layer.isLogScale ? Math.pow(10, layer.vmax) : layer.vmax}&flip=${flipTiles}&log_norm=${layer.isLogScale}`,
+            url: `${SERVICE_URL}/maps/${layer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${layer.cmap}&vmin=${layer.isLogScale ? Math.pow(10, layer.vmin) : layer.vmin}&vmax=${layer.isLogScale ? Math.pow(10, layer.vmax) : layer.vmax}&flip=${flipTiles}&log_norm=${layer.isLogScale}&abs=${layer.isAbsoluteValue}`,
             tileGrid: new TileGrid({
               extent: [-180, -90, 180, 90],
               origin: [-180, 90],

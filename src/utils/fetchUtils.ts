@@ -27,6 +27,7 @@ export async function fetchMaps() {
             mapId: map.map_id,
             bandId: band.band_id,
             isLogScale: false,
+            isAbsoluteValue: false,
             recommendedCmapValuesRange: layer.vmax - layer.vmin,
           };
           internalBaselayers.push(internalBaselayer);

@@ -16,6 +16,7 @@ import { HistogramResponse } from '../types/maps';
 import { ColorMapHistogram } from './ColorMapHistogram';
 import { CustomColorMapDialog } from './CustomColorMapDialog';
 import { safeLog } from '../utils/numberUtils';
+import { getAbsoluteHistogramData } from '../utils/histogramUtils';
 
 export type ColorMapControlsProps = {
   /** the selected or default min and max values for the slider */
@@ -36,8 +37,12 @@ export type ColorMapControlsProps = {
   quantity?: string;
   /** whether or not cmap x-axis is log scale */
   isLogScale: boolean;
+  /** whether or not cmap x-axis is set to be absolute values */
+  isAbsoluteValue: boolean;
   /** handler to update isLogScale state and to convert cmap values */
   onLogScaleChange: (checked: boolean) => void;
+  /** handler to update isAbsoluteValue state and to set cmap values as necessary */
+  onAbsoluteValueChange: (checked: boolean) => void;
 };
 
 /**
@@ -58,7 +63,9 @@ export function ColorMapControls(props: ColorMapControlsProps) {
     units,
     quantity,
     isLogScale,
+    isAbsoluteValue,
     onLogScaleChange,
+    onAbsoluteValueChange,
   } = props;
   const [cmapImage, setCmapImage] = useState<undefined | string>(undefined);
   const [histogramData, setHistogramData] = useState<
@@ -73,7 +80,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
       let finalEdges;
       let finalHistogram;
 
-      if (isLogScale) {
+      if (isLogScale && !isAbsoluteValue) {
         // Find where the first edge is positive
         const sliceStartingIndex = histogramData.edges.findIndex((v) => v > 0);
         // Use the found index to slice edge array into a new array of only positive values
@@ -86,8 +93,22 @@ export function ColorMapControls(props: ColorMapControlsProps) {
           histogramData.histogram.slice(sliceStartingIndex);
         // Transform histogram values into log values
         finalHistogram = slicedHistogram.map(safeLog);
+      } else if (isLogScale && isAbsoluteValue) {
+        const absData = getAbsoluteHistogramData(
+          histogramData.edges,
+          histogramData.histogram
+        );
+        finalEdges = absData.edges.map(safeLog);
+        finalHistogram = absData.histogram.map(safeLog);
+      } else if (!isLogScale && isAbsoluteValue) {
+        const absData = getAbsoluteHistogramData(
+          histogramData.edges,
+          histogramData.histogram
+        );
+        finalEdges = absData.edges;
+        finalHistogram = absData.histogram.map(safeLog);
       } else {
-        // Edges are unchanged if isLogScale is false
+        // Edges are unchanged if isLogScale and isAbsoluteValue are both false
         finalEdges = histogramData.edges;
         // Transform all of the histogram values into log values
         finalHistogram = histogramData.histogram.map(safeLog);
@@ -99,7 +120,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
         band_id: histogramData.band_id,
       };
     }
-  }, [histogramData, isLogScale]);
+  }, [histogramData, isLogScale, isAbsoluteValue]);
 
   /** Fetch and set the URL to the color map image if/when cmap or its setter changes */
   useEffect(() => {
@@ -184,11 +205,12 @@ export function ColorMapControls(props: ColorMapControlsProps) {
                 />
                 Log
               </label>
-              <label
-                title="Coming soon"
-                className="cmap-toggle checkbox disabled"
-              >
-                <input type="checkbox" disabled />
+              <label className="cmap-toggle checkbox">
+                <input
+                  type="checkbox"
+                  checked={isAbsoluteValue}
+                  onChange={(e) => onAbsoluteValueChange(e.target.checked)}
+                />
                 Abs.
               </label>
             </div>
