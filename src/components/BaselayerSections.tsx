@@ -50,7 +50,10 @@ export function BaselayerSections({
                   nestedDepth={2}
                 >
                   {band.layers.map((layer) => (
-                    <label className="layer-selecter-input-label">
+                    <label
+                      key={'baselayer-label-' + layer.layer_id}
+                      className="layer-selecter-input-label"
+                    >
                       <input
                         key={'baselayer-input-' + layer.layer_id}
                         type="radio"
