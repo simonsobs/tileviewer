@@ -112,6 +112,20 @@ select {
   margin: 0;
 }
 
+/* Hack to make checkboxes and radio buttons more visible in Safari */
+@supports (-webkit-hyphens: none) and (not (-ms-ime-align: auto)) {
+  input[type='checkbox'],
+  input[type='radio'] {
+    outline: 1px solid darkgrey;
+  }
+  input[type='checkbox'] {
+    border-radius: 2px;
+  }
+  input[type='radio'] {
+    border-radius: 50%;
+  }
+}
+
 .cmap-toggles {
   display: flex;
   column-gap: 10px;
