@@ -1,5 +1,5 @@
 /** List of default color map options */
-export const CMAP_OPTIONS = ['RdBu_r', 'viridis', 'inferno'];
+export const CMAP_OPTIONS = ['RdBu_r', 'viridis', 'inferno', 'Greys_r'];
 
 /** The fixed width of the histogram */
 export const HISTOGRAM_SIZE_X = 300;
