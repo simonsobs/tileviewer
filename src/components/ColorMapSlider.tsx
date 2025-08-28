@@ -1,6 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, FormEvent } from 'react';
 import { Range as RangeSlider, getTrackBackground } from 'react-range';
-import { formatNumber, formatNumberForDisplay } from '../utils/numberUtils';
+import {
+  formatNumber,
+  formatNumberForDisplay,
+  safeLog,
+} from '../utils/numberUtils';
 import { ColorMapControlsProps } from './ColorMapControls';
 import './styles/color-map-controls.css';
 
@@ -36,6 +40,91 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
   const [tempValues, setTempValues] = useState([values[0], values[1]]);
   const prevKeyUpHandler = useRef<(e: KeyboardEvent) => void>(null);
   const prevKeyDownHandler = useRef<(e: KeyboardEvent) => void>(null);
+
+  const [showVminVmaxInputs, setShowVminVmaxInputs] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const vminRef = useRef<HTMLInputElement>(null);
+  const vmaxRef = useRef<HTMLInputElement>(null);
+
+  const onClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!showVminVmaxInputs) {
+        setShowVminVmaxInputs(true);
+      }
+    },
+    [showVminVmaxInputs]
+  );
+
+  useEffect(() => {
+    if (showVminVmaxInputs) {
+      vminRef.current?.focus();
+    }
+  }, [showVminVmaxInputs]);
+
+  useEffect(() => {
+    function handleDocClick(e: MouseEvent) {
+      if (!formRef.current) return;
+      // If the click happened outside the form, close it
+      if (!formRef.current.contains(e.target as Node)) {
+        setShowVminVmaxInputs(false);
+      }
+    }
+
+    document.addEventListener('click', handleDocClick);
+    return () => {
+      document.removeEventListener('click', handleDocClick);
+    };
+  }, []);
+
+  const validateVminVmaxInputs = useCallback(() => {
+    vminRef.current?.setCustomValidity('');
+    vmaxRef.current?.setCustomValidity('');
+
+    const vmin = parseFloat(vminRef.current?.value ?? '');
+    const vmax = parseFloat(vmaxRef.current?.value ?? '');
+
+    if (!Number.isNaN(vmin) && !Number.isNaN(vmax)) {
+      if (vmin >= vmax) {
+        const msg = 'vmax must be greater than vmin';
+        vmaxRef.current?.setCustomValidity(msg);
+      }
+
+      if (isLogScale && vmin < 0) {
+        const msg = 'vmin must be greater than 0';
+        vminRef.current?.setCustomValidity(msg);
+      }
+
+      if (isLogScale && vmax < 0) {
+        const msg = 'vmax must be greater than 0';
+        vmaxRef.current?.setCustomValidity(msg);
+      }
+    }
+  }, [isLogScale]);
+
+  const onSubmit = useCallback(
+    (e: FormEvent) => {
+      e.preventDefault();
+      const formData = new FormData(e.target as HTMLFormElement);
+
+      const vminStr = String(formData.get('vmin'));
+      const vmaxStr = String(formData.get('vmax'));
+
+      if (vminStr.length && vmaxStr.length) {
+        const vmin = parseFloat(vminStr);
+        const vmax = parseFloat(vmaxStr);
+
+        if (isLogScale) {
+          onCmapValuesChange([safeLog(vmin), safeLog(vmax)]);
+        } else {
+          onCmapValuesChange([vmin, vmax]);
+        }
+        setShowVminVmaxInputs(false);
+        (e.target as HTMLFormElement).reset();
+      }
+    },
+    [onCmapValuesChange, isLogScale]
+  );
 
   useEffect(() => {
     if (prevKeyUpHandler.current) {
@@ -222,21 +311,63 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
           </div>
         )}
       />
-      <div className="cmap-values-container">
-        <span className="cmap-value vmin">
+      <form
+        ref={formRef}
+        onSubmit={onSubmit}
+        onClick={onClick}
+        className="cmap-values-container"
+      >
+        <span
+          className="cmap-value vmin"
+          style={{ display: !showVminVmaxInputs ? 'inline-block' : 'none' }}
+        >
           {formatNumberForDisplay(
             isLogScale ? Math.pow(10, tempValues[0]) : tempValues[0],
             7
           )}
         </span>
+        <span
+          className="cmap-value"
+          style={{ display: showVminVmaxInputs ? 'inline-block' : 'none' }}
+        >
+          <input
+            ref={vminRef}
+            required
+            name="vmin"
+            className="vmin-vmax-input vmin-input"
+            type="text"
+            placeholder="Enter vmin..."
+            onInput={validateVminVmaxInputs}
+            onBlur={validateVminVmaxInputs}
+          />
+        </span>
         <span className="cmap-label"> &lt; {rangeUnitsDisplay} &lt; </span>
-        <span className="cmap-value">
+        <span
+          className="cmap-value"
+          style={{ display: !showVminVmaxInputs ? 'inline-block' : 'none' }}
+        >
           {formatNumberForDisplay(
             isLogScale ? Math.pow(10, tempValues[1]) : tempValues[1],
             7
           )}
         </span>
-      </div>
+        <span
+          className="cmap-value"
+          style={{ display: showVminVmaxInputs ? 'inline-block' : 'none' }}
+        >
+          <input
+            ref={vmaxRef}
+            required
+            name="vmax"
+            className="vmin-vmax-input"
+            type="text"
+            placeholder="Enter vmax..."
+            onInput={validateVminVmaxInputs}
+            onBlur={validateVminVmaxInputs}
+          />
+        </span>
+        <input type="submit" style={{ display: 'none' }} aria-hidden={true} />
+      </form>
     </div>
   );
 }
