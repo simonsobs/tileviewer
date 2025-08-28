@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { NewBoxData } from '../../types/maps';
 import Draw, { createBox } from 'ol/interaction/Draw.js';
-import { AddBoxDialog } from '../AddBoxDialog';
 import { BoxMenu } from '../BoxMenu';
 import VectorLayer from 'ol/layer/Vector';
 import { Map } from 'ol';
@@ -15,9 +14,6 @@ type AddHightlightBoxLayerProps = {
   setIsDrawing: (drawing: boolean) => void;
   setIsNewBoxDrawn: (drawn: boolean) => void;
   submapData: MapProps['submapData'];
-  setBoxes: MapProps['setBoxes'];
-  setActiveBoxIds: MapProps['setActiveBoxIds'];
-  addOptimisticHighlightBox: MapProps['addOptimisticHighlightBox'];
   flipped: boolean;
 };
 
@@ -28,9 +24,6 @@ export function AddHighlightBoxLayer({
   setIsDrawing,
   setIsNewBoxDrawn,
   submapData,
-  setBoxes,
-  setActiveBoxIds,
-  addOptimisticHighlightBox,
   flipped,
 }: AddHightlightBoxLayerProps) {
   const drawRef = useRef<Draw | null>(null);
@@ -38,7 +31,6 @@ export function AddHighlightBoxLayer({
     undefined
   );
   const [showNewBoxMenu, setShowNewBoxMenu] = useState(false);
-  const [showAddBoxDialog, setShowAddBoxDialog] = useState(false);
   const [showMenuOverlay, setShowMenuOverlay] = useState(false);
 
   /**
@@ -151,13 +143,6 @@ export function AddHighlightBoxLayer({
           submapData={submapData}
           additionalButtons={[
             <button
-              key="add-new-box"
-              className="map-btn menu-btn"
-              onClick={() => setShowAddBoxDialog(true)}
-            >
-              Add as Box
-            </button>,
-            <button
               key="remove-region"
               className="map-btn menu-btn"
               onClick={handleAddBoxCleanup}
@@ -168,16 +153,6 @@ export function AddHighlightBoxLayer({
           showMenuOverlay={showMenuOverlay}
         />
       )}
-      <AddBoxDialog
-        showAddBoxDialog={showAddBoxDialog}
-        setShowAddBoxDialog={setShowAddBoxDialog}
-        newBoxData={newBoxData}
-        setBoxes={setBoxes}
-        setActiveBoxIds={setActiveBoxIds}
-        addOptimisticHighlightBox={addOptimisticHighlightBox}
-        handleAddBoxCleanup={handleAddBoxCleanup}
-        flipped={flipped}
-      />
     </>
   );
 }

@@ -1,68 +1,73 @@
 import {
-  BandWithCmapValues,
   BaselayersState,
   ExternalBaselayer,
-  MapMetadataResponseWithClientBand,
+  InternalBaselayer,
 } from '../types/maps';
 import { safeLog } from '../utils/numberUtils';
 
 export function assertExternalBaselayer(
-  baselayer: BandWithCmapValues | ExternalBaselayer | undefined
+  baselayer: InternalBaselayer | ExternalBaselayer | undefined
 ): baselayer is ExternalBaselayer {
   return baselayer !== undefined && 'url' in baselayer;
 }
 
-export function assertBand(
-  baselayer: BandWithCmapValues | ExternalBaselayer | undefined
-): baselayer is BandWithCmapValues {
-  return baselayer !== undefined && 'map_id' in baselayer;
+export function assertInternalBaselayer(
+  baselayer: InternalBaselayer | ExternalBaselayer | undefined
+): baselayer is InternalBaselayer {
+  return baselayer !== undefined && 'grant' in baselayer;
 }
 
 export const initialBaselayersState: BaselayersState = {
   activeBaselayer: undefined,
-  internalBaselayerMaps: undefined,
+  internalBaselayers: undefined,
 };
 
 export const CHANGE_CMAP_TYPE = 'CHANGE_CMAP';
 export const CHANGE_LOG_SCALE = 'CHANGE_LOG_SCALE';
+export const CHANGE_ABSOLUTE_VALUE = 'CHANGE_ABSOLUTE_VALUE';
 export const CHANGE_CMAP_VALUES = 'CHANGE_CMAP_VALUES';
 export const CHANGE_BASELAYER = 'CHANGE_BASELAYER';
 export const SET_BASELAYERS_STATE = 'SET_BASELAYERS_STATE';
 
 type ChangeCmapAction = {
   type: typeof CHANGE_CMAP_TYPE;
-  activeBaselayer: BandWithCmapValues | ExternalBaselayer;
+  activeBaselayer: InternalBaselayer | ExternalBaselayer;
   cmap: string;
 };
 
 type ChangeLogScaleAction = {
   type: typeof CHANGE_LOG_SCALE;
-  activeBaselayer: BandWithCmapValues | ExternalBaselayer;
+  activeBaselayer: InternalBaselayer | ExternalBaselayer;
   isLogScale: boolean;
+};
+
+type ChangeAbsoluteValueAction = {
+  type: typeof CHANGE_ABSOLUTE_VALUE;
+  activeBaselayer: InternalBaselayer | ExternalBaselayer;
+  isAbsoluteValue: boolean;
 };
 
 type ChangeCmapValuesAction = {
   type: typeof CHANGE_CMAP_VALUES;
-  activeBaselayer: BandWithCmapValues | ExternalBaselayer;
-  cmapValues: {
-    min: number;
-    max: number;
-  };
+  activeBaselayer: InternalBaselayer | ExternalBaselayer;
+  vmin: number;
+  vmax: number;
 };
 
 type ChangeBaselayerAction = {
   type: typeof CHANGE_BASELAYER;
-  newBaselayer: BandWithCmapValues | ExternalBaselayer;
+  newBaselayer: InternalBaselayer | ExternalBaselayer;
 };
 
 type SetBaselayersAction = {
   type: typeof SET_BASELAYERS_STATE;
-  baselayerMaps: MapMetadataResponseWithClientBand[];
+  internalBaselayers: InternalBaselayer[];
 };
 
 export type Action =
   | ChangeCmapAction
   | ChangeLogScaleAction
+  | ChangeAbsoluteValueAction
   | ChangeCmapValuesAction
   | ChangeBaselayerAction
   | SetBaselayersAction;
@@ -71,33 +76,28 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
   switch (action.type) {
     case 'SET_BASELAYERS_STATE': {
       return {
-        internalBaselayerMaps: action.baselayerMaps,
-        activeBaselayer: action.baselayerMaps[0].bands[0],
+        internalBaselayers: action.internalBaselayers,
+        activeBaselayer: action.internalBaselayers[0],
       };
     }
     case 'CHANGE_CMAP': {
-      if (assertBand(action.activeBaselayer)) {
-        const activeBaselayer = {
+      if (assertInternalBaselayer(action.activeBaselayer)) {
+        const updatedActiveBaselayer = {
           ...action.activeBaselayer,
           cmap: action.cmap,
         };
         return {
-          internalBaselayerMaps: state.internalBaselayerMaps?.map((map) => {
+          internalBaselayers: state.internalBaselayers?.map((layer) => {
             if (
-              'map_id' in action.activeBaselayer &&
-              map.id === action.activeBaselayer.map_id
+              layer.layer_id ===
+              (action.activeBaselayer as InternalBaselayer).layer_id
             ) {
-              return {
-                ...map,
-                bands: map.bands.map((b) =>
-                  b.id === action.activeBaselayer.id ? activeBaselayer : b
-                ),
-              };
+              return updatedActiveBaselayer;
             } else {
-              return map;
+              return layer;
             }
           }),
-          activeBaselayer,
+          activeBaselayer: updatedActiveBaselayer,
         };
       } else {
         return {
@@ -106,44 +106,80 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
       }
     }
     case 'CHANGE_LOG_SCALE': {
-      if (assertBand(action.activeBaselayer)) {
+      if (assertInternalBaselayer(action.activeBaselayer)) {
         const { activeBaselayer, isLogScale } = action;
-        const { min, max } = action.activeBaselayer.cmapValues;
-        const safeLogMin = safeLog(min);
+        const { vmin, vmax } = action.activeBaselayer;
+        const safeLogMin = safeLog(vmin);
 
-        const newCmapValues = {
-          ...activeBaselayer.cmapValues,
-          min: isLogScale
-            ? safeLogMin === 0
-              ? 1
-              : safeLogMin
-            : Math.pow(10, min),
-          max: isLogScale ? safeLog(max) : Math.pow(10, max),
-        };
+        const newMin = isLogScale
+          ? safeLogMin === 0
+            ? 1
+            : safeLogMin
+          : Math.pow(10, vmin);
 
-        const newActiveBaselayer = {
+        const newMax = isLogScale ? safeLog(vmax) : Math.pow(10, vmax);
+
+        const updatedActiveBaselayer = {
           ...activeBaselayer,
-          cmapValues: newCmapValues,
+          vmin: newMin,
+          vmax: newMax,
           isLogScale: action.isLogScale,
         };
 
         return {
-          internalBaselayerMaps: state.internalBaselayerMaps?.map((map) => {
+          internalBaselayers: state.internalBaselayers?.map((layer) => {
             if (
-              'map_id' in activeBaselayer &&
-              map.id === activeBaselayer.map_id
+              layer.layer_id ===
+              (action.activeBaselayer as InternalBaselayer).layer_id
             ) {
-              return {
-                ...map,
-                bands: map.bands.map((b) =>
-                  b.id === activeBaselayer.id ? newActiveBaselayer : b
-                ),
-              };
+              return updatedActiveBaselayer;
             } else {
-              return map;
+              return layer;
             }
           }),
-          activeBaselayer: newActiveBaselayer,
+          activeBaselayer: updatedActiveBaselayer,
+        };
+      } else {
+        return {
+          ...state,
+        };
+      }
+    }
+    case 'CHANGE_ABSOLUTE_VALUE': {
+      if (assertInternalBaselayer(action.activeBaselayer)) {
+        const { vmin, vmax, recommendedCmapValuesRange } =
+          action.activeBaselayer;
+
+        let min = vmin;
+        let max = vmax;
+
+        if (action.isAbsoluteValue && vmin < 0) {
+          min = 0;
+        }
+
+        if (action.isAbsoluteValue && vmax < 0) {
+          max = recommendedCmapValuesRange * 0.1;
+        }
+
+        const updatedActiveBaselayer = {
+          ...action.activeBaselayer,
+          isAbsoluteValue: action.isAbsoluteValue,
+          vmin: min,
+          vmax: max,
+        };
+
+        return {
+          internalBaselayers: state.internalBaselayers?.map((layer) => {
+            if (
+              layer.layer_id ===
+              (action.activeBaselayer as InternalBaselayer).layer_id
+            ) {
+              return updatedActiveBaselayer;
+            } else {
+              return layer;
+            }
+          }),
+          activeBaselayer: updatedActiveBaselayer,
         };
       } else {
         return {
@@ -152,33 +188,24 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
       }
     }
     case 'CHANGE_CMAP_VALUES': {
-      if (assertBand(action.activeBaselayer)) {
-        const activeBaselayer = {
+      if (assertInternalBaselayer(action.activeBaselayer)) {
+        const updatedActiveBaselayer = {
           ...action.activeBaselayer,
-          cmapValues: {
-            min: action.cmapValues.min,
-            max: action.cmapValues.max,
-            recommendedRange:
-              action.activeBaselayer.cmapValues.recommendedRange,
-          },
+          vmin: action.vmin,
+          vmax: action.vmax,
         };
         return {
-          internalBaselayerMaps: state.internalBaselayerMaps?.map((map) => {
+          internalBaselayers: state.internalBaselayers?.map((layer) => {
             if (
-              'map_id' in action.activeBaselayer &&
-              map.id === action.activeBaselayer.map_id
+              layer.layer_id ===
+              (action.activeBaselayer as InternalBaselayer).layer_id
             ) {
-              return {
-                ...map,
-                bands: map.bands.map((b) =>
-                  b.id === action.activeBaselayer.id ? activeBaselayer : b
-                ),
-              };
+              return updatedActiveBaselayer;
             } else {
-              return map;
+              return layer;
             }
           }),
-          activeBaselayer,
+          activeBaselayer: updatedActiveBaselayer,
         };
       } else {
         return {
