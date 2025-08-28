@@ -16,6 +16,9 @@
   border: 1px solid var(--border-color-unhovered);
   border-radius: var(--standard-border-radius);
   padding: 2px 0;
+  height: 23.5px;
+  box-sizing: border-box;
+  align-items: center;
 }
 
 .cmap-slider-container {
@@ -144,5 +147,11 @@ select {
   top: -25px;
   align-items: center;
   padding: 2px 5px;
+  box-sizing: border-box;
+}
+
+.vmin-vmax-input {
+  width: 70px !important;
+  font-size: 10px;
   box-sizing: border-box;
 }
