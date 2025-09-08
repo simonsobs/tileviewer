@@ -1,0 +1,865 @@
+<!doctype html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Usage and Features &#8212; Tileviewer documentation</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="_static/pygments.css?v=5ecbeea2"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="_static/basic.css?v=b08954a9"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="_static/alabaster.css?v=27fed22d"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="_static/custom.css?v=04c6dfee"
+    />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link
+      rel="next"
+      title="Keyboard Shortcuts"
+      href="keyboard-shortcuts.html"
+    />
+    <link rel="prev" title="Getting Started" href="getting-started.html" />
+
+    <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  </head>
+  <body>
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            <section id="usage-and-features">
+              <h1>
+                Usage and Features<a
+                  class="headerlink"
+                  href="#usage-and-features"
+                  title="Link to this heading"
+                  >¶</a
+                >
+              </h1>
+              <section id="layers">
+                <h2>
+                  Layers<a
+                    class="headerlink"
+                    href="#layers"
+                    title="Link to this heading"
+                    >¶</a
+                  >
+                </h2>
+                <p>
+                  Note that the layer menu can be locked by clicking the lock
+                  icon in the layer menu’s header. See screenshot below.
+                </p>
+                <a
+                  class="reference internal image-reference"
+                  href="_images/layer_menu_header.png"
+                  ><img
+                    alt="Layer menu header"
+                    class="align-center"
+                    src="_images/layer_menu_header.png"
+                    style="width: 300px"
+                  />
+                </a>
+                <section id="projection-and-orientation">
+                  <h3>
+                    Projection and Orientation<a
+                      class="headerlink"
+                      href="#projection-and-orientation"
+                      title="Link to this heading"
+                      >¶</a
+                    >
+                  </h3>
+                  <p>
+                    The default map projection is
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">EPSG:4326</span></code
+                    >. Currently, the projection cannot be changed but there are
+                    plans for this to be configurable. The external baselayers
+                    from Legacy Survey are reprojected by
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">OpenLayers</span></code
+                    >
+                    from
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">EPSG:3857</span></code
+                    >
+                    to
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">EPSG:4326</span></code
+                    >.
+                  </p>
+                  <p>
+                    The orientation of the layers is defaulted to
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">360</span>
+                      <span class="pre">&lt;</span> <span class="pre">ra</span>
+                      <span class="pre">&lt;</span>
+                      <span class="pre">0</span></code
+                    >
+                    to allow seamless comparisons between the Simons Observatory
+                    maps and the included comparison maps. However, the toggle
+                    switch at the top left can orient the layers to
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">-180</span>
+                      <span class="pre">&lt;</span> <span class="pre">ra</span>
+                      <span class="pre">&lt;</span>
+                      <span class="pre">180</span></code
+                    >
+                    when preferred. Note that the comparison maps are disabled
+                    when oriented to
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">-180</span>
+                      <span class="pre">&lt;</span> <span class="pre">ra</span>
+                      <span class="pre">&lt;</span>
+                      <span class="pre">180</span></code
+                    >.
+                  </p>
+                </section>
+                <section id="baselayers">
+                  <h3>
+                    Baselayers<a
+                      class="headerlink"
+                      href="#baselayers"
+                      title="Link to this heading"
+                      >¶</a
+                    >
+                  </h3>
+                  <p>
+                    These are maps that are served from your tile server or, in
+                    the case of the
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">Comparison</span>
+                      <span class="pre">maps</span></code
+                    >
+                    section, from an external tile server.
+                  </p>
+                  <p>
+                    Baselayer history is tracked similarly to how web browsers
+                    track history. The left and right arrows in the layer menu’s
+                    header (see image above) can be used to switch baselayers
+                    according to the history stack. Alternatively, one can use
+                    the keyboard to enter
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">H</span></code
+                    >
+                    to go back and
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">L</span></code
+                    >
+                    to go forward.
+                  </p>
+                </section>
+                <section id="highlight-regions">
+                  <h3>
+                    Highlight Regions<a
+                      class="headerlink"
+                      href="#highlight-regions"
+                      title="Link to this heading"
+                      >¶</a
+                    >
+                  </h3>
+                  <p>
+                    When present in the database, a section will be rendered in
+                    the layer menu for highlight regions. These regions can be
+                    toggled on/off via checkboxes. The regions are rendered as
+                    simple rectangular overlays. When hovered over, information
+                    will be displayed and a user can open a menu in order to
+                    download a cutout of the active baselayer within the
+                    region’s boundary.
+                  </p>
+                </section>
+                <section id="source-catalogs">
+                  <h3>
+                    Source Catalogs<a
+                      class="headerlink"
+                      href="#source-catalogs"
+                      title="Link to this heading"
+                      >¶</a
+                    >
+                  </h3>
+                  <p>
+                    When present in the database, a section will be rendered in
+                    the layer menu for source catalogs. These catalogs can be
+                    toggled on/off via checkboxes. Each source in a catalog is
+                    rendered as a marker that can be clicked on to reveal its
+                    data.
+                  </p>
+                </section>
+              </section>
+              <section id="navigation">
+                <h2>
+                  Navigation<a
+                    class="headerlink"
+                    href="#navigation"
+                    title="Link to this heading"
+                    >¶</a
+                  >
+                </h2>
+                <section id="zoom-in-out">
+                  <h3>
+                    Zoom In/Out<a
+                      class="headerlink"
+                      href="#zoom-in-out"
+                      title="Link to this heading"
+                      >¶</a
+                    >
+                  </h3>
+                  <p>The following options exist:</p>
+                  <ul class="simple">
+                    <li><p>Use the mousewheel to zoom in or out</p></li>
+                    <li>
+                      <p>
+                        Double-Click the map to zoom in or Shift+Double-Click to
+                        zoom out
+                      </p>
+                    </li>
+                    <li>
+                      <p>
+                        Use the
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">+</span></code
+                        >
+                        and
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">-</span></code
+                        >
+                        buttons in the top left
+                      </p>
+                    </li>
+                  </ul>
+                </section>
+                <section id="panning">
+                  <h3>
+                    Panning<a
+                      class="headerlink"
+                      href="#panning"
+                      title="Link to this heading"
+                      >¶</a
+                    >
+                  </h3>
+                  <p>Simply click and drag the map to pan around.</p>
+                </section>
+                <section id="go-to-feature-button">
+                  <h3>
+                    “Go To Feature” Button<a
+                      class="headerlink"
+                      href="#go-to-feature-button"
+                      title="Link to this heading"
+                      >¶</a
+                    >
+                  </h3>
+                  <ol class="arabic simple">
+                    <li>
+                      <p>Click the magnifying glass button in the top left</p>
+                    </li>
+                    <li><p>Enter a feature’s identifier and submit</p></li>
+                    <li>
+                      <p>
+                        If the feature is found via a SIMBAD search, the map
+                        will center on a map marker with a popup at the
+                        feature’s position
+                      </p>
+                    </li>
+                  </ol>
+                </section>
+                <section id="go-to-position-inputs">
+                  <h3>
+                    “Go To Position” Inputs<a
+                      class="headerlink"
+                      href="#go-to-position-inputs"
+                      title="Link to this heading"
+                      >¶</a
+                    >
+                  </h3>
+                  <ol class="arabic simple">
+                    <li>
+                      <p>
+                        Click the RA or Dec coordinate shown at the bottom of
+                        the map
+                      </p>
+                    </li>
+                    <li>
+                      <p>
+                        Enter the desired RA and Dec in the inputs that appear
+                      </p>
+                    </li>
+                    <li>
+                      <p>
+                        Press Enter and the map will center on a map marker with
+                        a popup at the position
+                      </p>
+                    </li>
+                  </ol>
+                </section>
+              </section>
+              <section id="external-searches">
+                <h2>
+                  External Searches<a
+                    class="headerlink"
+                    href="#external-searches"
+                    title="Link to this heading"
+                    >¶</a
+                  >
+                </h2>
+                <p>
+                  Users can search SIMBAD or explore in Legacy Survey an area of
+                  interest. The SIMBAD search is performed with a radius of 5
+                  arcmin from the clicked position. The Legacy Survey instance
+                  will open and be marked at the clicked position.
+                </p>
+                <p>This feature can be surfaced as follows:</p>
+                <ol class="arabic simple">
+                  <li>
+                    <p>
+                      Hold the
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">Alt</span></code
+                      >
+                      button and click anywhere on the map. A marker with a
+                      popup will appear.
+                    </p>
+                  </li>
+                  <li>
+                    <p>
+                      Click the desired search link(s). Note that links open in
+                      a new tab.
+                    </p>
+                  </li>
+                </ol>
+              </section>
+              <section id="download-cutouts">
+                <h2>
+                  Download Cutouts<a
+                    class="headerlink"
+                    href="#download-cutouts"
+                    title="Link to this heading"
+                    >¶</a
+                  >
+                </h2>
+                <p>
+                  Regions of a map’s active baselayer, with the exception of any
+                  “comparison map” baselayers, can be downloaded as
+                  <code class="docutils literal notranslate"
+                    ><span class="pre">.fits</span></code
+                  >,
+                  <code class="docutils literal notranslate"
+                    ><span class="pre">.png</span></code
+                  >,
+                  <code class="docutils literal notranslate"
+                    ><span class="pre">.jpg</span></code
+                  >, or
+                  <code class="docutils literal notranslate"
+                    ><span class="pre">webp</span></code
+                  >
+                  files by doing the following:
+                </p>
+                <ol class="arabic simple">
+                  <li>
+                    <p>
+                      Either toggle on the region in the layer menu or click the
+                      crop icon in the top left to draw a region of interest
+                    </p>
+                  </li>
+                  <li><p>Hover over the region of interest</p></li>
+                  <li>
+                    <p>
+                      Click the hamburger menu button to show the download
+                      options, and select the desired file type
+                    </p>
+                  </li>
+                </ol>
+              </section>
+              <section id="histogram-controls">
+                <h2>
+                  Histogram Controls<a
+                    class="headerlink"
+                    href="#histogram-controls"
+                    title="Link to this heading"
+                    >¶</a
+                  >
+                </h2>
+                <section id="defined-parameters">
+                  <h3>
+                    Defined Parameters<a
+                      class="headerlink"
+                      href="#defined-parameters"
+                      title="Link to this heading"
+                      >¶</a
+                    >
+                  </h3>
+                  <p>
+                    Some of the color map settings used in the histogram and
+                    baselayers are derived from
+                    <a
+                      class="reference external"
+                      href="https://matplotlib.org/stable/"
+                      >matplotlib</a
+                    >. The tile server responds to the following
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">matplotlib</span></code
+                    >
+                    parameters:
+                  </p>
+                  <ul class="simple">
+                    <li>
+                      <p>
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmin</span></code
+                        >
+                        and
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmax</span></code
+                        >
+                      </p>
+                      <ul>
+                        <li>
+                          <p>
+                            These are the min and max values shown in the
+                            inequality display
+                          </p>
+                        </li>
+                      </ul>
+                    </li>
+                    <li>
+                      <p>
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">cmap</span></code
+                        >
+                      </p>
+                      <ul>
+                        <li>
+                          <p>
+                            This corresponds to the selected color map, which
+                            defaults to
+                            <code class="docutils literal notranslate"
+                              ><span class="pre">RdBu_r</span></code
+                            >.
+                          </p>
+                        </li>
+                      </ul>
+                    </li>
+                  </ul>
+                  <p>
+                    Additionally, the tile server responds to the following
+                    boolean values:
+                  </p>
+                  <ul class="simple">
+                    <li>
+                      <p>
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">log</span></code
+                        >
+                      </p>
+                      <ul>
+                        <li>
+                          <p>
+                            Determines whether or not a log transform is
+                            applied.
+                          </p>
+                        </li>
+                      </ul>
+                    </li>
+                    <li>
+                      <p>
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">abs</span></code
+                        >
+                      </p>
+                      <ul>
+                        <li>
+                          <p>
+                            Determines whether or not an absolute value
+                            transform is applied. Note that the transform
+                            essentially folds negative values into positive
+                            values rather than filtering away negative values.
+                          </p>
+                        </li>
+                      </ul>
+                    </li>
+                  </ul>
+                </section>
+                <section id="changing-parameters">
+                  <h3>
+                    Changing Parameters<a
+                      class="headerlink"
+                      href="#changing-parameters"
+                      title="Link to this heading"
+                      >¶</a
+                    >
+                  </h3>
+                  <section id="with-the-dialog">
+                    <h4>
+                      With the Dialog<a
+                        class="headerlink"
+                        href="#with-the-dialog"
+                        title="Link to this heading"
+                        >¶</a
+                      >
+                    </h4>
+                    <p>
+                      Clicking the button with the diagonal arrow opens a dialog
+                      box that allows users to adjust any and all parameters.
+                    </p>
+                  </section>
+                  <section id="changing-vmin-and-vmax">
+                    <h4>
+                      Changing vmin and vmax<a
+                        class="headerlink"
+                        href="#changing-vmin-and-vmax"
+                        title="Link to this heading"
+                        >¶</a
+                      >
+                    </h4>
+                    <p>
+                      There are a number of ways to change
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">vmin</span></code
+                      >
+                      and
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">vmax</span></code
+                      >, either individually, simultaneously, or precisely.
+                    </p>
+                    <section id="individually">
+                      <h5>
+                        Individually<a
+                          class="headerlink"
+                          href="#individually"
+                          title="Link to this heading"
+                          >¶</a
+                        >
+                      </h5>
+                      <p>
+                        Use the slider’s drag handles to change
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmin</span></code
+                        >
+                        or
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmax</span></code
+                        >.
+                      </p>
+                    </section>
+                    <section id="simultaneously">
+                      <h5>
+                        Simultaneously<a
+                          class="headerlink"
+                          href="#simultaneously"
+                          title="Link to this heading"
+                          >¶</a
+                        >
+                      </h5>
+                      <p>
+                        Users have two options to maintain the difference
+                        between
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmin</span></code
+                        >
+                        and
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmax</span></code
+                        >.
+                      </p>
+                      <ul class="simple">
+                        <li>
+                          <p>
+                            Option 1: Drag the blue bar between the slider’s
+                            drag handlers left or right.
+                          </p>
+                        </li>
+                        <li>
+                          <p>
+                            Option 2: Use
+                            <code class="docutils literal notranslate"
+                              ><span class="pre">W</span></code
+                            >
+                            and
+                            <code class="docutils literal notranslate"
+                              ><span class="pre">D</span></code
+                            >
+                            as described in the
+                            <a
+                              class="reference internal"
+                              href="keyboard-shortcuts.html"
+                              ><span class="std std-doc"
+                                >keyboard shortcuts</span
+                              ></a
+                            >
+                            table.
+                          </p>
+                        </li>
+                      </ul>
+                    </section>
+                    <section id="precisely">
+                      <h5>
+                        Precisely<a
+                          class="headerlink"
+                          href="#precisely"
+                          title="Link to this heading"
+                          >¶</a
+                        >
+                      </h5>
+                      <p>
+                        Users can precisely set
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmin</span></code
+                        >
+                        and
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmax</span></code
+                        >
+                        as follows:
+                      </p>
+                      <ol class="arabic simple">
+                        <li>
+                          <p>
+                            Click either the
+                            <code class="docutils literal notranslate"
+                              ><span class="pre">vmin</span></code
+                            >
+                            or
+                            <code class="docutils literal notranslate"
+                              ><span class="pre">vmax</span></code
+                            >
+                            value shown in the histogram display
+                          </p>
+                        </li>
+                        <li>
+                          <p>
+                            Enter
+                            <code class="docutils literal notranslate"
+                              ><span class="pre">vmin</span></code
+                            >
+                            and
+                            <code class="docutils literal notranslate"
+                              ><span class="pre">vmax</span></code
+                            >
+                            values into the inputs that appear
+                          </p>
+                        </li>
+                        <li><p>Press enter to set these values</p></li>
+                      </ol>
+                      <p>
+                        Alternatively, use the dialog box to precisely set
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmin</span></code
+                        >
+                        and
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmax</span></code
+                        >.
+                      </p>
+                    </section>
+                  </section>
+                  <section id="changing-cmap">
+                    <h4>
+                      Changing
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">cmap</span></code
+                      ><a
+                        class="headerlink"
+                        href="#changing-cmap"
+                        title="Link to this heading"
+                        >¶</a
+                      >
+                    </h4>
+                    <p>
+                      Users can use the dropdown selector to choose between one
+                      of the built-in options. If a different
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">cmap</span></code
+                      >
+                      value compatible with
+                      <code class="docutils literal notranslate"
+                        ><span class="pre">matplotlib</span></code
+                      >
+                      is desired, use the dialog box and enter its value in the
+                      color map field.
+                    </p>
+                  </section>
+                </section>
+              </section>
+            </section>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+          <h1 class="logo"><a href="index.html">Tileviewer</a></h1>
+
+          <search id="searchbox" style="display: none" role="search">
+            <div class="searchformwrapper">
+              <form class="search" action="search.html" method="get">
+                <input
+                  type="text"
+                  name="q"
+                  aria-labelledby="searchlabel"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  placeholder="Search"
+                />
+                <input type="submit" value="Go" />
+              </form>
+            </div>
+          </search>
+          <script>
+            document.getElementById('searchbox').style.display = 'block';
+          </script>
+          <h3>Navigation</h3>
+          <ul class="current">
+            <li class="toctree-l1">
+              <a class="reference internal" href="getting-started.html"
+                >Getting Started</a
+              >
+            </li>
+            <li class="toctree-l1 current">
+              <a class="current reference internal" href="#"
+                >Usage and Features</a
+              >
+              <ul>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#layers">Layers</a>
+                  <ul>
+                    <li class="toctree-l3">
+                      <a
+                        class="reference internal"
+                        href="#projection-and-orientation"
+                        >Projection and Orientation</a
+                      >
+                    </li>
+                    <li class="toctree-l3">
+                      <a class="reference internal" href="#baselayers"
+                        >Baselayers</a
+                      >
+                    </li>
+                    <li class="toctree-l3">
+                      <a class="reference internal" href="#highlight-regions"
+                        >Highlight Regions</a
+                      >
+                    </li>
+                    <li class="toctree-l3">
+                      <a class="reference internal" href="#source-catalogs"
+                        >Source Catalogs</a
+                      >
+                    </li>
+                  </ul>
+                </li>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#navigation"
+                    >Navigation</a
+                  >
+                  <ul>
+                    <li class="toctree-l3">
+                      <a class="reference internal" href="#zoom-in-out"
+                        >Zoom In/Out</a
+                      >
+                    </li>
+                    <li class="toctree-l3">
+                      <a class="reference internal" href="#panning">Panning</a>
+                    </li>
+                    <li class="toctree-l3">
+                      <a class="reference internal" href="#go-to-feature-button"
+                        >“Go To Feature” Button</a
+                      >
+                    </li>
+                    <li class="toctree-l3">
+                      <a
+                        class="reference internal"
+                        href="#go-to-position-inputs"
+                        >“Go To Position” Inputs</a
+                      >
+                    </li>
+                  </ul>
+                </li>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#external-searches"
+                    >External Searches</a
+                  >
+                </li>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#download-cutouts"
+                    >Download Cutouts</a
+                  >
+                </li>
+                <li class="toctree-l2">
+                  <a class="reference internal" href="#histogram-controls"
+                    >Histogram Controls</a
+                  >
+                  <ul>
+                    <li class="toctree-l3">
+                      <a class="reference internal" href="#defined-parameters"
+                        >Defined Parameters</a
+                      >
+                    </li>
+                    <li class="toctree-l3">
+                      <a class="reference internal" href="#changing-parameters"
+                        >Changing Parameters</a
+                      >
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li class="toctree-l1">
+              <a class="reference internal" href="keyboard-shortcuts.html"
+                >Keyboard Shortcuts</a
+              >
+            </li>
+          </ul>
+
+          <div class="relations">
+            <h3>Related Topics</h3>
+            <ul>
+              <li>
+                <a href="index.html">Documentation overview</a>
+                <ul>
+                  <li>
+                    Previous:
+                    <a href="getting-started.html" title="previous chapter"
+                      >Getting Started</a
+                    >
+                  </li>
+                  <li>
+                    Next:
+                    <a href="keyboard-shortcuts.html" title="next chapter"
+                      >Keyboard Shortcuts</a
+                    >
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Jeremy Myers, Josh Borrow. | Powered by
+      <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a> &amp;
+      <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+
+      |
+      <a href="_sources/usage.md.txt" rel="nofollow">Page source</a>
+    </div>
+  </body>
+</html>
