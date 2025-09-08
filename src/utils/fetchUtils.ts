@@ -4,8 +4,8 @@ import {
   BoxResponse,
   InternalBaselayer,
   MapGroupResponse,
-  Source,
-  SourceListResponse,
+  SourceGroup,
+  SourceGroupResponse,
   SubmapDataWithBounds,
 } from '../types/maps';
 import { SubmapFileExtensions } from '../configs/submapConfigs';
@@ -43,22 +43,21 @@ export async function fetchMaps() {
 }
 
 export async function fetchSources() {
-  // Get the list of sources and unpack the response
-  const sourcesList: SourceListResponse[] = await (
+  // Get the list of source groups and unpack the response
+  const sourceGroups: SourceGroupResponse[] = await (
     await fetch(`${SERVICE_URL}/sources`)
   ).json();
 
-  // For each source in sourcesList, fetch its "child" data
-  const sourceList = await Promise.all(
-    sourcesList.map(async (source) =>
-      (await fetch(`${SERVICE_URL}/sources/${source.id}`)).json()
+  // For each source group in sourceGroups, fetch its data
+  const sources = await Promise.all(
+    sourceGroups.map(async (sourceGroup) =>
+      (
+        await fetch(`${SERVICE_URL}/sources/${sourceGroup.source_group_id}`)
+      ).json()
     )
   );
 
-  return {
-    catalogs: sourcesList as SourceListResponse[],
-    sources: sourceList.flat(1) as Source[],
-  };
+  return sources as SourceGroup[];
 }
 
 export async function fetchBoxes() {

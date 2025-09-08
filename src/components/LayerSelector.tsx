@@ -1,5 +1,5 @@
 import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { SourceList } from '../types/maps';
+import { SourceGroup } from '../types/maps';
 import { LayersIcon } from './icons/LayersIcon';
 import './styles/layer-selector.css';
 import { MapProps } from './OpenLayersMap';
@@ -28,7 +28,7 @@ export interface LayerSelectorProps
     flipped?: boolean
   ) => void;
   activeBaselayerId?: number | string;
-  sourceLists: SourceList[];
+  sourceGroups: SourceGroup[];
   isFlipped: boolean;
 }
 
@@ -36,9 +36,9 @@ export function LayerSelector({
   mapGroups,
   onBaselayerChange,
   activeBaselayerId,
-  sourceLists,
-  onSelectedSourceListsChange,
-  activeSourceListIds,
+  sourceGroups,
+  onSelectedSourceGroupsChange,
+  activeSourceGroupIds,
   highlightBoxes,
   activeBoxIds,
   onSelectedHighlightBoxChange,
@@ -139,19 +139,26 @@ export function LayerSelector({
             onBaselayerChange={onBaselayerChange}
           />
         </fieldset>
-        {sourceLists.length ? (
+        {sourceGroups.length ? (
           <fieldset>
             <legend>Source catalogs</legend>
-            {sourceLists.map((sl) => (
-              <div className="input-container" key={sl.id + '-' + sl.name}>
+            {sourceGroups.map((sourceGroup) => (
+              <div
+                className="input-container"
+                key={sourceGroup.source_group_id + '-' + sourceGroup.name}
+              >
                 <input
-                  onChange={onSelectedSourceListsChange}
+                  onChange={onSelectedSourceGroupsChange}
                   type="checkbox"
-                  id={String(sl.id)}
-                  value={sl.id}
-                  checked={activeSourceListIds.includes(sl.id)}
+                  id={String(sourceGroup.source_group_id)}
+                  value={sourceGroup.source_group_id}
+                  checked={activeSourceGroupIds.includes(
+                    sourceGroup.source_group_id
+                  )}
                 />
-                <label htmlFor={String(sl.id)}>{sl.name}</label>
+                <label htmlFor={String(sourceGroup.source_group_id)}>
+                  {sourceGroup.name}
+                </label>
               </div>
             ))}
           </fieldset>

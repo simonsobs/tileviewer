@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, useReducer, ChangeEvent } from 'react';
-import { MapGroupResponse, SourceList, Box } from './types/maps';
+import { MapGroupResponse, SourceGroup, Box } from './types/maps';
 import { ColorMapControls } from './components/ColorMapControls';
 import { fetchBoxes, fetchMaps, fetchSources } from './utils/fetchUtils';
 import {
@@ -14,7 +14,6 @@ import {
 } from './reducers/baselayersReducer';
 import { useQuery } from './hooks/useQuery';
 import { OpenLayersMap } from './components/OpenLayersMap';
-import { handleSelectChange } from './utils/layerUtils';
 import { Login } from './components/Login';
 
 function App() {
@@ -50,22 +49,14 @@ function App() {
   });
 
   /** sourceLists are used as FeatureGroups in the map, which can be toggled on/off in the map legend */
-  const { data: sourceLists } = useQuery<SourceList[] | undefined>({
+  const { data: sourceGroups } = useQuery<SourceGroup[] | undefined>({
     initialData: undefined,
     queryKey: [isAuthenticated],
     queryFn: async () => {
-      // Fetch the source catalogs and sources
-      const { catalogs, sources } = await fetchSources();
+      // Fetch the sources
+      const sourceGroups = await fetchSources();
 
-      // Map through the source catalogs in order to link the appropriate sources
-      // to each catalog
-      const finalSourceLists: SourceList[] = catalogs.map((catalog) => ({
-        ...catalog,
-        // Create a sources attribute that consists of sources associated with the catalog
-        sources: sources.filter((src) => src.source_list_id == catalog.id),
-      }));
-
-      return finalSourceLists;
+      return sourceGroups;
     },
   });
 
@@ -84,20 +75,38 @@ function App() {
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
 
-  const [activeSourceListIds, setActiveSourceListIds] = useState<number[]>([]);
+  const [activeSourceGroupIds, setActiveSourceGroupIds] = useState<string[]>(
+    []
+  );
 
-  const onSelectedSourceListsChange = useCallback(
+  const onSelectedSourceGroupsChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
-      if (!sourceLists) return;
-      handleSelectChange(e, setActiveSourceListIds);
+      if (!sourceGroups) return;
+      if (e.target.checked) {
+        setActiveSourceGroupIds((prevState) =>
+          prevState.concat(e.target.value)
+        );
+      } else {
+        setActiveSourceGroupIds((prevState) =>
+          prevState.filter((id) => id !== e.target.value)
+        );
+      }
     },
-    [sourceLists]
+    [sourceGroups]
   );
 
   const onSelectedHighlightBoxChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       if (!highlightBoxes) return;
-      handleSelectChange(e, setActiveBoxIds);
+      if (e.target.checked) {
+        setActiveBoxIds((prevState) =>
+          prevState.concat(Number(e.target.value))
+        );
+      } else {
+        setActiveBoxIds((prevState) =>
+          prevState.filter((id) => id !== Number(e.target.value))
+        );
+      }
     },
     [highlightBoxes]
   );
@@ -184,9 +193,9 @@ function App() {
             mapGroups={mapGroups}
             baselayersState={baselayersState}
             dispatchBaselayersChange={dispatchBaselayersChange}
-            sourceLists={sourceLists}
-            activeSourceListIds={activeSourceListIds}
-            onSelectedSourceListsChange={onSelectedSourceListsChange}
+            sourceGroups={sourceGroups}
+            activeSourceGroupIds={activeSourceGroupIds}
+            onSelectedSourceGroupsChange={onSelectedSourceGroupsChange}
             highlightBoxes={highlightBoxes}
             activeBoxIds={activeBoxIds}
             setActiveBoxIds={setActiveBoxIds}

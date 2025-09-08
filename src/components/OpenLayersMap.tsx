@@ -22,7 +22,7 @@ import {
   BaselayersState,
   Box,
   ExternalBaselayer,
-  SourceList,
+  SourceGroup,
   SubmapData,
   MapGroupResponse,
 } from '../types/maps';
@@ -60,9 +60,9 @@ export type MapProps = {
   mapGroups: MapGroupResponse[];
   baselayersState: BaselayersState;
   dispatchBaselayersChange: React.ActionDispatch<[action: Action]>;
-  sourceLists?: SourceList[];
-  activeSourceListIds: number[];
-  onSelectedSourceListsChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  sourceGroups?: SourceGroup[];
+  activeSourceGroupIds: string[];
+  onSelectedSourceGroupsChange: (e: ChangeEvent<HTMLInputElement>) => void;
   highlightBoxes: Box[] | undefined;
   activeBoxIds: number[];
   setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
@@ -74,9 +74,9 @@ export function OpenLayersMap({
   mapGroups,
   baselayersState,
   dispatchBaselayersChange,
-  sourceLists = [],
-  onSelectedSourceListsChange,
-  activeSourceListIds,
+  sourceGroups = [],
+  onSelectedSourceGroupsChange,
+  activeSourceGroupIds,
   highlightBoxes,
   activeBoxIds,
   setActiveBoxIds,
@@ -509,8 +509,8 @@ export function OpenLayersMap({
         flipped={flipTiles}
       />
       <SourcesLayer
-        sourceLists={sourceLists}
-        activeSourceListIds={activeSourceListIds}
+        sourceGroups={sourceGroups}
+        activeSourceGroupIds={activeSourceGroupIds}
         mapRef={mapRef}
         flipped={flipTiles}
       />
@@ -535,9 +535,9 @@ export function OpenLayersMap({
         mapGroups={mapGroups}
         onBaselayerChange={onBaselayerChange}
         activeBaselayerId={activeBaselayer?.layer_id}
-        sourceLists={sourceLists}
-        activeSourceListIds={activeSourceListIds}
-        onSelectedSourceListsChange={onSelectedSourceListsChange}
+        sourceGroups={sourceGroups}
+        activeSourceGroupIds={activeSourceGroupIds}
+        onSelectedSourceGroupsChange={onSelectedSourceGroupsChange}
         highlightBoxes={highlightBoxes}
         activeBoxIds={activeBoxIds}
         onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}

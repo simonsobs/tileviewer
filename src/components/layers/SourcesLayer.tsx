@@ -12,22 +12,23 @@ import {
   transformCoords,
   transformSources,
 } from '../../utils/layerUtils';
+import { SourceData } from '../../types/maps';
 
 type SourcesLayerProps = {
-  sourceLists: MapProps['sourceLists'];
-  activeSourceListIds: MapProps['activeSourceListIds'];
+  sourceGroups: MapProps['sourceGroups'];
+  activeSourceGroupIds: MapProps['activeSourceGroupIds'];
   mapRef: React.RefObject<Map | null>;
   flipped: boolean;
 };
 
 export function SourcesLayer({
-  sourceLists = [],
-  activeSourceListIds,
+  sourceGroups = [],
+  activeSourceGroupIds,
   mapRef,
   flipped,
 }: SourcesLayerProps) {
   const popupRef = useRef<HTMLDivElement | null>(null);
-  const [selectedSourceId, setSelectedSourceId] = useState<number | undefined>(
+  const [selectedSourceId, setSelectedSourceId] = useState<string | undefined>(
     undefined
   );
 
@@ -77,19 +78,22 @@ export function SourcesLayer({
       map.removeLayer(sourceGroupRef.current);
     }
 
-    const newLayers = sourceLists
-      .filter((sl) => activeSourceListIds.includes(sl.id))
-      .map((sl) => {
+    const newLayers = sourceGroups
+      .filter((sg) => activeSourceGroupIds.includes(sg.source_group_id))
+      .map((sg) => {
         return new VectorLayer({
           source: new VectorSource({
-            features: sl.sources.map((source) => {
+            features: sg.sources.map((source) => {
               const originalCoords = [source.ra, source.dec];
               const syncedCoords = flipped
                 ? transformCoords(originalCoords, flipped, 'layer')
                 : originalCoords;
               return new Feature({
                 geometry: new Circle(syncedCoords, 1 / 6),
-                sourceData: source,
+                sourceData: {
+                  id: `${source.ra},${source.dec}`,
+                  ...source,
+                } as SourceData,
               });
             }),
             wrapX: false,
@@ -110,7 +114,7 @@ export function SourcesLayer({
 
     sourceGroupRef.current = group;
     map.addLayer(group);
-  }, [sourceLists, activeSourceListIds, flipped]);
+  }, [sourceGroups, activeSourceGroupIds, flipped]);
 
   // Set up interaction and popup
   useEffect(() => {

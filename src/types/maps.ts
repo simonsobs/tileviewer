@@ -66,32 +66,30 @@ export type GraticuleDetails = {
   interval: number;
 };
 
-export type SourceListResponse = {
+export type SourceGroupResponse = {
   /** id of the source catalog */
-  id: number;
-  /** name of the source list */
+  source_group_id: string;
+  /** name of the source group */
   name: string;
   /** optional description attribute */
   description?: string;
 };
 
 export type Source = {
-  /** id of the source */
-  id: number;
-  /** id of the source catalog containing this source */
-  source_list_id: number;
-  /** value of flux for the source */
-  flux: number;
+  /** optional name attribute */
+  name?: string;
   /** value of right ascension for the source */
   ra: number;
   /** value of declination for the source */
   dec: number;
-  /** optional name attribute */
-  name?: string;
+  /** additional information about the source */
+  extra: Record<string, unknown>;
 };
 
-export interface SourceList extends SourceListResponse {
-  /** the list of sources associated with a SourceList catalog */
+export type SourceData = Source & { id: string };
+
+export interface SourceGroup extends SourceGroupResponse {
+  /** the list of sources associated with a source catalog */
   sources: Source[];
 }
 
