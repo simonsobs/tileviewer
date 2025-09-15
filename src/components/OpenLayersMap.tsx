@@ -330,7 +330,7 @@ export function OpenLayersMap({
 
   const handleSearchOverlay = useCallback(
     (e: MapBrowserEvent) => {
-      if (e.originalEvent.shiftKey) {
+      if (e.originalEvent.altKey) {
         searchOverlayHelper(
           e.map,
           externalSearchRef,
