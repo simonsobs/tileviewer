@@ -33,6 +33,8 @@ export function CustomColorMapDialog({
   units,
   isLogScale,
   onLogScaleChange,
+  isAbsoluteValue,
+  onAbsoluteValueChange,
 }: Props) {
   // Create temporary values to maintain component state without setting the global state, which is only done during "Update Map"
   const [tempCmap, setTempCmap] = useState(cmap);
@@ -40,6 +42,7 @@ export function CustomColorMapDialog({
     values.map((v) => (isLogScale ? String(Math.pow(10, v)) : String(v)))
   );
   const [tempIsLogScale, setTempIsLogScale] = useState(isLogScale);
+  const [tempIsAbsValue, setTempIsAbsValue] = useState(isAbsoluteValue);
 
   /** Sync the tempCmap with higher-level cmap state changes */
   useEffect(() => {
@@ -57,6 +60,11 @@ export function CustomColorMapDialog({
   useEffect(() => {
     setTempIsLogScale(isLogScale);
   }, [isLogScale]);
+
+  /** Sync the tempIsAbsValue with higher-level isLogScale state changes */
+  useEffect(() => {
+    setTempIsAbsValue(isAbsoluteValue);
+  }, [isAbsoluteValue]);
 
   /** Handles "submitting" the temp values set in the dialog and closes the modal */
   const handleUpdate = useCallback(() => {
@@ -81,6 +89,10 @@ export function CustomColorMapDialog({
       onLogScaleChange(tempIsLogScale);
     }
 
+    if (tempIsAbsValue !== isAbsoluteValue) {
+      onAbsoluteValueChange(tempIsAbsValue);
+    }
+
     // Check if tempCmap exists in cmapOptions and concat as a new option if not
     if (!cmapOptions.includes(tempCmap)) {
       setCmapOptions(cmapOptions.concat(tempCmap));
@@ -99,6 +111,9 @@ export function CustomColorMapDialog({
     cmap,
     values,
     onLogScaleChange,
+    tempIsAbsValue,
+    isAbsoluteValue,
+    onAbsoluteValueChange,
   ]);
 
   return (
@@ -166,8 +181,12 @@ export function CustomColorMapDialog({
             />
             Log Scale
           </label>
-          <label className="cmap-dialog-toggle disabled" title="Coming soon">
-            <input type="checkbox" disabled />
+          <label className="cmap-dialog-toggle">
+            <input
+              type="checkbox"
+              checked={tempIsAbsValue}
+              onChange={(e) => setTempIsAbsValue(e.target.checked)}
+            />
             Abs. Value
           </label>
         </div>

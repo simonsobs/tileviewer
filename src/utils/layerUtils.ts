@@ -1,23 +1,9 @@
 import { Feature } from 'ol';
-import { BoxExtent } from '../types/maps';
-import { Source } from '../types/maps';
+import { BoxExtent, SourceData } from '../types/maps';
 import { NUMBER_OF_FIXED_COORDINATE_DECIMALS } from '../configs/mapSettings';
 import { Point } from 'ol/geom';
 import { Fill, Stroke, Style } from 'ol/style';
 import { FeatureLike } from 'ol/Feature';
-
-export function handleSelectChange(
-  event: React.ChangeEvent<HTMLInputElement>,
-  setter: (value: React.SetStateAction<number[]>) => void
-) {
-  if (event.target.checked) {
-    setter((prevState) => prevState.concat(Number(event.target.value)));
-  } else {
-    setter((prevState) =>
-      prevState.filter((id) => id !== Number(event.target.value))
-    );
-  }
-}
 
 export function getBaselayerResolutions(
   worldWidth: number,
@@ -66,7 +52,7 @@ export function transformCoords(
 }
 
 export function transformSources(feature: Feature, flipped: boolean) {
-  const sourceData = feature.get('sourceData') as Source;
+  const sourceData = feature.get('sourceData') as SourceData;
   let newOverlayCoords = [sourceData.ra, sourceData.dec];
   let newSourceData = { ...sourceData };
   if (flipped) {
@@ -129,37 +115,53 @@ export function isBoxSynced(currentData: BoxExtent, originalData: BoxExtent) {
   );
 }
 
-function createSourceP(type: 'coord' | 'flux', data: Source) {
+function createSourceP(label: string, data: string | number) {
   const p = document.createElement('p');
-  const label = document.createElement('span');
-  label.className = 'source-data-label';
+  const labelEl = document.createElement('span');
+  labelEl.className = 'source-data-label';
   const content = document.createElement('span');
-  if (type === 'coord') {
-    label.textContent = 'RA, Dec: ';
-    content.textContent = `(${data.ra.toFixed(NUMBER_OF_FIXED_COORDINATE_DECIMALS)}, ${data.dec.toFixed(NUMBER_OF_FIXED_COORDINATE_DECIMALS)})`;
-  } else {
-    label.textContent = 'Flux: ';
-    content.textContent = `${data.flux}`;
-  }
-  p.appendChild(label);
+  labelEl.textContent = label + ': ';
+  content.textContent = String(data);
+
+  p.appendChild(labelEl);
   p.appendChild(content);
+
   return p;
 }
 
 export function createSourcePopupContent(
   containerEl: HTMLDivElement,
-  data: Source
+  data: SourceData
 ) {
   containerEl.innerHTML = '';
 
   if (data.name) {
+    // Create a header if the source name exists
     const h3 = document.createElement('h3');
     h3.textContent = data.name;
     containerEl.appendChild(h3);
   }
 
-  containerEl.appendChild(createSourceP('coord', data));
-  containerEl.appendChild(createSourceP('flux', data));
+  // Create p element w/ coordinate data
+  const p = document.createElement('p');
+  const label = document.createElement('span');
+  label.className = 'source-data-label';
+  const content = document.createElement('span');
+  label.textContent = 'RA, Dec: ';
+  content.textContent = `(${data.ra.toFixed(NUMBER_OF_FIXED_COORDINATE_DECIMALS)}, ${data.dec.toFixed(NUMBER_OF_FIXED_COORDINATE_DECIMALS)})`;
+  p.appendChild(label);
+  p.appendChild(content);
+  containerEl.appendChild(p);
+
+  // Create p elements for data contained in `extra` attribute
+  if (data.extra) {
+    const entries = Object.entries(data.extra);
+    for (const entry of entries) {
+      containerEl.appendChild(
+        createSourceP(entry[0], entry[1] as string | number)
+      );
+    }
+  }
 }
 
 /**
