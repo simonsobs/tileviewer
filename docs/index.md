@@ -1,6 +1,6 @@
-# Welcome to Tileviewer
+# Welcome to TileViewer
 
-Tileviewer is a feature-rich web application for viewing and analyzing astronomical maps. Tileviewer uses [OpenLayers](https://openlayers.org/) to render the baselayer maps, source catalogs, and regions of interest.
+TileViewer is a feature-rich web application for viewing and analyzing astronomical maps. TileViewer uses [OpenLayers](https://openlayers.org/) to render the baselayer maps, source catalogs, and regions of interest.
 
 ```{toctree}
    :maxdepth: 3

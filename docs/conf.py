@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Tileviewer'
+project = 'TileViewer'
 copyright = '2025, Jeremy Myers, Josh Borrow'
 author = 'Jeremy Myers, Josh Borrow'
 
