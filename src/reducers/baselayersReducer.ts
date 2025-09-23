@@ -110,6 +110,7 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
         const { activeBaselayer, isLogScale } = action;
         const { vmin, vmax } = action.activeBaselayer;
         const safeLogMin = safeLog(vmin);
+        const safeLogMax = safeLog(vmax);
 
         const newMin = isLogScale
           ? safeLogMin === 0
@@ -117,7 +118,12 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
             : safeLogMin
           : Math.pow(10, vmin);
 
-        const newMax = isLogScale ? safeLog(vmax) : Math.pow(10, vmax);
+        // Handle case in which vmax is invalid in log scale
+        const newMax = isLogScale
+          ? safeLogMax === 0
+            ? 2
+            : safeLogMax
+          : Math.pow(10, vmax);
 
         const updatedActiveBaselayer = {
           ...activeBaselayer,

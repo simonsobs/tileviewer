@@ -238,6 +238,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
             quantity={quantity}
             sliderAttributes={sliderAttributes}
             isLogScale={isLogScale}
+            isAbsoluteValue={isAbsoluteValue}
           />
         )}
       </div>
