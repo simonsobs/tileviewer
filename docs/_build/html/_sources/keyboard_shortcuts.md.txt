@@ -1,9 +1,0 @@
-# Keyboard Shortcuts
-
-The following table describes the available keyboard shortcuts and their functionality.
-
-| Key(s)       | Functionality                        |
-|---------------|------------------------------------|
-| Tileviewer    | Web app for astronomical maps      |
-| OpenLayers    | Renders baselayer maps and regions |
-| React + TS    | Frontend framework                  |
