@@ -16,7 +16,6 @@ interface ColorMapSliderProps
     | 'onCmapChange'
     | 'onLogScaleChange'
     | 'onAbsoluteValueChange'
-    | 'isAbsoluteValue'
   > {
   /** The URL to the color map image */
   cmapImage?: string;
@@ -37,6 +36,7 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
     values,
     cmapRange,
     isLogScale,
+    isAbsoluteValue,
   } = props;
   /**
    * Create temporary values for range slider min/max to maintain component state without setting the global state;
@@ -95,17 +95,34 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
         vmaxRef.current?.setCustomValidity(msg);
       }
 
-      if (isLogScale && vmin < 0) {
-        const msg = 'vmin must be greater than 0';
-        vminRef.current?.setCustomValidity(msg);
+      // Ensure vmin and vmax are valid for isLogScale
+      if (isLogScale) {
+        if (vmin <= 0) {
+          const msg = 'vmin must be greater than 0';
+          vminRef.current?.setCustomValidity(msg);
+        }
+
+        if (vmax <= 0) {
+          const msg = 'vmax must be greater than 0';
+          vmaxRef.current?.setCustomValidity(msg);
+        }
       }
 
-      if (isLogScale && vmax < 0) {
-        const msg = 'vmax must be greater than 0';
-        vmaxRef.current?.setCustomValidity(msg);
+      // isLogScale validation is generally the same as isAbsValue
+      // except that 0 is valid if only isAbsValue is true
+      if (!isLogScale && isAbsoluteValue) {
+        if (vmin < 0) {
+          const msg = 'vmin must be greater than or equal to 0';
+          vminRef.current?.setCustomValidity(msg);
+        }
+
+        if (vmax < 0) {
+          const msg = 'vmax must be greater than or equal to 0';
+          vmaxRef.current?.setCustomValidity(msg);
+        }
       }
     }
-  }, [isLogScale]);
+  }, [isLogScale, isAbsoluteValue]);
 
   const onSubmit = useCallback(
     (e: FormEvent) => {
@@ -160,34 +177,43 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest('input')) return;
-      const stepValue = cmapRange * 0.05;
+      const stepValue = isLogScale
+        ? safeLog(cmapRange) * 0.05
+        : cmapRange * 0.05;
+      let computedVmin = tempValues[0];
+      let computedVmax = tempValues[1];
 
       switch (e.key) {
         case 'a':
-          setTempValues((prev) => [
-            formatNumber(prev[0] - stepValue),
-            formatNumber(prev[1] - stepValue),
-          ]);
+          computedVmin -= stepValue;
+          computedVmax -= stepValue;
           break;
         case 'd':
-          setTempValues((prev) => [
-            formatNumber(prev[0] + stepValue),
-            formatNumber(prev[1] + stepValue),
-          ]);
+          computedVmin += stepValue;
+          computedVmax += stepValue;
           break;
         case 'w':
-          setTempValues((prev) => [
-            formatNumber(prev[0] - stepValue),
-            formatNumber(prev[1] + stepValue),
-          ]);
+          computedVmin -= stepValue;
+          computedVmax += stepValue;
           break;
         case 's':
-          setTempValues((prev) => [
-            formatNumber(prev[0] + stepValue),
-            formatNumber(prev[1] - stepValue),
-          ]);
+          computedVmin += stepValue;
+          computedVmax -= stepValue;
           break;
       }
+
+      // Do nothing if we're in log mode and either value is invalid
+      if (isLogScale && (computedVmin <= 0 || computedVmax <= 0)) {
+        return;
+      }
+
+      // Similarly do nothing if we're in absolute value mode and either value is invalid
+      if (isAbsoluteValue && (computedVmin < 0 || computedVmax < 0)) {
+        return;
+      }
+
+      // Only set new values if valid
+      setTempValues([formatNumber(computedVmin), formatNumber(computedVmax)]);
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -200,7 +226,14 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [tempValues, cmapRange, setTempValues, onCmapValuesChange]);
+  }, [
+    tempValues,
+    cmapRange,
+    setTempValues,
+    onCmapValuesChange,
+    isLogScale,
+    isAbsoluteValue,
+  ]);
 
   /** Sync the temp values  */
   useEffect(() => {
