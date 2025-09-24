@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Usage and Features &#8212; Tileviewer documentation</title>
+    <title>Usage and Features &#8212; TileViewer documentation</title>
     <link
       rel="stylesheet"
       type="text/css"
@@ -25,7 +25,7 @@
     <link
       rel="stylesheet"
       type="text/css"
-      href="_static/custom.css?v=04c6dfee"
+      href="_static/custom.css?v=b06ea713"
     />
     <script src="_static/documentation_options.js?v=5929fcd5"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
@@ -65,17 +65,28 @@
                   >
                 </h2>
                 <p>
-                  Note that the layer menu can be locked by clicking the lock
-                  icon in the layer menu’s header. See screenshot below.
+                  To access the layer menu, mouse over the layer menu icon (
+                  <a
+                    class="reference internal"
+                    href="_images/layer_menu_icon.png"
+                    ><img
+                      alt="Layer menu icon"
+                      src="_images/layer_menu_icon.png"
+                      style="height: 20px"
+                  /></a>
+                  ) in the top right. The layer menu can be locked by clicking
+                  the lock icon in the layer menu’s header. The screenshot below
+                  shows a locked layer menu with some annotations describing a
+                  few of its less obvious features.
                 </p>
                 <a
                   class="reference internal image-reference"
-                  href="_images/layer_menu_header.png"
+                  href="_images/locked_layer_menu.png"
                   ><img
-                    alt="Layer menu header"
+                    alt="Locked layer menu with annotations"
                     class="align-center"
-                    src="_images/layer_menu_header.png"
-                    style="width: 300px"
+                    src="_images/locked_layer_menu.png"
+                    style="width: 400px"
                   />
                 </a>
                 <section id="projection-and-orientation">
@@ -116,7 +127,16 @@
                     >
                     to allow seamless comparisons between the Simons Observatory
                     maps and the included comparison maps. However, the toggle
-                    switch at the top left can orient the layers to
+                    switch at the top left (
+                    <a
+                      class="reference internal"
+                      href="_images/ra_orientation_toggle.png"
+                      ><img
+                        alt="Toggle button for RA range"
+                        src="_images/ra_orientation_toggle.png"
+                        style="height: 20px"
+                    /></a>
+                    ) can orient the layers to
                     <code class="docutils literal notranslate"
                       ><span class="pre">-180</span>
                       <span class="pre">&lt;</span> <span class="pre">ra</span>
@@ -124,7 +144,7 @@
                       <span class="pre">180</span></code
                     >
                     when preferred. Note that the comparison maps are disabled
-                    when oriented to
+                    when the map is oriented to
                     <code class="docutils literal notranslate"
                       ><span class="pre">-180</span>
                       <span class="pre">&lt;</span> <span class="pre">ra</span>
@@ -168,6 +188,7 @@
                   </p>
                 </section>
                 <section id="highlight-regions">
+                  <span id="id1"></span>
                   <h3>
                     Highlight Regions<a
                       class="headerlink"
@@ -185,6 +206,21 @@
                     download a cutout of the active baselayer within the
                     region’s boundary.
                   </p>
+                  <p>
+                    The screenshot below shows an example of a displayed
+                    highlight region named <strong>Region 1</strong> when the
+                    region is hovered over.
+                  </p>
+                  <a
+                    class="reference internal image-reference"
+                    href="_images/example_highlight_region.png"
+                    ><img
+                      alt="Map showing an example highlight region"
+                      class="align-center"
+                      src="_images/example_highlight_region.png"
+                      style="width: 800px"
+                    />
+                  </a>
                 </section>
                 <section id="source-catalogs">
                   <h3>
@@ -202,6 +238,20 @@
                     rendered as a marker that can be clicked on to reveal its
                     data.
                   </p>
+                  <p>
+                    The screenshot below shows the data displayed when a
+                    source’s marker is clicked.
+                  </p>
+                  <a
+                    class="reference internal image-reference"
+                    href="_images/example_source_popup.png"
+                    ><img
+                      alt="Map showing an example source popup"
+                      class="align-center"
+                      src="_images/example_source_popup.png"
+                      style="width: 800px"
+                    />
+                  </a>
                 </section>
               </section>
               <section id="navigation">
@@ -224,11 +274,11 @@
                   </h3>
                   <p>The following options exist:</p>
                   <ul class="simple">
-                    <li><p>Use the mousewheel to zoom in or out</p></li>
+                    <li><p>Use the mousewheel to zoom in or out.</p></li>
                     <li>
                       <p>
                         Double-Click the map to zoom in or Shift+Double-Click to
-                        zoom out
+                        zoom out.
                       </p>
                     </li>
                     <li>
@@ -241,10 +291,20 @@
                         <code class="docutils literal notranslate"
                           ><span class="pre">-</span></code
                         >
-                        buttons in the top left
+                        buttons in the top left (see screenshot below).
                       </p>
                     </li>
                   </ul>
+                  <a
+                    class="reference internal image-reference"
+                    href="_images/zoom_control.png"
+                    ><img
+                      alt="Zoom in/out buttons"
+                      class="align-center"
+                      src="_images/zoom_control.png"
+                      style="width: 300px"
+                    />
+                  </a>
                 </section>
                 <section id="panning">
                   <h3>
@@ -268,17 +328,51 @@
                   </h3>
                   <ol class="arabic simple">
                     <li>
-                      <p>Click the magnifying glass button in the top left</p>
+                      <p>Click the magnifying glass button in the top left.</p>
                     </li>
-                    <li><p>Enter a feature’s identifier and submit</p></li>
+                  </ol>
+                  <a
+                    class="reference internal image-reference"
+                    href="_images/go_to_feature_button.png"
+                    ><img
+                      alt="Button for Go To Feature functionality"
+                      class="align-center"
+                      src="_images/go_to_feature_button.png"
+                      style="width: 300px"
+                    />
+                  </a>
+                  <ol class="arabic simple" start="2">
+                    <li><p>Enter a feature’s identifier and submit.</p></li>
+                  </ol>
+                  <a
+                    class="reference internal image-reference"
+                    href="_images/go_to_feature_dialog.png"
+                    ><img
+                      alt="Dialog for Go To Feature input"
+                      class="align-center"
+                      src="_images/go_to_feature_dialog.png"
+                      style="width: 300px"
+                    />
+                  </a>
+                  <ol class="arabic simple" start="3">
                     <li>
                       <p>
                         If the feature is found via a SIMBAD search, the map
                         will center on a map marker with a popup at the
-                        feature’s position
+                        feature’s position.
                       </p>
                     </li>
                   </ol>
+                  <a
+                    class="reference internal image-reference"
+                    href="_images/go_to_feature_found_example.png"
+                    ><img
+                      alt="Example of feature found via Go To Feature search"
+                      class="align-center"
+                      src="_images/go_to_feature_found_example.png"
+                      style="width: 300px"
+                    />
+                  </a>
                 </section>
                 <section id="go-to-position-inputs">
                   <h3>
@@ -293,21 +387,55 @@
                     <li>
                       <p>
                         Click the RA or Dec coordinate shown at the bottom of
-                        the map
-                      </p>
-                    </li>
-                    <li>
-                      <p>
-                        Enter the desired RA and Dec in the inputs that appear
-                      </p>
-                    </li>
-                    <li>
-                      <p>
-                        Press Enter and the map will center on a map marker with
-                        a popup at the position
+                        the map.
                       </p>
                     </li>
                   </ol>
+                  <a
+                    class="reference internal image-reference"
+                    href="_images/go_to_coords_step1.png"
+                    ><img
+                      alt="Annotated coordinates display"
+                      class="align-center"
+                      src="_images/go_to_coords_step1.png"
+                      style="width: 300px"
+                    />
+                  </a>
+                  <ol class="arabic simple" start="2">
+                    <li>
+                      <p>
+                        Enter the desired RA and Dec in the inputs that appear.
+                      </p>
+                    </li>
+                  </ol>
+                  <a
+                    class="reference internal image-reference"
+                    href="_images/go_to_coords_step2.png"
+                    ><img
+                      alt="Step 2 for Go To Position feature"
+                      class="align-center"
+                      src="_images/go_to_coords_step2.png"
+                      style="width: 300px"
+                    />
+                  </a>
+                  <ol class="arabic simple" start="3">
+                    <li>
+                      <p>
+                        Press Enter and the map will center on a map marker with
+                        a popup at the position.
+                      </p>
+                    </li>
+                  </ol>
+                  <a
+                    class="reference internal image-reference"
+                    href="_images/go_to_coords_step3.png"
+                    ><img
+                      alt="Step 3 for Go To Position feature"
+                      class="align-center"
+                      src="_images/go_to_coords_step3.png"
+                      style="width: 300px"
+                    />
+                  </a>
                 </section>
               </section>
               <section id="external-searches">
@@ -334,7 +462,8 @@
                         ><span class="pre">Alt</span></code
                       >
                       button and click anywhere on the map. A marker with a
-                      popup will appear.
+                      popup will appear. The popup is identical to those shown
+                      in Step 3 of both “Go To” features described above.
                     </p>
                   </li>
                   <li>
@@ -375,17 +504,63 @@
                   <li>
                     <p>
                       Either toggle on the region in the layer menu or click the
-                      crop icon in the top left to draw a region of interest
-                    </p>
-                  </li>
-                  <li><p>Hover over the region of interest</p></li>
-                  <li>
-                    <p>
-                      Click the hamburger menu button to show the download
-                      options, and select the desired file type
+                      crop icon in the top left to draw a region of interest.
+                      The screenshot below shows the button for drawing a new
+                      highlight region. Refer to
+                      <a class="reference internal" href="#highlight-regions"
+                        >Highlight Regions</a
+                      >
+                      above to learn how to use the layer menu to toggle on/off
+                      existing highlight regions.
                     </p>
                   </li>
                 </ol>
+                <a
+                  class="reference internal image-reference"
+                  href="_images/draw_region_button.png"
+                  ><img
+                    alt="Button to draw a highlight region on the map"
+                    class="align-center"
+                    src="_images/draw_region_button.png"
+                    style="width: 300px"
+                  />
+                </a>
+                <ol class="arabic simple" start="2">
+                  <li>
+                    <p>
+                      Hover over the region of interest to show the region’s
+                      overlay information.
+                    </p>
+                  </li>
+                </ol>
+                <a
+                  class="reference internal image-reference"
+                  href="_images/region_overlay1.png"
+                  ><img
+                    alt="Example highlight region's initial overlay"
+                    class="align-center"
+                    src="_images/region_overlay1.png"
+                    style="width: 600px"
+                  />
+                </a>
+                <ol class="arabic simple" start="3">
+                  <li>
+                    <p>
+                      Click the hamburger menu button to show the download
+                      options, and select the desired file type.
+                    </p>
+                  </li>
+                </ol>
+                <a
+                  class="reference internal image-reference"
+                  href="_images/region_overlay_options_menu.png"
+                  ><img
+                    alt="Example highlight region's menu showing"
+                    class="align-center"
+                    src="_images/region_overlay_options_menu.png"
+                    style="width: 600px"
+                  />
+                </a>
               </section>
               <section id="histogram-controls">
                 <h2>
@@ -412,12 +587,27 @@
                       class="reference external"
                       href="https://matplotlib.org/stable/"
                       >matplotlib</a
-                    >. The tile server responds to the following
+                    >. The image below shows the histogram annotated with the
                     <code class="docutils literal notranslate"
                       ><span class="pre">matplotlib</span></code
                     >
-                    parameters:
+                    variable names of each field, followed by a brief
+                    description of each
+                    <code class="docutils literal notranslate"
+                      ><span class="pre">matplotlib</span></code
+                    >
+                    parameter.
                   </p>
+                  <a
+                    class="reference internal image-reference"
+                    href="_images/histo_annotated.png"
+                    ><img
+                      alt="Histogram controls annotated"
+                      class="align-center"
+                      src="_images/histo_annotated.png"
+                      style="width: 400px"
+                    />
+                  </a>
                   <ul class="simple">
                     <li>
                       <p>
@@ -432,8 +622,11 @@
                       <ul>
                         <li>
                           <p>
-                            These are the min and max values shown in the
-                            inequality display
+                            These set the data range that
+                            <code class="docutils literal notranslate"
+                              ><span class="pre">matplotlib</span></code
+                            >
+                            uses to map to the color map.
                           </p>
                         </li>
                       </ul>
@@ -514,10 +707,40 @@
                         >¶</a
                       >
                     </h4>
-                    <p>
-                      Clicking the button with the diagonal arrow opens a dialog
-                      box that allows users to adjust any and all parameters.
-                    </p>
+                    <ol class="arabic simple">
+                      <li>
+                        <p>
+                          Click the button with the diagonal arrow to open a
+                          dialog box that allows more precise adjustments of
+                          each parameter.
+                        </p>
+                      </li>
+                    </ol>
+                    <a
+                      class="reference internal image-reference"
+                      href="_images/histo_open_dialog.png"
+                      ><img
+                        alt="Histogram controls annotated to show button that opens dialog"
+                        class="align-center"
+                        src="_images/histo_open_dialog.png"
+                        style="width: 400px"
+                      />
+                    </a>
+                    <ol class="arabic simple" start="2">
+                      <li>
+                        <p>Edit the desired parameter(s), then submit.</p>
+                      </li>
+                    </ol>
+                    <a
+                      class="reference internal image-reference"
+                      href="_images/histo_dialog.png"
+                      ><img
+                        alt="Dialog box to edit parameters"
+                        class="align-center"
+                        src="_images/histo_dialog.png"
+                        style="width: 400px"
+                      />
+                    </a>
                   </section>
                   <section id="changing-vmin-and-vmax">
                     <h4>
@@ -557,6 +780,16 @@
                           ><span class="pre">vmax</span></code
                         >.
                       </p>
+                      <a
+                        class="reference internal image-reference"
+                        href="_images/drag_handles.png"
+                        ><img
+                          alt="Histogram controls annotated to show drag handles"
+                          class="align-center"
+                          src="_images/drag_handles.png"
+                          style="width: 400px"
+                        />
+                      </a>
                     </section>
                     <section id="simultaneously">
                       <h5>
@@ -568,15 +801,16 @@
                         >
                       </h5>
                       <p>
-                        Users have two options to maintain the difference
-                        between
+                        Users have two options that change
                         <code class="docutils literal notranslate"
                           ><span class="pre">vmin</span></code
                         >
                         and
                         <code class="docutils literal notranslate"
                           ><span class="pre">vmax</span></code
-                        >.
+                        >
+                        simultaneously <strong>and</strong> maintain the
+                        difference between them.
                       </p>
                       <ul class="simple">
                         <li>
@@ -585,11 +819,23 @@
                             drag handlers left or right.
                           </p>
                         </li>
+                      </ul>
+                      <a
+                        class="reference internal image-reference"
+                        href="_images/draggable_histo_bar.png"
+                        ><img
+                          alt="Histogram controls annotated to show draggable blue bar"
+                          class="align-center"
+                          src="_images/draggable_histo_bar.png"
+                          style="width: 400px"
+                        />
+                      </a>
+                      <ul class="simple">
                         <li>
                           <p>
                             Option 2: Use
                             <code class="docutils literal notranslate"
-                              ><span class="pre">W</span></code
+                              ><span class="pre">A</span></code
                             >
                             and
                             <code class="docutils literal notranslate"
@@ -607,6 +853,32 @@
                           </p>
                         </li>
                       </ul>
+                      <p>
+                        Users can also use
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">W</span></code
+                        >
+                        and
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">S</span></code
+                        >
+                        to widen or narrow, respectively, the range between
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmin</span></code
+                        >
+                        and
+                        <code class="docutils literal notranslate"
+                          ><span class="pre">vmax</span></code
+                        >. Again, refer to the
+                        <a
+                          class="reference internal"
+                          href="keyboard-shortcuts.html"
+                          ><span class="std std-doc"
+                            >keyboard shortcuts</span
+                          ></a
+                        >
+                        table.
+                      </p>
                     </section>
                     <section id="precisely">
                       <h5>
@@ -639,9 +911,21 @@
                             <code class="docutils literal notranslate"
                               ><span class="pre">vmax</span></code
                             >
-                            value shown in the histogram display
+                            value shown in the histogram display.
                           </p>
                         </li>
+                      </ol>
+                      <a
+                        class="reference internal image-reference"
+                        href="_images/histo_vmin_vmax_step1.png"
+                        ><img
+                          alt="Histogram controls annotated to show vmin and vmax"
+                          class="align-center"
+                          src="_images/histo_vmin_vmax_step1.png"
+                          style="width: 400px"
+                        />
+                      </a>
+                      <ol class="arabic simple" start="2">
                         <li>
                           <p>
                             Enter
@@ -652,13 +936,24 @@
                             <code class="docutils literal notranslate"
                               ><span class="pre">vmax</span></code
                             >
-                            values into the inputs that appear
+                            values into the inputs that appear. Press enter to
+                            set these values.
                           </p>
                         </li>
-                        <li><p>Press enter to set these values</p></li>
                       </ol>
+                      <a
+                        class="reference internal image-reference"
+                        href="_images/histo_vmin_vmax_step2.png"
+                        ><img
+                          alt="Histogram controls annotated to show vmin and vmax inputs after being clicked"
+                          class="align-center"
+                          src="_images/histo_vmin_vmax_step2.png"
+                          style="width: 400px"
+                        />
+                      </a>
                       <p>
-                        Alternatively, use the dialog box to precisely set
+                        Alternatively, use the dialog box shown above to
+                        precisely set
                         <code class="docutils literal notranslate"
                           ><span class="pre">vmin</span></code
                         >
@@ -703,7 +998,7 @@
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
-          <h1 class="logo"><a href="index.html">Tileviewer</a></h1>
+          <h1 class="logo"><a href="index.html">TileViewer</a></h1>
 
           <search id="searchbox" style="display: none" role="search">
             <div class="searchformwrapper">

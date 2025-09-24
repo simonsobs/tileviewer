@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Tileviewer'
+project = 'TileViewer'
 copyright = '2025, Jeremy Myers, Josh Borrow'
 author = 'Jeremy Myers, Josh Borrow'
 
@@ -30,6 +30,11 @@ html_css_files = ["custom.css"]
 # Add myst_parser so Sphinx can read Markdown
 extensions = [
     "myst_parser",
+]
+
+myst_enable_extensions = [
+    "attrs_inline",   # enable inline {key=val} attributes for images/links/spans
+    # "html_image",    # optional: allow parsing raw <img> tags if you want
 ]
 
 # Tell Sphinx to treat .md files as source files
