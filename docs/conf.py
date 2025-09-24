@@ -32,6 +32,11 @@ extensions = [
     "myst_parser",
 ]
 
+myst_enable_extensions = [
+    "attrs_inline",   # enable inline {key=val} attributes for images/links/spans
+    # "html_image",    # optional: allow parsing raw <img> tags if you want
+]
+
 # Tell Sphinx to treat .md files as source files
 source_suffix = {
     ".rst": "restructuredtext",
