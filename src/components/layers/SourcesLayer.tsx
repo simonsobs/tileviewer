@@ -9,6 +9,7 @@ import { click } from 'ol/events/condition';
 import { MapProps } from '../OpenLayersMap';
 import {
   createSourcePopupContent,
+  getCatalogMarkerColor,
   transformCoords,
   transformSources,
 } from '../../utils/layerUtils';
@@ -100,7 +101,7 @@ export function SourcesLayer({
           }),
           style: {
             'stroke-width': 2,
-            'stroke-color': '#3388FF',
+            'stroke-color': getCatalogMarkerColor(sg.clientId),
             'fill-color': [0, 0, 0, 0],
           },
         });

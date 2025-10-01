@@ -1,6 +1,9 @@
 import { Feature } from 'ol';
 import { BoxExtent, SourceData } from '../types/maps';
-import { NUMBER_OF_FIXED_COORDINATE_DECIMALS } from '../configs/mapSettings';
+import {
+  CATALOG_COLORWAY,
+  NUMBER_OF_FIXED_COORDINATE_DECIMALS,
+} from '../configs/mapSettings';
 import { Point } from 'ol/geom';
 import { Fill, Stroke, Style } from 'ol/style';
 import { FeatureLike } from 'ol/Feature';
@@ -185,4 +188,15 @@ export function drawStyle(feature: FeatureLike) {
       color: 'rgba(0, 0, 255, 0.1)',
     }),
   });
+}
+
+/**
+ * Simple function to map colorway hex strings to catalogs;
+ * note that we reuse colors if we have more than the number of colors
+ * defined in the CATALOG_COLORWAY array
+ * @param index Index of the catalog
+ * @returns A color's hex string
+ */
+export function getCatalogMarkerColor(index: number) {
+  return CATALOG_COLORWAY[index % CATALOG_COLORWAY.length];
 }

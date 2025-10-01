@@ -10,6 +10,7 @@ import {
 import { LockClosedIcon } from './icons/LockClosedIcon';
 import { LockOpenIcon } from './icons/LockOpenIcon';
 import { BaselayerSections } from './BaselayerSections';
+import { getCatalogMarkerColor } from '../utils/layerUtils';
 
 export interface LayerSelectorProps
   extends Omit<
@@ -148,6 +149,10 @@ export function LayerSelector({
                 key={sourceGroup.source_group_id + '-' + sourceGroup.name}
               >
                 <input
+                  className="source-group-input"
+                  style={{
+                    outlineColor: getCatalogMarkerColor(sourceGroup.clientId),
+                  }}
                   onChange={onSelectedSourceGroupsChange}
                   type="checkbox"
                   id={String(sourceGroup.source_group_id)}
