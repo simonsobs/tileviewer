@@ -50,11 +50,15 @@ export async function fetchSources() {
 
   // For each source group in sourceGroups, fetch its data
   const sources = await Promise.all(
-    sourceGroups.map(async (sourceGroup) =>
-      (
+    sourceGroups.map(async (sourceGroup, idx) => {
+      const data = await (
         await fetch(`${SERVICE_URL}/sources/${sourceGroup.source_group_id}`)
-      ).json()
-    )
+      ).json();
+      return {
+        clientId: idx, // used for color mapping in legend and source markers
+        ...data,
+      };
+    })
   );
 
   return sources as SourceGroup[];

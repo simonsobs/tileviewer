@@ -119,3 +119,9 @@ input[type='radio']:disabled {
   margin-right: 4px;
   height: 12px;
 }
+
+.source-group-input {
+  outline-style: solid;
+  outline-width: 2px;
+  outline-offset: -2px;
+}

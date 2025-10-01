@@ -89,6 +89,8 @@ export type Source = {
 export type SourceData = Source & { id: string };
 
 export interface SourceGroup extends SourceGroupResponse {
+  /** used to map coloway hex strings to source groups */
+  clientId: number;
   /** the list of sources associated with a source catalog */
   sources: Source[];
 }
