@@ -136,6 +136,8 @@ export type SubmapData = {
   vmin: number | undefined;
   vmax: number | undefined;
   cmap: string | undefined;
+  isLogScale: boolean;
+  isAbsoluteValue: boolean;
 };
 
 export type SubmapDataWithBounds = SubmapData & {
