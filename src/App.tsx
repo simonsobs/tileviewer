@@ -142,12 +142,15 @@ function App() {
     composed from state at this level, we must construct it here and pass it down. */
   const submapData = useMemo(() => {
     if (assertInternalBaselayer(baselayersState.activeBaselayer)) {
-      const { layer_id, cmap, vmin, vmax } = baselayersState.activeBaselayer;
+      const { layer_id, cmap, vmin, vmax, isLogScale, isAbsoluteValue } =
+        baselayersState.activeBaselayer;
       return {
         layer_id,
         vmin,
         vmax,
         cmap,
+        isLogScale,
+        isAbsoluteValue,
       };
     }
   }, [baselayersState.activeBaselayer]);

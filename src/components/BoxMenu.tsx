@@ -1,7 +1,10 @@
-import { ReactNode } from 'react';
+import { ReactNode, useCallback } from 'react';
 import { BoxWithDimensions, NewBoxData, SubmapData } from '../types/maps';
 import { MenuIcon } from './icons/MenuIcon';
-import { SUBMAP_DOWNLOAD_OPTIONS } from '../configs/submapConfigs';
+import {
+  SUBMAP_DOWNLOAD_OPTIONS,
+  SubmapFileExtensions,
+} from '../configs/submapConfigs';
 import { downloadSubmap } from '../utils/fetchUtils';
 import { transformBoxes } from '../utils/layerUtils';
 import { Map } from 'ol';
@@ -36,6 +39,26 @@ export function BoxMenu({
     boxData.top_left_dec,
   ]);
 
+  const onDownloadClick = useCallback(
+    (ext: SubmapFileExtensions) => {
+      if (submapData) {
+        const boxPosition = transformBoxes(boxData, flipped);
+        downloadSubmap(
+          {
+            ...submapData,
+            top: boxPosition.top_left_dec,
+            left: boxPosition.top_left_ra,
+            bottom: boxPosition.bottom_right_dec,
+            right: boxPosition.bottom_right_ra,
+          },
+          ext,
+          flipped
+        );
+      }
+    },
+    [submapData, boxData, flipped]
+  );
+
   return (
     <div
       className={
@@ -61,29 +84,7 @@ export function BoxMenu({
                 className="map-btn menu-btn"
                 key={option.display}
                 disabled={!submapData}
-                onClick={() => {
-                  if (submapData) {
-                    const boxPosition = transformBoxes(
-                      {
-                        top_left_ra: boxData.top_left_ra,
-                        top_left_dec: boxData.top_left_dec,
-                        bottom_right_ra: boxData.bottom_right_ra,
-                        bottom_right_dec: boxData.bottom_right_dec,
-                      },
-                      flipped
-                    );
-                    downloadSubmap(
-                      {
-                        ...submapData,
-                        top: boxPosition.top_left_dec,
-                        left: boxPosition.top_left_ra,
-                        bottom: boxPosition.bottom_right_dec,
-                        right: boxPosition.bottom_right_ra,
-                      },
-                      option.ext
-                    );
-                  }
-                }}
+                onClick={() => onDownloadClick(option.ext)}
               >
                 Download {option.display}
               </button>

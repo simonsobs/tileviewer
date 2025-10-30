@@ -83,12 +83,23 @@ export async function fetchBoxes() {
  */
 export function downloadSubmap(
   submapDataWithBounds: SubmapDataWithBounds,
-  fileExtension: SubmapFileExtensions
+  fileExtension: SubmapFileExtensions,
+  flip: boolean
 ) {
   // Use the submapEndpointData to construct the request endpoint
-  const { layer_id, left, right, top, bottom, vmin, vmax, cmap } =
-    submapDataWithBounds;
-  const endpoint = `${SERVICE_URL}/maps/${layer_id}/submap/${left}/${right}/${top}/${bottom}/image.${fileExtension}?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`;
+  const {
+    layer_id,
+    left,
+    right,
+    top,
+    bottom,
+    vmin,
+    vmax,
+    cmap,
+    isLogScale,
+    isAbsoluteValue,
+  } = submapDataWithBounds;
+  const endpoint = `${SERVICE_URL}/maps/${layer_id}/submap/${left}/${right}/${top}/${bottom}/image.${fileExtension}?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}&log_norm=${isLogScale}&abs=${isAbsoluteValue}&flip=${flip}`;
 
   fetch(endpoint, { method: 'GET' })
     .then((response) => {
