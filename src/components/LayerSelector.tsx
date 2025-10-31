@@ -131,60 +131,62 @@ export function LayerSelector({
             goForward={goForward}
           />
         </div>
-        <fieldset>
-          <legend>Baselayers</legend>
-          <BaselayerSections
-            mapGroups={mapGroups}
-            activeBaselayerId={activeBaselayerId}
-            isFlipped={isFlipped}
-            onBaselayerChange={onBaselayerChange}
-          />
-        </fieldset>
-        {sourceGroups.length ? (
+        <div className="layers-fieldset-container">
           <fieldset>
-            <legend>Source catalogs</legend>
-            {sourceGroups.map((sourceGroup) => (
-              <div
-                className="input-container"
-                key={sourceGroup.source_group_id + '-' + sourceGroup.name}
-              >
-                <input
-                  className="source-group-input"
-                  style={{
-                    outlineColor: getCatalogMarkerColor(sourceGroup.clientId),
-                  }}
-                  onChange={onSelectedSourceGroupsChange}
-                  type="checkbox"
-                  id={String(sourceGroup.source_group_id)}
-                  value={sourceGroup.source_group_id}
-                  checked={activeSourceGroupIds.includes(
-                    sourceGroup.source_group_id
-                  )}
-                />
-                <label htmlFor={String(sourceGroup.source_group_id)}>
-                  {sourceGroup.name}
-                </label>
-              </div>
-            ))}
+            <legend>Baselayers</legend>
+            <BaselayerSections
+              mapGroups={mapGroups}
+              activeBaselayerId={activeBaselayerId}
+              isFlipped={isFlipped}
+              onBaselayerChange={onBaselayerChange}
+            />
           </fieldset>
-        ) : null}
-        {highlightBoxes && highlightBoxes.length ? (
-          <fieldset>
-            <legend>Highlight regions</legend>
-            {highlightBoxes.map((box) => (
-              <div className="input-container" key={box.id + '-' + box.name}>
-                <input
-                  onChange={onSelectedHighlightBoxChange}
-                  type="checkbox"
-                  id={String(box.id)}
-                  value={box.id}
-                  checked={activeBoxIds.includes(box.id)}
-                />
-                <label htmlFor={String(box.id)}>{box.name}</label>
-              </div>
-            ))}
-          </fieldset>
-        ) : null}
+          {sourceGroups.length ? (
+            <fieldset>
+              <legend>Source catalogs</legend>
+              {sourceGroups.map((sourceGroup) => (
+                <div
+                  className="input-container"
+                  key={sourceGroup.source_group_id + '-' + sourceGroup.name}
+                >
+                  <input
+                    className="source-group-input"
+                    style={{
+                      outlineColor: getCatalogMarkerColor(sourceGroup.clientId),
+                    }}
+                    onChange={onSelectedSourceGroupsChange}
+                    type="checkbox"
+                    id={String(sourceGroup.source_group_id)}
+                    value={sourceGroup.source_group_id}
+                    checked={activeSourceGroupIds.includes(
+                      sourceGroup.source_group_id
+                    )}
+                  />
+                  <label htmlFor={String(sourceGroup.source_group_id)}>
+                    {sourceGroup.name}
+                  </label>
+                </div>
+              ))}
+            </fieldset>
+          ) : null}
+          {highlightBoxes && highlightBoxes.length ? (
+            <fieldset>
+              <legend>Highlight regions</legend>
+              {highlightBoxes.map((box) => (
+                <div className="input-container" key={box.id + '-' + box.name}>
+                  <input
+                    onChange={onSelectedHighlightBoxChange}
+                    type="checkbox"
+                    id={String(box.id)}
+                    value={box.id}
+                    checked={activeBoxIds.includes(box.id)}
+                  />
+                  <label htmlFor={String(box.id)}>{box.name}</label>
+                </div>
+              ))}
+            </fieldset>
+          ) : null}
+        </div>
       </div>
     </>
   );
