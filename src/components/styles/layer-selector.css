@@ -1,4 +1,6 @@
 .layer-selector-container {
+  display: flex;
+  flex-direction: column;
   position: absolute;
   top: 8px;
   right: 1em;
@@ -6,6 +8,16 @@
   background-color: var(--standard-bg-color);
   border-radius: var(--standard-border-radius);
   border: 1px solid var(--border-color-unhovered);
+  max-height: 90vh;
+}
+
+.layers-fieldset-container {
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+.layers-fieldset-container > fieldset {
+  padding: 0.25em 0.5em;
 }
 
 .layer-selector-header {
@@ -43,10 +55,6 @@
 
 .locked > svg {
   color: #479f76;
-}
-
-.layer-selector-container > fieldset {
-  padding: 0.25em 0.5em;
 }
 
 .layer-selector-container.btn {
