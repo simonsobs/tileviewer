@@ -9,6 +9,7 @@
   border-radius: var(--standard-border-radius);
   border: 1px solid var(--border-color-unhovered);
   max-height: 90vh;
+  max-width: 400px;
 }
 
 .layers-fieldset-container {
