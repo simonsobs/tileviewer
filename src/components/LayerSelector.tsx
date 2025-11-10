@@ -1,4 +1,11 @@
-import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ChangeEvent,
+  MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { SourceGroup } from '../types/maps';
 import { LayersIcon } from './icons/LayersIcon';
 import './styles/layer-selector.css';
@@ -52,6 +59,7 @@ export function LayerSelector({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [lockMenu, setLockMenu] = useState(false);
   const previousLockMenuHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
+  const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
     if (previousLockMenuHandlerRef.current) {
@@ -105,6 +113,19 @@ export function LayerSelector({
     [menuRef.current, lockMenu]
   );
 
+  const handleFilterChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setSearchText(e.target.value);
+  }, []);
+
+  const handleFilterKeyUp = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Escape') {
+        setSearchText('');
+      }
+    },
+    []
+  );
+
   return (
     <>
       <div onMouseEnter={toggleMenu} className="layer-selector-container btn">
@@ -131,6 +152,16 @@ export function LayerSelector({
             goForward={goForward}
           />
         </div>
+        <div className="layer-filter-container">
+          <input
+            id="layer-filter-input"
+            type="text"
+            placeholder="Filter layers..."
+            value={searchText}
+            onChange={handleFilterChange}
+            onKeyUp={handleFilterKeyUp}
+          />
+        </div>
         <div className="layers-fieldset-container">
           <fieldset>
             <legend>Baselayers</legend>
@@ -139,51 +170,67 @@ export function LayerSelector({
               activeBaselayerId={activeBaselayerId}
               isFlipped={isFlipped}
               onBaselayerChange={onBaselayerChange}
+              searchText={searchText}
             />
           </fieldset>
           {sourceGroups.length ? (
             <fieldset>
               <legend>Source catalogs</legend>
-              {sourceGroups.map((sourceGroup) => (
-                <div
-                  className="input-container"
-                  key={sourceGroup.source_group_id + '-' + sourceGroup.name}
-                >
-                  <input
-                    className="source-group-input"
-                    style={{
-                      outlineColor: getCatalogMarkerColor(sourceGroup.clientId),
-                    }}
-                    onChange={onSelectedSourceGroupsChange}
-                    type="checkbox"
-                    id={String(sourceGroup.source_group_id)}
-                    value={sourceGroup.source_group_id}
-                    checked={activeSourceGroupIds.includes(
-                      sourceGroup.source_group_id
-                    )}
-                  />
-                  <label htmlFor={String(sourceGroup.source_group_id)}>
-                    {sourceGroup.name}
-                  </label>
-                </div>
-              ))}
+              {sourceGroups
+                .filter((sourceGroup) =>
+                  sourceGroup.name
+                    .toLowerCase()
+                    .includes(searchText.toLowerCase())
+                )
+                .map((sourceGroup) => (
+                  <div
+                    className="input-container"
+                    key={sourceGroup.source_group_id + '-' + sourceGroup.name}
+                  >
+                    <input
+                      className="source-group-input"
+                      style={{
+                        outlineColor: getCatalogMarkerColor(
+                          sourceGroup.clientId
+                        ),
+                      }}
+                      onChange={onSelectedSourceGroupsChange}
+                      type="checkbox"
+                      id={String(sourceGroup.source_group_id)}
+                      value={sourceGroup.source_group_id}
+                      checked={activeSourceGroupIds.includes(
+                        sourceGroup.source_group_id
+                      )}
+                    />
+                    <label htmlFor={String(sourceGroup.source_group_id)}>
+                      {sourceGroup.name}
+                    </label>
+                  </div>
+                ))}
             </fieldset>
           ) : null}
           {highlightBoxes && highlightBoxes.length ? (
             <fieldset>
               <legend>Highlight regions</legend>
-              {highlightBoxes.map((box) => (
-                <div className="input-container" key={box.id + '-' + box.name}>
-                  <input
-                    onChange={onSelectedHighlightBoxChange}
-                    type="checkbox"
-                    id={String(box.id)}
-                    value={box.id}
-                    checked={activeBoxIds.includes(box.id)}
-                  />
-                  <label htmlFor={String(box.id)}>{box.name}</label>
-                </div>
-              ))}
+              {highlightBoxes
+                .filter((box) =>
+                  box.name.toLowerCase().includes(searchText.toLowerCase())
+                )
+                .map((box) => (
+                  <div
+                    className="input-container"
+                    key={box.id + '-' + box.name}
+                  >
+                    <input
+                      onChange={onSelectedHighlightBoxChange}
+                      type="checkbox"
+                      id={String(box.id)}
+                      value={box.id}
+                      checked={activeBoxIds.includes(box.id)}
+                    />
+                    <label htmlFor={String(box.id)}>{box.name}</label>
+                  </div>
+                ))}
             </fieldset>
           ) : null}
         </div>

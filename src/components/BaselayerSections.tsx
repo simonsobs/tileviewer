@@ -7,6 +7,7 @@ type BaselayerSectionsProps = {
   activeBaselayerId: LayerSelectorProps['activeBaselayerId'];
   isFlipped: LayerSelectorProps['isFlipped'];
   onBaselayerChange: LayerSelectorProps['onBaselayerChange'];
+  searchText: string;
 };
 
 export function BaselayerSections({
@@ -14,6 +15,7 @@ export function BaselayerSections({
   activeBaselayerId,
   isFlipped,
   onBaselayerChange,
+  searchText,
 }: BaselayerSectionsProps) {
   return (
     <>
