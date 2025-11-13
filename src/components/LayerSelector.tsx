@@ -126,6 +126,47 @@ export function LayerSelector({
     []
   );
 
+  const markMatchingSearchText = useCallback(
+    (label: string, shouldHighlight?: boolean) => {
+      if (
+        !searchText.length ||
+        (shouldHighlight !== undefined && !shouldHighlight)
+      )
+        return label;
+
+      const substringStartIndex = label
+        .toLowerCase()
+        .indexOf(searchText.toLowerCase());
+      if (substringStartIndex === -1) return label;
+      const substringStopIndex = substringStartIndex + searchText.length;
+
+      const preMarkedSubstring = label.slice(0, substringStartIndex);
+      const markedSubstring = label.slice(
+        substringStartIndex,
+        substringStopIndex
+      );
+      const postMarkedSubstring = label.slice(substringStopIndex);
+
+      return (
+        <>
+          {preMarkedSubstring}
+          <mark>{markedSubstring}</mark>
+          {postMarkedSubstring}
+        </>
+      );
+    },
+    [searchText]
+  );
+
+  const filteredSourceGroups = sourceGroups.filter((sourceGroup) =>
+    sourceGroup.name.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const filteredHighlightBoxes =
+    highlightBoxes?.filter((box) =>
+      box.name.toLowerCase().includes(searchText.toLowerCase())
+    ) ?? [];
+
   return (
     <>
       <div onMouseEnter={toggleMenu} className="layer-selector-container btn">
@@ -171,18 +212,14 @@ export function LayerSelector({
               isFlipped={isFlipped}
               onBaselayerChange={onBaselayerChange}
               searchText={searchText}
+              markMatchingSearchText={markMatchingSearchText}
             />
           </fieldset>
           {sourceGroups.length ? (
             <fieldset>
               <legend>Source catalogs</legend>
-              {sourceGroups
-                .filter((sourceGroup) =>
-                  sourceGroup.name
-                    .toLowerCase()
-                    .includes(searchText.toLowerCase())
-                )
-                .map((sourceGroup) => (
+              {filteredSourceGroups.length ? (
+                filteredSourceGroups.map((sourceGroup) => (
                   <div
                     className="input-container"
                     key={sourceGroup.source_group_id + '-' + sourceGroup.name}
@@ -202,21 +239,24 @@ export function LayerSelector({
                         sourceGroup.source_group_id
                       )}
                     />
-                    <label htmlFor={String(sourceGroup.source_group_id)}>
-                      {sourceGroup.name}
+                    <label
+                      className="layer-selector-input-label"
+                      htmlFor={String(sourceGroup.source_group_id)}
+                    >
+                      {markMatchingSearchText(sourceGroup.name)}
                     </label>
                   </div>
-                ))}
+                ))
+              ) : (
+                <NoMatches />
+              )}
             </fieldset>
           ) : null}
           {highlightBoxes && highlightBoxes.length ? (
             <fieldset>
               <legend>Highlight regions</legend>
-              {highlightBoxes
-                .filter((box) =>
-                  box.name.toLowerCase().includes(searchText.toLowerCase())
-                )
-                .map((box) => (
+              {filteredHighlightBoxes.length ? (
+                filteredHighlightBoxes.map((box) => (
                   <div
                     className="input-container"
                     key={box.id + '-' + box.name}
@@ -228,13 +268,29 @@ export function LayerSelector({
                       value={box.id}
                       checked={activeBoxIds.includes(box.id)}
                     />
-                    <label htmlFor={String(box.id)}>{box.name}</label>
+                    <label
+                      className="layer-selector-input-label"
+                      htmlFor={String(box.id)}
+                    >
+                      {markMatchingSearchText(box.name)}
+                    </label>
                   </div>
-                ))}
+                ))
+              ) : (
+                <NoMatches />
+              )}
             </fieldset>
           ) : null}
         </div>
       </div>
     </>
+  );
+}
+
+export function NoMatches() {
+  return (
+    <span>
+      <em>No matches</em>
+    </span>
   );
 }

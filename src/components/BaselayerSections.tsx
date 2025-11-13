@@ -1,6 +1,11 @@
-import { LayerSelectorProps } from './LayerSelector';
+import { useState, useEffect, ReactNode, useRef, useCallback } from 'react';
+import { LayerSelectorProps, NoMatches } from './LayerSelector';
 import { CollapsibleSection } from './CollapsibleSection';
-import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
+import {
+  EXTERNAL_BASELAYERS,
+  EXTERNAL_DETAILS_ID,
+} from '../configs/mapSettings';
+import { getDefaultExpandedState, filterMapGroups } from '../utils/filterUtils';
 
 type BaselayerSectionsProps = {
   mapGroups: LayerSelectorProps['mapGroups'];
@@ -8,6 +13,10 @@ type BaselayerSectionsProps = {
   isFlipped: LayerSelectorProps['isFlipped'];
   onBaselayerChange: LayerSelectorProps['onBaselayerChange'];
   searchText: string;
+  markMatchingSearchText: (
+    label: string,
+    shouldHighlight?: boolean
+  ) => string | ReactNode;
 };
 
 export function BaselayerSections({
@@ -16,73 +25,77 @@ export function BaselayerSections({
   isFlipped,
   onBaselayerChange,
   searchText,
+  markMatchingSearchText,
 }: BaselayerSectionsProps) {
+  const [expandedState, setExpandedState] = useState<Set<String>>(
+    getDefaultExpandedState(mapGroups, activeBaselayerId)
+  );
+  const externalDetailsRef = useRef<HTMLDetailsElement>(null);
+
+  const { filteredMapGroups, matchedIds } = filterMapGroups(
+    mapGroups,
+    searchText
+  );
+  const filteredExternalLayers = EXTERNAL_BASELAYERS.filter((bl) =>
+    bl.name.toLowerCase().includes(searchText.toLowerCase())
+  );
+  const isEmpty =
+    filteredMapGroups.length + filteredExternalLayers.length === 0;
+
+  const handleToggle = useCallback(
+    (id: string) => {
+      if (expandedState.has(id)) {
+        setExpandedState((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      } else {
+        setExpandedState((prev) => new Set(prev).add(id));
+      }
+    },
+    [expandedState]
+  );
+
+  useEffect(() => {
+    if (!externalDetailsRef.current) return;
+    if (searchText.length > 0) {
+      externalDetailsRef.current.open = true;
+    } else {
+      externalDetailsRef.current.open = expandedState.has(EXTERNAL_DETAILS_ID);
+    }
+  }, [searchText, externalDetailsRef]);
+
+  if (isEmpty) {
+    return <NoMatches />;
+  }
+
   return (
     <>
-      {mapGroups.map((group, groupIndex) => (
+      {filteredMapGroups.map((group) => (
         <CollapsibleSection
-          key={'section-internal-mapGroup-' + groupIndex}
-          summary={group.name}
-          defaultOpen={groupIndex === 0}
-          tooltip={group.description}
-        >
-          {group.maps.map((map, mapIndex) => (
-            <CollapsibleSection
-              key={
-                'section-internal-mapGroup-' + groupIndex + '-map-' + map.map_id
-              }
-              summary={map.name}
-              defaultOpen={mapIndex === 0}
-              tooltip={map.description}
-              nestedDepth={1}
-            >
-              {map.bands.map((band, bandIndex) => (
-                <CollapsibleSection
-                  key={
-                    'section-internal-mapGroup-' +
-                    groupIndex +
-                    '-map-' +
-                    map.map_id +
-                    '-band-' +
-                    band.band_id
-                  }
-                  summary={band.name}
-                  defaultOpen={bandIndex === 0}
-                  tooltip={band.description}
-                  nestedDepth={2}
-                >
-                  {band.layers.map((layer) => (
-                    <label
-                      key={'baselayer-label-' + layer.layer_id}
-                      className="layer-selecter-input-label"
-                    >
-                      <input
-                        key={'baselayer-input-' + layer.layer_id}
-                        type="radio"
-                        id={String(layer.layer_id)}
-                        value={layer.layer_id}
-                        name="baselayer"
-                        checked={layer.layer_id === activeBaselayerId}
-                        onChange={() =>
-                          onBaselayerChange(String(layer.layer_id), 'layerMenu')
-                        }
-                      />
-                      {layer.name}
-                    </label>
-                  ))}
-                </CollapsibleSection>
-              ))}
-            </CollapsibleSection>
-          ))}
-        </CollapsibleSection>
+          key={group.name}
+          node={group}
+          nestedDepth={0}
+          onBaselayerChange={onBaselayerChange}
+          activeBaselayerId={activeBaselayerId}
+          searchText={searchText}
+          expandedState={expandedState}
+          markMatchingSearchText={markMatchingSearchText}
+          matchedIds={matchedIds}
+          highlightMatch={matchedIds.has(group.name)}
+          handleToggle={handleToggle}
+        />
       ))}
-      {
-        <CollapsibleSection
-          key="section-comparison-maps"
-          summary="Comparison maps"
-          defaultOpen={true}
-        >
-          {EXTERNAL_BASELAYERS.map((bl) => (
+      {filteredExternalLayers.length > 0 && (
+        <details ref={externalDetailsRef} onToggle={(e) => e.preventDefault()}>
+          <summary
+            title="External maps used for comparison"
+            onClick={() => handleToggle(EXTERNAL_DETAILS_ID)}
+          >
+            Comparison maps
+          </summary>
+          {filteredExternalLayers.map((bl) => (
             <div
               className={`input-container ${bl.disabledState(isFlipped) ? 'disabled' : ''}`}
               key={bl.layer_id}
@@ -101,11 +114,16 @@ export function BaselayerSections({
                 onChange={() => onBaselayerChange(bl.layer_id, 'layerMenu')}
                 disabled={bl.disabledState(isFlipped)}
               />
-              <label htmlFor={bl.layer_id}>{bl.name}</label>
+              <label
+                htmlFor={bl.layer_id}
+                className="layer-selector-input-label"
+              >
+                {markMatchingSearchText(bl.name)}
+              </label>
             </div>
           ))}
-        </CollapsibleSection>
-      }
+        </details>
+      )}
     </>
   );
 }
