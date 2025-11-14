@@ -46,6 +46,17 @@ export function getDefaultExpandedState(
 }
 
 /**
+ * Helper to check if node's name matches the query
+ * @param name
+ * @param query
+ * @returns boolean
+ */
+function match(name: string, query: string) {
+  const lcQuery = query.trim().toLowerCase();
+  return name.toLowerCase().includes(lcQuery);
+}
+
+/**
  * Applies the search query to filter away nodes from each mapGroup (or the mapGroup itself) while also
  * adding IDs to a matchedIds set in order to determine which nodes should apply the <mark> element
  * to its name.
@@ -57,40 +68,67 @@ export function getDefaultExpandedState(
  * elements applied to the matching search query.
  */
 export function filterMapGroups(mapGroups: MapGroupResponse[], query: string) {
-  const lcQuery = query.toLowerCase();
-  const filteredMapGroups: MapGroupResponse[] = [];
-  const matchedIds = new Set<String>();
-  mapGroups.forEach((mapGroup) => {
-    if (mapGroup.name.toLowerCase().includes(lcQuery)) {
-      filteredMapGroups.push(mapGroup);
-      matchedIds.add(mapGroup.name);
-    } else {
-      const maps: MapResponse[] = [];
-      mapGroup.maps.forEach((map) => {
-        if (map.name.toLowerCase().includes(lcQuery)) {
-          maps.push(map);
-          matchedIds.add(map.map_id);
-        } else {
-          map.bands.forEach((band) => {
-            if (band.name.toLowerCase().includes(lcQuery)) {
-              maps.push(map);
-              matchedIds.add(band.band_id);
-            } else {
-              band.layers.forEach((layer) => {
-                if (layer.name.toLowerCase().includes(lcQuery)) {
-                  maps.push(map);
-                  matchedIds.add(layer.layer_id);
-                }
-              });
-            }
-          });
-        }
-      });
-      if (maps.length) {
-        filteredMapGroups.push({ ...mapGroup, maps });
+  const matchedIds = new Set<string>();
+
+  const filteredMapGroups = mapGroups
+    .map((group) => {
+      const groupMatched = match(group.name, query);
+
+      // If group matches, keep group intact
+      if (groupMatched) {
+        matchedIds.add(group.name);
+        return group;
       }
-    }
-  });
+
+      // Build filteredMaps (children may be filtered even if group matches;
+      // we'll decide which to return below)
+      const filteredMaps = group.maps
+        .map((map) => {
+          const mapMatched = match(map.name, query);
+
+          // If map matches, keep map intact
+          if (mapMatched) {
+            matchedIds.add(map.map_id);
+            return map;
+          }
+
+          const filteredBands = map.bands
+            .map((band) => {
+              const bandMatched = match(band.name, query);
+
+              // If band matches, keep band intact
+              if (bandMatched) {
+                matchedIds.add(band.band_id);
+                return band;
+              }
+
+              const filteredLayers = band.layers.filter((layer) => {
+                const layerMatched = match(layer.name, query);
+                if (layerMatched) matchedIds.add(layer.layer_id);
+                return layerMatched;
+              });
+
+              // Otherwise include band only if any layer matched
+              if (filteredLayers.length > 0) {
+                return { ...band, layers: filteredLayers };
+              }
+            })
+            .filter(Boolean) as BandResponse[];
+
+          // Otherwise include map only if any band matched
+          if (filteredBands.length > 0) {
+            return { ...map, bands: filteredBands };
+          }
+        })
+        .filter(Boolean) as MapResponse[];
+
+      // Otherwise include group only if any map matched
+      if (filteredMaps.length > 0) {
+        return { ...group, maps: filteredMaps };
+      }
+    })
+    .filter(Boolean) as MapGroupResponse[];
+
   return { filteredMapGroups, matchedIds };
 }
 
