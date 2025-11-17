@@ -117,7 +117,7 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
         const { vmin, vmax } = action.activeBaselayer;
 
         // Return early if vmin or vmax are undefined
-        if (!vmin || !vmax) return { ...state };
+        if (vmin === undefined || vmax === undefined) return { ...state };
 
         const safeLogMin = safeLog(vmin);
         const safeLogMax = safeLog(vmax);
@@ -167,7 +167,7 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
         const { vmin, vmax } = action.activeBaselayer;
 
         // Return early if vmin or vmax are undefined
-        if (!vmin || !vmax) return { ...state };
+        if (vmin === undefined || vmax === undefined) return { ...state };
 
         let min = vmin;
         let max = vmax;

@@ -50,7 +50,10 @@ function App() {
 
       // Check if the default baselayer has an undefined vmin or vmax; if so, set the
       // vmin and vmax for the baselayer
-      if (!defaultInitialBaselayer.vmin || !defaultInitialBaselayer.vmax) {
+      if (
+        defaultInitialBaselayer.vmin === undefined ||
+        defaultInitialBaselayer.vmax === undefined
+      ) {
         const histogramData = await getHistogramData(
           defaultInitialBaselayer.layer_id
         );
@@ -232,8 +235,8 @@ function App() {
         )}
       {isAuthenticated !== null &&
         assertInternalBaselayer(activeBaselayer) &&
-        activeBaselayer.vmin &&
-        activeBaselayer.vmax &&
+        activeBaselayer.vmin !== undefined &&
+        activeBaselayer.vmax !== undefined &&
         histogramData && (
           <ColorMapControls
             values={[activeBaselayer.vmin, activeBaselayer.vmax]}

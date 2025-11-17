@@ -180,7 +180,10 @@ export function OpenLayersMap({
 
         // If the new layer doesn't yet have vmin or vmax set, set it with the
         // histogram data
-        if (!newActiveBaselayer.vmin || !newActiveBaselayer.vmax) {
+        if (
+          newActiveBaselayer.vmin === undefined ||
+          newActiveBaselayer.vmax === undefined
+        ) {
           dispatchBaselayersChange({
             type: CHANGE_BASELAYER,
             newBaselayer: {
