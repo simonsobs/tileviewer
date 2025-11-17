@@ -25,8 +25,8 @@ export async function fetchMaps() {
         band.layers.forEach((layer) => {
           // Set to undefined if 'auto' so we can know to set this value
           // with the layer's histogram response instead
-          let vmin = layer.vmin === 'auto' ? undefined : layer.vmin;
-          let vmax = layer.vmax === 'auto' ? undefined : layer.vmax;
+          const vmin = layer.vmin === 'auto' ? undefined : layer.vmin;
+          const vmax = layer.vmax === 'auto' ? undefined : layer.vmax;
 
           const internalBaselayer: InternalBaselayer = {
             ...layer,
