@@ -1,6 +1,7 @@
 import {
   BaselayersState,
   ExternalBaselayer,
+  HistogramResponse,
   InternalBaselayer,
 } from '../types/maps';
 import { safeLog } from '../utils/numberUtils';
@@ -20,6 +21,7 @@ export function assertInternalBaselayer(
 export const initialBaselayersState: BaselayersState = {
   activeBaselayer: undefined,
   internalBaselayers: undefined,
+  histogramData: undefined,
 };
 
 export const CHANGE_CMAP_TYPE = 'CHANGE_CMAP';
@@ -57,11 +59,13 @@ type ChangeCmapValuesAction = {
 type ChangeBaselayerAction = {
   type: typeof CHANGE_BASELAYER;
   newBaselayer: InternalBaselayer | ExternalBaselayer;
+  histogramData?: HistogramResponse;
 };
 
 type SetBaselayersAction = {
   type: typeof SET_BASELAYERS_STATE;
   internalBaselayers: InternalBaselayer[];
+  histogramData: HistogramResponse;
 };
 
 export type Action =
@@ -78,6 +82,7 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
       return {
         internalBaselayers: action.internalBaselayers,
         activeBaselayer: action.internalBaselayers[0],
+        histogramData: action.histogramData,
       };
     }
     case 'CHANGE_CMAP': {
@@ -87,6 +92,7 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
           cmap: action.cmap,
         };
         return {
+          ...state,
           internalBaselayers: state.internalBaselayers?.map((layer) => {
             if (
               layer.layer_id ===
@@ -109,6 +115,10 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
       if (assertInternalBaselayer(action.activeBaselayer)) {
         const { activeBaselayer, isLogScale } = action;
         const { vmin, vmax } = action.activeBaselayer;
+
+        // Return early if vmin or vmax are undefined
+        if (!vmin || !vmax) return { ...state };
+
         const safeLogMin = safeLog(vmin);
         const safeLogMax = safeLog(vmax);
 
@@ -133,6 +143,7 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
         };
 
         return {
+          ...state,
           internalBaselayers: state.internalBaselayers?.map((layer) => {
             if (
               layer.layer_id ===
@@ -153,8 +164,10 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
     }
     case 'CHANGE_ABSOLUTE_VALUE': {
       if (assertInternalBaselayer(action.activeBaselayer)) {
-        const { vmin, vmax, recommendedCmapValuesRange } =
-          action.activeBaselayer;
+        const { vmin, vmax } = action.activeBaselayer;
+
+        // Return early if vmin or vmax are undefined
+        if (!vmin || !vmax) return { ...state };
 
         let min = vmin;
         let max = vmax;
@@ -163,8 +176,8 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
           min = 0;
         }
 
-        if (action.isAbsoluteValue && vmax < 0) {
-          max = recommendedCmapValuesRange * 0.1;
+        if (action.isAbsoluteValue && vmax < 0 && state.histogramData) {
+          max = state.histogramData.vmax - state.histogramData.vmin;
         }
 
         const updatedActiveBaselayer = {
@@ -175,6 +188,7 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
         };
 
         return {
+          ...state,
           internalBaselayers: state.internalBaselayers?.map((layer) => {
             if (
               layer.layer_id ===
@@ -201,6 +215,7 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
           vmax: action.vmax,
         };
         return {
+          ...state,
           internalBaselayers: state.internalBaselayers?.map((layer) => {
             if (
               layer.layer_id ===
@@ -220,10 +235,11 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
       }
     }
     case 'CHANGE_BASELAYER': {
-      const { newBaselayer } = action;
+      const { newBaselayer, histogramData } = action;
 
       return {
         ...state,
+        ...(histogramData ? histogramData : {}),
         activeBaselayer: newBaselayer,
       };
     }

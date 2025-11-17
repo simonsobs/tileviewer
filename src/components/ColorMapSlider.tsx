@@ -16,6 +16,7 @@ interface ColorMapSliderProps
     | 'onCmapChange'
     | 'onLogScaleChange'
     | 'onAbsoluteValueChange'
+    | 'histogramData'
   > {
   /** The URL to the color map image */
   cmapImage?: string;

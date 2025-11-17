@@ -1,7 +1,12 @@
 import { useCallback, useMemo, useState, useReducer, ChangeEvent } from 'react';
 import { MapGroupResponse, SourceGroup, Box } from './types/maps';
 import { ColorMapControls } from './components/ColorMapControls';
-import { fetchBoxes, fetchMaps, fetchSources } from './utils/fetchUtils';
+import {
+  fetchBoxes,
+  fetchMaps,
+  fetchSources,
+  getHistogramData,
+} from './utils/fetchUtils';
 import {
   assertInternalBaselayer,
   baselayersReducer,
@@ -34,14 +39,32 @@ function App() {
       // map baselayers
       const { mapGroups, internalBaselayers } = await fetchMaps();
 
-      // // If we end up with no maps for some reason, return early
+      // If we end up with no maps for some reason, return early
       if (!mapGroups.length || !internalBaselayers.length) return;
 
-      // Set the baselayersState with the finalBands; note that this action will also set the
+      // Get what will be the default baselayer's histogram data to set in the reducer state
+      const defaultInitialBaselayer = { ...internalBaselayers[0] };
+      const histogramData = await getHistogramData(
+        defaultInitialBaselayer.layer_id
+      );
+
+      // Check if the default baselayer has an undefined vmin or vmax; if so, set the
+      // vmin and vmax for the baselayer
+      if (!defaultInitialBaselayer.vmin || !defaultInitialBaselayer.vmax) {
+        const histogramData = await getHistogramData(
+          defaultInitialBaselayer.layer_id
+        );
+        defaultInitialBaselayer.vmin = histogramData.vmin;
+        defaultInitialBaselayer.vmax = histogramData.vmax;
+        internalBaselayers[0] = defaultInitialBaselayer;
+      }
+
+      // Set the baselayersState with the internalBaselayers; note that this action will also set the
       // activeBaselayer to be finalBands[0]
       dispatchBaselayersChange({
         type: SET_BASELAYERS_STATE,
         internalBaselayers: internalBaselayers,
+        histogramData,
       });
 
       return mapGroups;
@@ -181,7 +204,8 @@ function App() {
     [baselayersState.activeBaselayer]
   );
 
-  const { activeBaselayer, internalBaselayers } = baselayersState;
+  const { activeBaselayer, internalBaselayers, histogramData } =
+    baselayersState;
   return (
     <>
       <Login
@@ -206,22 +230,27 @@ function App() {
             submapData={submapData}
           />
         )}
-      {isAuthenticated !== null && assertInternalBaselayer(activeBaselayer) && (
-        <ColorMapControls
-          values={[activeBaselayer.vmin, activeBaselayer.vmax]}
-          cmapRange={activeBaselayer.recommendedCmapValuesRange}
-          onCmapValuesChange={onCmapValuesChange}
-          cmap={activeBaselayer.cmap}
-          onCmapChange={onCmapChange}
-          activeBaselayerId={activeBaselayer.layer_id}
-          units={activeBaselayer.units}
-          quantity={activeBaselayer.quantity}
-          isLogScale={activeBaselayer.isLogScale}
-          isAbsoluteValue={activeBaselayer.isAbsoluteValue}
-          onLogScaleChange={onLogScaleChange}
-          onAbsoluteValueChange={onAbsoluteValueChange}
-        />
-      )}
+      {isAuthenticated !== null &&
+        assertInternalBaselayer(activeBaselayer) &&
+        activeBaselayer.vmin &&
+        activeBaselayer.vmax &&
+        histogramData && (
+          <ColorMapControls
+            values={[activeBaselayer.vmin, activeBaselayer.vmax]}
+            cmapRange={histogramData.vmax - histogramData.vmin}
+            onCmapValuesChange={onCmapValuesChange}
+            cmap={activeBaselayer.cmap}
+            onCmapChange={onCmapChange}
+            activeBaselayerId={activeBaselayer.layer_id}
+            units={activeBaselayer.units}
+            quantity={activeBaselayer.quantity}
+            isLogScale={activeBaselayer.isLogScale}
+            isAbsoluteValue={activeBaselayer.isAbsoluteValue}
+            onLogScaleChange={onLogScaleChange}
+            onAbsoluteValueChange={onAbsoluteValueChange}
+            histogramData={histogramData}
+          />
+        )}
     </>
   );
 }
