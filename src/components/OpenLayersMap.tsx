@@ -187,6 +187,7 @@ export function OpenLayersMap({
             vmin: histogramData.vmin,
             vmax: histogramData.vmax,
           },
+          histogramData,
         });
       } else {
         dispatchBaselayersChange({

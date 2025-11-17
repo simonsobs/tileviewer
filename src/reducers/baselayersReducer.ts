@@ -237,11 +237,18 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
     case 'CHANGE_BASELAYER': {
       const { newBaselayer, histogramData } = action;
 
-      return {
-        ...state,
-        ...(histogramData ? histogramData : {}),
-        activeBaselayer: newBaselayer,
-      };
+      if (histogramData) {
+        return {
+          ...state,
+          histogramData,
+          activeBaselayer: newBaselayer,
+        };
+      } else {
+        return {
+          ...state,
+          activeBaselayer: newBaselayer,
+        };
+      }
     }
     default: {
       throw Error('Unknown action');
