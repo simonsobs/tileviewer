@@ -171,24 +171,32 @@ export function OpenLayersMap({
         setFlipTiles(flipped);
       }
 
-      // If we switch to an internal baselayer that does not have vmin or vmax set,
-      // we must fetch the histogram data in order to set it
-      if (
-        assertInternalBaselayer(newActiveBaselayer) &&
-        (!newActiveBaselayer.vmin || !newActiveBaselayer.vmax)
-      ) {
+      // If we switch to an internal baselayer, we need to fetch its histogram data
+      // in order to update it in the reducer
+      if (assertInternalBaselayer(newActiveBaselayer)) {
         const histogramData = await getHistogramData(
           newActiveBaselayer.layer_id
         );
-        dispatchBaselayersChange({
-          type: CHANGE_BASELAYER,
-          newBaselayer: {
-            ...newActiveBaselayer,
-            vmin: histogramData.vmin,
-            vmax: histogramData.vmax,
-          },
-          histogramData,
-        });
+
+        // If the new layer doesn't yet have vmin or vmax set, set it with the
+        // histogram data
+        if (!newActiveBaselayer.vmin || !newActiveBaselayer.vmax) {
+          dispatchBaselayersChange({
+            type: CHANGE_BASELAYER,
+            newBaselayer: {
+              ...newActiveBaselayer,
+              vmin: histogramData.vmin,
+              vmax: histogramData.vmax,
+            },
+            histogramData,
+          });
+        } else {
+          dispatchBaselayersChange({
+            type: CHANGE_BASELAYER,
+            newBaselayer: newActiveBaselayer,
+            histogramData,
+          });
+        }
       } else {
         dispatchBaselayersChange({
           type: CHANGE_BASELAYER,
