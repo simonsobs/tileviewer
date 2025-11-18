@@ -1,11 +1,4 @@
-import {
-  ChangeEvent,
-  MouseEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { SourceGroup } from '../types/maps';
 import { LayersIcon } from './icons/LayersIcon';
 import './styles/layer-selector.css';
@@ -97,21 +90,17 @@ export function LayerSelector({
         'keypress',
         previousLockMenuHandlerRef.current ?? newHandler
       );
-  }, [setLockMenu, lockMenu, menuRef.current]);
+  }, [lockMenu]);
 
-  const toggleMenu = useCallback(
-    (e: MouseEvent) => {
-      if (!menuRef.current || lockMenu) return;
-      const target = (e.target as HTMLElement).closest('div');
-      if (target && target.classList.contains('btn')) {
-        menuRef.current.classList.remove('hide');
-      }
-      if (target && target.classList.contains('menu')) {
-        menuRef.current.classList.add('hide');
-      }
-    },
-    [menuRef.current, lockMenu]
-  );
+  const showMenu = useCallback(() => {
+    if (!menuRef.current || lockMenu) return;
+    menuRef.current.classList.remove('hide');
+  }, [lockMenu]);
+
+  const hideMenu = useCallback(() => {
+    if (!menuRef.current || lockMenu) return;
+    menuRef.current.classList.add('hide');
+  }, [lockMenu]);
 
   const handleFilterChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setSearchText(e.target.value);
@@ -169,13 +158,13 @@ export function LayerSelector({
 
   return (
     <>
-      <div onMouseEnter={toggleMenu} className="layer-selector-container btn">
+      <div onMouseEnter={showMenu} className="layer-selector-container btn">
         <LayersIcon />
       </div>
       <div
         ref={menuRef}
         className={'layer-selector-container menu hide'}
-        onMouseLeave={toggleMenu}
+        onMouseLeave={hideMenu}
       >
         <div className="layer-selector-header">
           <h3>Select Layer</h3>
