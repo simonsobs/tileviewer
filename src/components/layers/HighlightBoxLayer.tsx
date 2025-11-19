@@ -141,7 +141,7 @@ export function HighlightBoxLayer({
       map?.addLayer(layer);
       addedLayerIdsRef.current.add(layerId);
     });
-  }, [mapRef.current, highlightBoxes, activeBoxIds, flipped]);
+  }, [mapRef, highlightBoxes, activeBoxIds, flipped]);
 
   useEffect(() => {
     if (!mapRef.current || !boxOverlayRef.current) return;
@@ -152,7 +152,7 @@ export function HighlightBoxLayer({
       });
       mapRef.current.addOverlay(overlayRef.current);
     }
-  }, [mapRef.current, boxOverlayRef.current]);
+  }, [mapRef, boxOverlayRef]);
 
   useEffect(() => {
     if (mapRef.current) {
@@ -162,7 +162,7 @@ export function HighlightBoxLayer({
       handleBoxHoverRef.current = handleBoxHover;
       mapRef.current.on('pointermove', handleBoxHover);
     }
-  }, [mapRef.current, handleBoxHover]);
+  }, [mapRef, handleBoxHover]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -240,7 +240,7 @@ export function HighlightBoxLayer({
         }
       }
     });
-  }, [flipped, highlightBoxes]);
+  }, [mapRef, flipped, highlightBoxes]);
 
   return (
     <>

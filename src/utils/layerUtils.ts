@@ -76,7 +76,7 @@ export function transformSources(feature: Feature, flipped: boolean) {
 }
 
 export function transformBoxes(boxExtent: BoxExtent, flipped: boolean) {
-  let newBoxPosition = {
+  const newBoxPosition = {
     ...boxExtent,
   };
 

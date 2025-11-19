@@ -104,7 +104,7 @@ export function OpenLayersMap({
     { id: string; flipped: boolean }[]
   >([]);
 
-  const { activeBaselayer, internalBaselayers } = baselayersState;
+  const { activeBaselayer } = baselayersState;
 
   /**
    * Handler fires when user changes map layers. If the units of the new
@@ -175,13 +175,7 @@ export function OpenLayersMap({
         newBaselayer: newActiveBaselayer,
       });
     },
-    [
-      baselayersState.internalBaselayers,
-      baselayersState.activeBaselayer,
-      backHistoryStack,
-      flipTiles,
-      setFlipTiles,
-    ]
+    [baselayersState, dispatchBaselayersChange, flipTiles, setFlipTiles]
   );
 
   const goBack = useCallback(() => {
@@ -194,30 +188,30 @@ export function OpenLayersMap({
     onBaselayerChange(baselayer.id, 'goForward', baselayer.flipped);
   }, [onBaselayerChange, forwardHistoryStack]);
 
-  const tileLayers = useMemo(() => {
-    return internalBaselayers?.map(
-      (layer) =>
-        new TileLayer({
-          properties: { id: 'baselayer-' + layer.layer_id },
-          source: new XYZ({
-            url: `${SERVICE_URL}/maps/${layer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${layer.cmap}&vmin=${layer.isLogScale ? Math.pow(10, layer.vmin) : layer.vmin}&vmax=${layer.isLogScale ? Math.pow(10, layer.vmax) : layer.vmax}&flip=${flipTiles}&log_norm=${layer.isLogScale}&abs=${layer.isAbsoluteValue}`,
-            tileGrid: new TileGrid({
-              extent: [-180, -90, 180, 90],
-              origin: [-180, 90],
-              tileSize: layer.tile_size,
-              resolutions: getBaselayerResolutions(
-                180,
-                layer.tile_size,
-                layer.number_of_levels - 1
-              ),
-            }),
-            interpolate: false,
-            projection: 'EPSG:4326',
-            tilePixelRatio: layer.tile_size / 256,
+  const activeInternalTileLayer = useMemo(() => {
+    if (assertInternalBaselayer(activeBaselayer)) {
+      const layer = activeBaselayer;
+      return new TileLayer({
+        properties: { id: 'baselayer-' + layer.layer_id },
+        source: new XYZ({
+          url: `${SERVICE_URL}/maps/${layer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${layer.cmap}&vmin=${layer.isLogScale ? Math.pow(10, layer.vmin) : layer.vmin}&vmax=${layer.isLogScale ? Math.pow(10, layer.vmax) : layer.vmax}&flip=${flipTiles}&log_norm=${layer.isLogScale}&abs=${layer.isAbsoluteValue}`,
+          tileGrid: new TileGrid({
+            extent: [-180, -90, 180, 90],
+            origin: [-180, 90],
+            tileSize: layer.tile_size,
+            resolutions: getBaselayerResolutions(
+              180,
+              layer.tile_size,
+              layer.number_of_levels - 1
+            ),
           }),
-        })
-    );
-  }, [internalBaselayers, flipTiles]);
+          interpolate: false,
+          projection: 'EPSG:4326',
+          tilePixelRatio: layer.tile_size / 256,
+        }),
+      });
+    }
+  }, [flipTiles, activeBaselayer]);
 
   const externalTileLayers = useMemo(() => {
     return EXTERNAL_BASELAYERS.map((b) => {
@@ -347,7 +341,7 @@ export function OpenLayersMap({
         }
       }
     },
-    [externalSearchMarkerRef.current, flipTiles]
+    [externalSearchMarkerRef, flipTiles]
   );
 
   useEffect(() => {
@@ -390,7 +384,7 @@ export function OpenLayersMap({
   }, [flipTiles]);
 
   /**
-   * Updates tilelayers when new baselayer is selected and/or color map settings change
+   * Updates map layer when new baselayer is selected and/or color map settings change
    */
   useEffect(() => {
     if (mapRef.current && activeBaselayer) {
@@ -401,11 +395,8 @@ export function OpenLayersMap({
           mapRef.current?.removeLayer(layer);
         }
       });
-      if (assertInternalBaselayer(activeBaselayer)) {
-        const activeLayer = tileLayers!.find(
-          (t) => t.get('id') === 'baselayer-' + activeBaselayer!.layer_id
-        )!;
-        mapRef.current.addLayer(activeLayer);
+      if (assertInternalBaselayer(activeBaselayer) && activeInternalTileLayer) {
+        mapRef.current.addLayer(activeInternalTileLayer);
       } else {
         const externalBaselayer = EXTERNAL_BASELAYERS.find(
           (b) => b.layer_id === activeBaselayer.layer_id
@@ -419,7 +410,7 @@ export function OpenLayersMap({
         mapRef.current.addLayer(activeLayer);
       }
     }
-  }, [activeBaselayer, tileLayers]);
+  }, [activeBaselayer, activeInternalTileLayer, externalTileLayers]);
 
   /**
    * Add keyboard support for switching baselayers
@@ -474,7 +465,7 @@ export function OpenLayersMap({
       view.setCenter(newCenter);
     }
     setFlipTiles(!flipTiles);
-  }, [setFlipTiles, flipTiles, mapRef.current]);
+  }, [setFlipTiles, flipTiles, mapRef]);
 
   return (
     <div id="map" style={{ cursor: isDrawing ? 'crosshair' : 'auto' }}>
