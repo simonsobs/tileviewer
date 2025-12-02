@@ -45,6 +45,7 @@ import {
 import './styles/highlight-box.css';
 import {
   Action,
+  assertExternalBaselayer,
   assertInternalBaselayer,
   CHANGE_BASELAYER,
 } from '../reducers/baselayersReducer';
@@ -84,15 +85,13 @@ export function OpenLayersMap({
   submapData,
 }: MapProps) {
   const mapRef = useRef<Map | null>(null);
+  const internalLayerRef = useRef<TileLayer<XYZ> | null>(null);
   const drawBoxRef = useRef<VectorLayer | null>(null);
   const externalSearchRef = useRef<HTMLDivElement | null>(null);
   const externalSearchMarkerRef = useRef<Feature | null>(null);
   const previousSearchOverlayHandlerRef =
     useRef<(e: MapBrowserEvent<any>) => void | null>(null);
   const previousKeyboardHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
-  const [coordinates, setCoordinates] = useState<number[] | undefined>(
-    undefined
-  );
   const [isDrawing, setIsDrawing] = useState(false);
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
   const [flipTiles, setFlipTiles] = useState(true);
@@ -104,7 +103,7 @@ export function OpenLayersMap({
     { id: string; flipped: boolean }[]
   >([]);
 
-  const { activeBaselayer, internalBaselayers } = baselayersState;
+  const { activeBaselayer } = baselayersState;
 
   /**
    * Handler fires when user changes map layers. If the units of the new
@@ -175,13 +174,7 @@ export function OpenLayersMap({
         newBaselayer: newActiveBaselayer,
       });
     },
-    [
-      baselayersState.internalBaselayers,
-      baselayersState.activeBaselayer,
-      backHistoryStack,
-      flipTiles,
-      setFlipTiles,
-    ]
+    [baselayersState, dispatchBaselayersChange, flipTiles, setFlipTiles]
   );
 
   const goBack = useCallback(() => {
@@ -194,53 +187,131 @@ export function OpenLayersMap({
     onBaselayerChange(baselayer.id, 'goForward', baselayer.flipped);
   }, [onBaselayerChange, forwardHistoryStack]);
 
-  const tileLayers = useMemo(() => {
-    return internalBaselayers?.map(
-      (layer) =>
-        new TileLayer({
-          properties: { id: 'baselayer-' + layer.layer_id },
+  // Create the external tile layers and memoize them to be stable
+  const externalTileLayers = useMemo(
+    () =>
+      EXTERNAL_BASELAYERS.map((b) => {
+        return new TileLayer({
+          properties: { id: b.layer_id },
           source: new XYZ({
-            url: `${SERVICE_URL}/maps/${layer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${layer.cmap}&vmin=${layer.isLogScale ? Math.pow(10, layer.vmin) : layer.vmin}&vmax=${layer.isLogScale ? Math.pow(10, layer.vmax) : layer.vmax}&flip=${flipTiles}&log_norm=${layer.isLogScale}&abs=${layer.isAbsoluteValue}`,
+            url: typeof b.url === 'string' ? b.url : undefined,
+            tileUrlFunction: typeof b.url !== 'string' ? b.url : undefined,
+            projection: b.projection,
             tileGrid: new TileGrid({
-              extent: [-180, -90, 180, 90],
-              origin: [-180, 90],
-              tileSize: layer.tile_size,
+              extent: b.extent,
               resolutions: getBaselayerResolutions(
-                180,
-                layer.tile_size,
-                layer.number_of_levels - 1
+                b.extent[2] - b.extent[0],
+                256,
+                b.maxZoom
               ),
+              origin: [b.extent[0], b.extent[3]],
             }),
-            interpolate: false,
-            projection: 'EPSG:4326',
-            tilePixelRatio: layer.tile_size / 256,
+            wrapX: true,
           }),
-        })
-    );
-  }, [internalBaselayers, flipTiles]);
+        });
+      }),
+    []
+  );
 
-  const externalTileLayers = useMemo(() => {
-    return EXTERNAL_BASELAYERS.map((b) => {
-      return new TileLayer({
-        properties: { id: b.layer_id },
+  /**
+   * Does the following:
+   * 1. Sets internalLayerRef to a placeholder TileLayer
+   * 2. Adds the internalyerRef to the map
+   * 3. Add all externalTileLayers to the map with visibility set to false
+   */
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (!internalLayerRef.current) {
+      internalLayerRef.current = new TileLayer({
+        properties: { id: null }, // placeholder
         source: new XYZ({
-          url: typeof b.url === 'string' ? b.url : undefined,
-          tileUrlFunction: typeof b.url !== 'string' ? b.url : undefined,
-          projection: b.projection,
           tileGrid: new TileGrid({
-            extent: b.extent,
-            resolutions: getBaselayerResolutions(
-              b.extent[2] - b.extent[0],
-              256,
-              b.maxZoom
-            ),
-            origin: [b.extent[0], b.extent[3]],
+            extent: [-180, -90, 180, 90], // placeholder
+            origin: [-180, 90],
+            tileSize: 256, // placeholder
+            resolutions: [], // placeholder
           }),
-          wrapX: true,
+          interpolate: false,
+          projection: 'EPSG:4326',
+          tilePixelRatio: 1, // placeholder
+          // wrapX: true,
         }),
       });
+
+      mapRef.current.addLayer(internalLayerRef.current);
+    }
+    externalTileLayers.forEach((l) => {
+      l.setVisible(false);
+      mapRef.current?.addLayer(l);
     });
-  }, []);
+  }, [externalTileLayers]);
+
+  /**
+   * Handles baselayer switching and updates URL for internal layers as parameters change;
+   * includes logic to prevent recreating the source and TileGrid for performance and UX
+   * reasons
+   */
+  useEffect(() => {
+    if (
+      internalLayerRef.current &&
+      internalLayerRef.current.getSource() === null
+    )
+      return;
+
+    // Handle internal base layers
+    if (assertInternalBaselayer(activeBaselayer) && internalLayerRef.current) {
+      // Note that initial tile layer has null ID
+      const olLayerId = internalLayerRef.current.get('layer_id');
+      const activeLayerId = activeBaselayer.layer_id;
+
+      // Best case we're only updating the URL for the tile request when parameters or internal baselayers are changed
+      const url =
+        `${SERVICE_URL}/maps/${activeLayerId}/{z}/{-y}/{x}/tile.png?` +
+        `cmap=${activeBaselayer.cmap}&vmin=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmin) : activeBaselayer.vmin}` +
+        `&vmax=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmax) : activeBaselayer.vmax}` +
+        `&flip=${flipTiles}&log_norm=${activeBaselayer.isLogScale}&abs=${activeBaselayer.isAbsoluteValue}`;
+
+      if (olLayerId === activeLayerId) {
+        // Simply update the source's URL when tile grid can be preserved, i.e. layer_id has not changed
+        internalLayerRef.current.getSource()?.setUrl(url);
+      } else {
+        const newSource = new XYZ({
+          url,
+          tileGrid: new TileGrid({
+            extent: [-180, -90, 180, 90],
+            origin: [-180, 90],
+            tileSize: activeBaselayer.tile_size,
+            resolutions: getBaselayerResolutions(
+              180,
+              activeBaselayer.tile_size,
+              activeBaselayer.number_of_levels - 1
+            ),
+          }),
+          interpolate: false,
+          projection: 'EPSG:4326',
+          tilePixelRatio: activeBaselayer.tile_size / 256,
+        });
+        internalLayerRef.current.setSource(newSource);
+      }
+
+      // Update attributes on the internal layer and show the layer on the map
+      internalLayerRef.current.set('layer_id', activeBaselayer.layer_id);
+      internalLayerRef.current.setVisible(true);
+    }
+
+    const isExternal = assertExternalBaselayer(activeBaselayer);
+
+    // Hide internal layer if active layer is external
+    if (isExternal) {
+      internalLayerRef.current?.setVisible(false);
+    }
+
+    // If active layer is external, set the layer to be visible; otherwise,
+    // all external layers will remain hidden
+    externalTileLayers.forEach((l) =>
+      l.setVisible(isExternal && l.get('id') === activeBaselayer.layer_id)
+    );
+  }, [activeBaselayer, flipTiles, externalTileLayers]);
 
   /**
    * Create the map with a scale control, a layer for the "add box" functionality
@@ -252,10 +323,6 @@ export function OpenLayersMap({
       mapRef.current = new Map({
         target: 'map',
         view: new View(DEFAULT_INTERNAL_MAP_SETTINGS),
-      });
-
-      mapRef.current.on('pointermove', (e) => {
-        setCoordinates(e.coordinate);
       });
 
       /**
@@ -347,7 +414,7 @@ export function OpenLayersMap({
         }
       }
     },
-    [externalSearchMarkerRef.current, flipTiles]
+    [externalSearchMarkerRef, flipTiles]
   );
 
   useEffect(() => {
@@ -388,38 +455,6 @@ export function OpenLayersMap({
       }
     }
   }, [flipTiles]);
-
-  /**
-   * Updates tilelayers when new baselayer is selected and/or color map settings change
-   */
-  useEffect(() => {
-    if (mapRef.current && activeBaselayer) {
-      mapRef.current.getAllLayers().forEach((layer) => {
-        const layerId = layer.get('id');
-        if (!layerId) return;
-        if (layerId.includes('baselayer') || layerId.includes('external')) {
-          mapRef.current?.removeLayer(layer);
-        }
-      });
-      if (assertInternalBaselayer(activeBaselayer)) {
-        const activeLayer = tileLayers!.find(
-          (t) => t.get('id') === 'baselayer-' + activeBaselayer!.layer_id
-        )!;
-        mapRef.current.addLayer(activeLayer);
-      } else {
-        const externalBaselayer = EXTERNAL_BASELAYERS.find(
-          (b) => b.layer_id === activeBaselayer.layer_id
-        );
-        const activeLayer = externalTileLayers.find(
-          (t) => t.get('id') === activeBaselayer.layer_id
-        )!;
-
-        if (!externalBaselayer || !activeLayer) return;
-
-        mapRef.current.addLayer(activeLayer);
-      }
-    }
-  }, [activeBaselayer, tileLayers]);
 
   /**
    * Add keyboard support for switching baselayers
@@ -474,7 +509,7 @@ export function OpenLayersMap({
       view.setCenter(newCenter);
     }
     setFlipTiles(!flipTiles);
-  }, [setFlipTiles, flipTiles, mapRef.current]);
+  }, [setFlipTiles, flipTiles, mapRef]);
 
   return (
     <div id="map" style={{ cursor: isDrawing ? 'crosshair' : 'auto' }}>
@@ -548,15 +583,12 @@ export function OpenLayersMap({
         goForward={goForward}
       />
       <GraticuleLayer mapRef={mapRef} flipped={flipTiles} />
-      {coordinates && (
-        <CoordinatesDisplay
-          coordinates={coordinates}
-          flipped={flipTiles}
-          mapRef={mapRef}
-          externalSearchRef={externalSearchRef}
-          externalSearchMarkerRef={externalSearchMarkerRef}
-        />
-      )}
+      <CoordinatesDisplay
+        flipped={flipTiles}
+        mapRef={mapRef}
+        externalSearchRef={externalSearchRef}
+        externalSearchMarkerRef={externalSearchMarkerRef}
+      />
     </div>
   );
 }

@@ -119,7 +119,14 @@ export function AddHighlightBoxLayer({
         }
       };
     }
-  }, [mapRef.current, isDrawing]);
+  }, [
+    mapRef,
+    isDrawing,
+    drawBoxRef,
+    setIsDrawing,
+    setIsNewBoxDrawn,
+    showMenuOverlay,
+  ]);
 
   const handleAddBoxCleanup = useCallback(() => {
     setNewBoxData(undefined);
@@ -128,7 +135,7 @@ export function AddHighlightBoxLayer({
     if (source) {
       source.clear();
     }
-  }, [drawBoxRef.current]);
+  }, [setIsNewBoxDrawn, drawBoxRef]);
 
   return (
     <>

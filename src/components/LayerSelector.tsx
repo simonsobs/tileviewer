@@ -89,7 +89,7 @@ export function LayerSelector({
         'keypress',
         previousLockMenuHandlerRef.current ?? newHandler
       );
-  }, [setLockMenu, lockMenu, menuRef.current]);
+  }, [setLockMenu, lockMenu, menuRef]);
 
   const toggleMenu = useCallback(
     (e: MouseEvent) => {
@@ -102,7 +102,7 @@ export function LayerSelector({
         menuRef.current.classList.add('hide');
       }
     },
-    [menuRef.current, lockMenu]
+    [menuRef, lockMenu]
   );
 
   return (

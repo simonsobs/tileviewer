@@ -115,7 +115,7 @@ export function SourcesLayer({
 
     sourceGroupRef.current = group;
     map.addLayer(group);
-  }, [sourceGroups, activeSourceGroupIds, flipped]);
+  }, [mapRef, sourceGroups, activeSourceGroupIds, flipped]);
 
   // Set up interaction and popup
   useEffect(() => {
@@ -149,7 +149,7 @@ export function SourcesLayer({
       map.removeOverlay(popupOverlay);
       map.removeInteraction(select);
     };
-  }, [mapRef.current]);
+  }, [mapRef]);
 
   useEffect(() => {
     if (mapRef.current) {
@@ -162,7 +162,7 @@ export function SourcesLayer({
       handleSourceClickRef.current = handleSourceClick;
       selectInteractionRef.current?.on('select', handleSourceClick);
     }
-  }, [handleSourceClick, selectInteractionRef.current]);
+  }, [mapRef, handleSourceClick, selectInteractionRef]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -190,7 +190,7 @@ export function SourcesLayer({
         });
       }
     });
-  }, [flipped]);
+  }, [mapRef, flipped, selectedSourceId]);
 
   return null;
 }
