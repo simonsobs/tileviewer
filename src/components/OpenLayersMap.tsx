@@ -226,7 +226,7 @@ export function OpenLayersMap({
         properties: { id: null }, // placeholder
         source: new XYZ({
           tileGrid: new TileGrid({
-            extent: [-180, -90, 180, 90],
+            extent: [-180, -90, 180, 90], // placeholder
             origin: [-180, 90],
             tileSize: 256, // placeholder
             resolutions: [], // placeholder
@@ -234,6 +234,7 @@ export function OpenLayersMap({
           interpolate: false,
           projection: 'EPSG:4326',
           tilePixelRatio: 1, // placeholder
+          // wrapX: true,
         }),
       });
 
@@ -251,60 +252,50 @@ export function OpenLayersMap({
    * reasons
    */
   useEffect(() => {
+    if (
+      internalLayerRef.current &&
+      internalLayerRef.current.getSource() === null
+    )
+      return;
+
     // Handle internal base layers
     if (assertInternalBaselayer(activeBaselayer) && internalLayerRef.current) {
       // Note that initial tile layer has null ID
-      const olLayerId = internalLayerRef.current.get('id');
-
-      // Get internal layer's resolutions and generate resolutions with the active baselayer's data
-      // so we can check their equality
-      const currentResolutions = internalLayerRef.current
-        .getSource()
-        ?.getResolutions();
-      const newResolutions = getBaselayerResolutions(
-        180,
-        activeBaselayer.tile_size,
-        activeBaselayer.number_of_levels - 1
-      );
-
-      // If resolutions match, isTileGridValid will be true
-      let isTileGridValid = false;
-      if (currentResolutions) {
-        isTileGridValid = currentResolutions.every(
-          (val, idx) => val === newResolutions[idx]
-        );
-      }
+      const olLayerId = internalLayerRef.current.get('layer_id');
+      const activeLayerId = activeBaselayer.layer_id;
 
       // Best case we're only updating the URL for the tile request when parameters or internal baselayers are changed
       const url =
-        `${SERVICE_URL}/maps/${activeBaselayer.layer_id}/{z}/{-y}/{x}/tile.png?` +
+        `${SERVICE_URL}/maps/${activeLayerId}/{z}/{-y}/{x}/tile.png?` +
         `cmap=${activeBaselayer.cmap}&vmin=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmin) : activeBaselayer.vmin}` +
         `&vmax=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmax) : activeBaselayer.vmax}` +
         `&flip=${flipTiles}&log_norm=${activeBaselayer.isLogScale}&abs=${activeBaselayer.isAbsoluteValue}`;
 
-      // Check if tile grid needs to be re-created; note that the only time olLayerId is null
-      // is when the internalLayerRef.current has a null ID property.
-      if (olLayerId === null || !isTileGridValid) {
+      if (olLayerId === activeLayerId) {
+        // Simply update the source's URL when tile grid can be preserved, i.e. layer_id has not changed
+        internalLayerRef.current.getSource()?.setUrl(url);
+      } else {
         const newSource = new XYZ({
           url,
           tileGrid: new TileGrid({
             extent: [-180, -90, 180, 90],
             origin: [-180, 90],
             tileSize: activeBaselayer.tile_size,
-            resolutions: newResolutions,
+            resolutions: getBaselayerResolutions(
+              180,
+              activeBaselayer.tile_size,
+              activeBaselayer.number_of_levels - 1
+            ),
           }),
           interpolate: false,
           projection: 'EPSG:4326',
           tilePixelRatio: activeBaselayer.tile_size / 256,
         });
         internalLayerRef.current.setSource(newSource);
-      } else {
-        // Simply update the source's URL when tile grid can be preserved
-        internalLayerRef.current.getSource()?.setUrl(url);
       }
 
-      // Update ID property on the internal layer and show the layer on the map
-      internalLayerRef.current.set('id', activeBaselayer.layer_id);
+      // Update attributes on the internal layer and show the layer on the map
+      internalLayerRef.current.set('layer_id', activeBaselayer.layer_id);
       internalLayerRef.current.setVisible(true);
     }
 
