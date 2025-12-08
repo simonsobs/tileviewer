@@ -91,9 +91,6 @@ export function OpenLayersMap({
   const previousSearchOverlayHandlerRef =
     useRef<(e: MapBrowserEvent<any>) => void | null>(null);
   const previousKeyboardHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
-  const [coordinates, setCoordinates] = useState<number[] | undefined>(
-    undefined
-  );
   const [isDrawing, setIsDrawing] = useState(false);
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
   const [flipTiles, setFlipTiles] = useState(true);
@@ -207,13 +204,7 @@ export function OpenLayersMap({
         });
       }
     },
-    [
-      baselayersState.internalBaselayers,
-      baselayersState.activeBaselayer,
-      backHistoryStack,
-      flipTiles,
-      setFlipTiles,
-    ]
+    [baselayersState, dispatchBaselayersChange, flipTiles, setFlipTiles]
   );
 
   const goBack = useCallback(() => {
@@ -284,10 +275,6 @@ export function OpenLayersMap({
       mapRef.current = new Map({
         target: 'map',
         view: new View(DEFAULT_INTERNAL_MAP_SETTINGS),
-      });
-
-      mapRef.current.on('pointermove', (e) => {
-        setCoordinates(e.coordinate);
       });
 
       /**
@@ -379,7 +366,7 @@ export function OpenLayersMap({
         }
       }
     },
-    [externalSearchMarkerRef.current, flipTiles]
+    [externalSearchMarkerRef, flipTiles]
   );
 
   useEffect(() => {
@@ -510,7 +497,7 @@ export function OpenLayersMap({
       view.setCenter(newCenter);
     }
     setFlipTiles(!flipTiles);
-  }, [setFlipTiles, flipTiles, mapRef.current]);
+  }, [setFlipTiles, flipTiles, mapRef]);
 
   return (
     <div id="map" style={{ cursor: isDrawing ? 'crosshair' : 'auto' }}>
@@ -584,15 +571,12 @@ export function OpenLayersMap({
         goForward={goForward}
       />
       <GraticuleLayer mapRef={mapRef} flipped={flipTiles} />
-      {coordinates && (
-        <CoordinatesDisplay
-          coordinates={coordinates}
-          flipped={flipTiles}
-          mapRef={mapRef}
-          externalSearchRef={externalSearchRef}
-          externalSearchMarkerRef={externalSearchMarkerRef}
-        />
-      )}
+      <CoordinatesDisplay
+        flipped={flipTiles}
+        mapRef={mapRef}
+        externalSearchRef={externalSearchRef}
+        externalSearchMarkerRef={externalSearchMarkerRef}
+      />
     </div>
   );
 }

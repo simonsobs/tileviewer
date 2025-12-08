@@ -146,7 +146,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
     const step = stepCalc >= 1 ? Math.floor(stepCalc) : stepCalc;
 
     return { min, max, step };
-  }, [processedHistogramData?.edges, values, isLogScale]);
+  }, [processedHistogramData?.edges, values]);
 
   /** Change handler for the color map <select> element */
   const handleCmapChange: ChangeEventHandler<HTMLSelectElement> = useCallback(

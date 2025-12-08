@@ -15,7 +15,7 @@ export function Login({
     const hasRefreshToken = getCookie('valid_refresh_token');
 
     setIsAuthenticated(!!hasAccessToken && !!hasRefreshToken);
-  }, []);
+  }, [setIsAuthenticated]);
 
   if (isAuthenticated === null) return null;
 
