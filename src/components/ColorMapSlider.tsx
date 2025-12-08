@@ -8,6 +8,8 @@ import {
 import { ColorMapControlsProps } from './ColorMapControls';
 import './styles/color-map-controls.css';
 
+let THUMB_KEY_COUNTER = 1;
+
 interface ColorMapSliderProps
   extends Omit<
     ColorMapControlsProps,
@@ -302,7 +304,7 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
         renderThumb={({ props, isDragged }) => (
           <div
             {...props}
-            key={props.key}
+            key={'thumb-key-' + ++THUMB_KEY_COUNTER}
             style={{
               ...props.style,
               height: '20px',
