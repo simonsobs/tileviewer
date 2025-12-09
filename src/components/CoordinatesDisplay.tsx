@@ -8,12 +8,12 @@ import { searchOverlayHelper } from '../utils/externalSearchUtils';
 
 export function CoordinatesDisplay({
   flipped,
-  mapRef,
+  mapObj,
   externalSearchRef,
   externalSearchMarkerRef,
 }: {
   flipped: boolean;
-  mapRef: React.RefObject<Map | null>;
+  mapObj: Map;
   externalSearchRef: React.RefObject<HTMLDivElement | null>;
   externalSearchMarkerRef: React.RefObject<Feature<Geometry> | null>;
 }) {
@@ -56,17 +56,15 @@ export function CoordinatesDisplay({
   }, []);
 
   useEffect(() => {
-    if (!mapRef.current) return;
-    const currentMapRef = mapRef.current;
+    const currentMapRef = mapObj;
     const updateCoords = (e: MapBrowserEvent) => setCoordinates(e.coordinate);
     currentMapRef.on('pointermove', updateCoords);
     return () => currentMapRef.un('pointermove', updateCoords);
-  }, [mapRef]);
+  }, []);
 
   const onSubmit = useCallback(
     (e: FormEvent) => {
       e.preventDefault();
-      if (!mapRef.current) return;
       const formData = new FormData(e.target as HTMLFormElement);
       const raStr = String(formData.get('ra'));
       const decStr = String(formData.get('dec'));
@@ -79,9 +77,9 @@ export function CoordinatesDisplay({
             [ra, dec],
             flipped
           );
-          mapRef.current.getView().setCenter(transformedCoords);
+          mapObj.getView().setCenter(transformedCoords);
           searchOverlayHelper(
-            mapRef.current,
+            mapObj,
             externalSearchRef,
             externalSearchMarkerRef,
             transformedCoords,
@@ -93,7 +91,7 @@ export function CoordinatesDisplay({
       setShowCoordInputs(false);
       (e.target as HTMLFormElement).reset();
     },
-    [mapRef, externalSearchRef, externalSearchMarkerRef, flipped]
+    [mapObj, externalSearchRef, externalSearchMarkerRef, flipped]
   );
 
   // Return early if coordinates aren't defined

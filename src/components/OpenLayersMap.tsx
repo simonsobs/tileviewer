@@ -571,12 +571,14 @@ export function OpenLayersMap({
         goForward={goForward}
       />
       <GraticuleLayer mapRef={mapRef} flipped={flipTiles} />
-      <CoordinatesDisplay
-        flipped={flipTiles}
-        mapRef={mapRef}
-        externalSearchRef={externalSearchRef}
-        externalSearchMarkerRef={externalSearchMarkerRef}
-      />
+      {mapRef.current && (
+        <CoordinatesDisplay
+          flipped={flipTiles}
+          mapObj={mapRef.current}
+          externalSearchRef={externalSearchRef}
+          externalSearchMarkerRef={externalSearchMarkerRef}
+        />
+      )}
     </div>
   );
 }

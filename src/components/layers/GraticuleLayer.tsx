@@ -77,7 +77,7 @@ export function GraticuleLayer({
       mapRef.current.addLayer(graticule1);
       mapRef.current.addLayer(graticule2);
     }
-  }, [mapRef, flipped, handleLatLabelFormat, handleLonLabelFormat]);
+  }, [mapRef.current, flipped]);
 
   return null;
 }
