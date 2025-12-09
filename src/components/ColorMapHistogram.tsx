@@ -1,14 +1,14 @@
 import { useMemo } from 'react';
 import { PointArray } from '@svgdotjs/svg.js';
-import { HistogramResponse } from '../types/maps';
+import { HistogramData } from '../types/maps';
 import {
   HISTOGRAM_SIZE_X,
   HISTOGRAM_SIZE_Y,
 } from '../configs/cmapControlSettings';
 
 type Props = {
-  /** The data from the histogram response */
-  data?: HistogramResponse;
+  /** The applicable histogram data from the histogram response */
+  data?: HistogramData;
   /** The user's min and max values for the range slider to use as edgeStart or edgeEnd
       in the event the user sets these beyond the histogram's min or max edges */
   userMinAndMaxValues: { min: number; max: number };

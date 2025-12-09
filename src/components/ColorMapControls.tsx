@@ -1,11 +1,10 @@
 import {
   ChangeEventHandler,
   useCallback,
-  useEffect,
   useState,
   useMemo,
+  useEffect,
 } from 'react';
-import { SERVICE_URL } from '../configs/mapSettings';
 import {
   CMAP_OPTIONS,
   HISTOGRAM_SIZE_X,
@@ -17,6 +16,7 @@ import { ColorMapHistogram } from './ColorMapHistogram';
 import { CustomColorMapDialog } from './CustomColorMapDialog';
 import { safeLog } from '../utils/numberUtils';
 import { getAbsoluteHistogramData } from '../utils/histogramUtils';
+import { getCmapImage } from '../utils/fetchUtils';
 
 export type ColorMapControlsProps = {
   /** the selected or default min and max values for the slider */
@@ -43,6 +43,8 @@ export type ColorMapControlsProps = {
   onLogScaleChange: (checked: boolean) => void;
   /** handler to update isAbsoluteValue state and to set cmap values as necessary */
   onAbsoluteValueChange: (checked: boolean) => void;
+  /** the histogramData that is fetched/cached with each baselayer change */
+  histogramData: HistogramResponse;
 };
 
 /**
@@ -59,20 +61,28 @@ export function ColorMapControls(props: ColorMapControlsProps) {
     onCmapValuesChange,
     cmap,
     onCmapChange,
-    activeBaselayerId,
     units,
     quantity,
     isLogScale,
     isAbsoluteValue,
     onLogScaleChange,
     onAbsoluteValueChange,
+    histogramData,
   } = props;
-  const [cmapImage, setCmapImage] = useState<undefined | string>(undefined);
-  const [histogramData, setHistogramData] = useState<
-    HistogramResponse | undefined
-  >(undefined);
+  const [cmapImage, setCmapImage] = useState<string | undefined>(undefined);
   const [showCustomDialog, setShowCustomDialog] = useState(false);
   const [cmapOptions, setCmapOptions] = useState(CMAP_OPTIONS);
+
+  /**
+   * Fetch or retrieve from cache the cmap image when user changes cmap selection
+   */
+  useEffect(() => {
+    async function getImage() {
+      const image = await getCmapImage(cmap);
+      setCmapImage(image);
+    }
+    getImage();
+  }, [cmap]);
 
   /** Processes the histogram data so that it's ready to create the polygon in ColorMapHistogram  */
   const processedHistogramData = useMemo(() => {
@@ -121,27 +131,6 @@ export function ColorMapControls(props: ColorMapControlsProps) {
       };
     }
   }, [histogramData, isLogScale, isAbsoluteValue]);
-
-  /** Fetch and set the URL to the color map image if/when cmap or its setter changes */
-  useEffect(() => {
-    async function getCmapImage() {
-      const image = await fetch(`${SERVICE_URL}/histograms/${cmap}.png`);
-      setCmapImage(image.url);
-    }
-    getCmapImage();
-  }, [cmap, setCmapImage]);
-
-  /** Fetch and set the histogram data if/when the active layer and/or setHistogramData changes */
-  useEffect(() => {
-    async function getHistogramData() {
-      const response = await fetch(
-        `${SERVICE_URL}/histograms/data/${activeBaselayerId}`
-      );
-      const data: HistogramResponse = await response.json();
-      setHistogramData(data);
-    }
-    getHistogramData();
-  }, [activeBaselayerId, setHistogramData]);
 
   /** Determines the min, max, and step attributes for the range slider. Min and max are
         found by comparing the user-controlled (or default) 'values' to the histogram's 'edges',
