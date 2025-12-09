@@ -1,0 +1,6 @@
+.draw-aperture-btn-container {
+  position: absolute;
+  top: 128px;
+  left: 9px;
+  z-index: 1000;
+}
