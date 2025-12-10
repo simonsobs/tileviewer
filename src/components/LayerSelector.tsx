@@ -90,7 +90,7 @@ export function LayerSelector({
         'keypress',
         previousLockMenuHandlerRef.current ?? newHandler
       );
-  }, [lockMenu]);
+  }, [setLockMenu, lockMenu, menuRef]);
 
   const showMenu = useCallback(() => {
     if (!menuRef.current || lockMenu) return;

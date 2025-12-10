@@ -19,7 +19,7 @@ export function getDefaultExpandedState(
   mapGroups: MapGroupResponse[],
   activeBaselayerId: LayerSelectorProps['activeBaselayerId']
 ) {
-  const expandedState: Set<String> = new Set<String>();
+  const expandedState: Set<string> = new Set<string>();
   // Used for the comparison maps, which we default to open
   expandedState.add(EXTERNAL_DETAILS_ID);
 

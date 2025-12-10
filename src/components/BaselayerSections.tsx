@@ -27,7 +27,7 @@ export function BaselayerSections({
   searchText,
   markMatchingSearchText,
 }: BaselayerSectionsProps) {
-  const [expandedState, setExpandedState] = useState<Set<String>>(
+  const [expandedState, setExpandedState] = useState<Set<string>>(
     getDefaultExpandedState(mapGroups, activeBaselayerId)
   );
   const externalDetailsRef = useRef<HTMLDetailsElement>(null);
@@ -64,7 +64,7 @@ export function BaselayerSections({
     } else {
       externalDetailsRef.current.open = expandedState.has(EXTERNAL_DETAILS_ID);
     }
-  }, [searchText, externalDetailsRef]);
+  }, [searchText, externalDetailsRef, expandedState]);
 
   if (isEmpty) {
     return <NoMatches />;

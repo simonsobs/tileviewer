@@ -40,26 +40,36 @@ export type LayerResponse = {
   units: string;
   number_of_levels: number;
   tile_size: number;
-  vmin: number;
-  vmax: number;
+  /** layers' vmin/vmax are either predefined or set to 'auto' */
+  vmin: number | 'auto';
+  vmax: number | 'auto';
   cmap: string;
 };
 
 type EnhancedLayerAttributes = {
   mapId: string;
   bandId: string;
-  recommendedCmapValuesRange: number;
   isLogScale: boolean;
   isAbsoluteValue: boolean;
 };
 
-export type InternalBaselayer = LayerResponse & EnhancedLayerAttributes;
+export type InternalBaselayer = Omit<LayerResponse, 'vmin' | 'vmax'> & {
+  /** After processing layer response, 'auto' gets set to undefined and later
+   * set to a value from the layer's histogram response
+   */
+  vmin: undefined | number;
+  vmax: undefined | number;
+} & EnhancedLayerAttributes;
 
 export type HistogramResponse = {
   edges: number[];
   histogram: number[];
   band_id: number;
+  vmin: number;
+  vmax: number;
 };
+
+export type HistogramData = Omit<HistogramResponse, 'vmin' | 'vmax'>;
 
 export type GraticuleDetails = {
   pixelWidth: number;
@@ -129,6 +139,8 @@ export type BaselayersState = {
   activeBaselayer?: InternalBaselayer | ExternalBaselayer;
   /** the internal SO layers used as baselayers */
   internalBaselayers?: InternalBaselayer[];
+  /** the active baselayer's histogram data */
+  histogramData?: HistogramResponse;
 };
 
 export type SubmapData = {

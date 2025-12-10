@@ -55,6 +55,7 @@ import {
 } from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
 import { CenterMapFeature } from './CenterMapFeature';
+import { getHistogramData } from '../utils/fetchUtils';
 
 export type MapProps = {
   mapGroups: MapGroupResponse[];
@@ -90,12 +91,10 @@ export function OpenLayersMap({
   const previousSearchOverlayHandlerRef =
     useRef<(e: MapBrowserEvent<any>) => void | null>(null);
   const previousKeyboardHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
-  const [coordinates, setCoordinates] = useState<number[] | undefined>(
-    undefined
-  );
   const [isDrawing, setIsDrawing] = useState(false);
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
   const [flipTiles, setFlipTiles] = useState(true);
+  const [isMapInitialized, setIsMapInitialized] = useState(false);
 
   const [backHistoryStack, setBackHistoryStack] = useState<
     { id: string; flipped: boolean }[]
@@ -114,7 +113,7 @@ export function OpenLayersMap({
    * TileLayer requests.
    */
   const onBaselayerChange = useCallback(
-    (
+    async (
       selectedBaselayerId: string,
       context: 'layerMenu' | 'goBack' | 'goForward',
       flipped?: boolean
@@ -170,18 +169,43 @@ export function OpenLayersMap({
         setFlipTiles(flipped);
       }
 
-      dispatchBaselayersChange({
-        type: CHANGE_BASELAYER,
-        newBaselayer: newActiveBaselayer,
-      });
+      // If we switch to an internal baselayer, we need to fetch its histogram data
+      // in order to update it in the reducer
+      if (assertInternalBaselayer(newActiveBaselayer)) {
+        const histogramData = await getHistogramData(
+          newActiveBaselayer.layer_id
+        );
+
+        // If the new layer doesn't yet have vmin or vmax set, set it with the
+        // histogram data
+        if (
+          newActiveBaselayer.vmin === undefined ||
+          newActiveBaselayer.vmax === undefined
+        ) {
+          dispatchBaselayersChange({
+            type: CHANGE_BASELAYER,
+            newBaselayer: {
+              ...newActiveBaselayer,
+              vmin: histogramData.vmin,
+              vmax: histogramData.vmax,
+            },
+            histogramData,
+          });
+        } else {
+          dispatchBaselayersChange({
+            type: CHANGE_BASELAYER,
+            newBaselayer: newActiveBaselayer,
+            histogramData,
+          });
+        }
+      } else {
+        dispatchBaselayersChange({
+          type: CHANGE_BASELAYER,
+          newBaselayer: newActiveBaselayer,
+        });
+      }
     },
-    [
-      baselayersState.internalBaselayers,
-      baselayersState.activeBaselayer,
-      backHistoryStack,
-      flipTiles,
-      setFlipTiles,
-    ]
+    [baselayersState, dispatchBaselayersChange, flipTiles, setFlipTiles]
   );
 
   const goBack = useCallback(() => {
@@ -200,7 +224,7 @@ export function OpenLayersMap({
         new TileLayer({
           properties: { id: 'baselayer-' + layer.layer_id },
           source: new XYZ({
-            url: `${SERVICE_URL}/maps/${layer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${layer.cmap}&vmin=${layer.isLogScale ? Math.pow(10, layer.vmin) : layer.vmin}&vmax=${layer.isLogScale ? Math.pow(10, layer.vmax) : layer.vmax}&flip=${flipTiles}&log_norm=${layer.isLogScale}&abs=${layer.isAbsoluteValue}`,
+            url: `${SERVICE_URL}/maps/${layer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${layer.cmap}&vmin=${layer.isLogScale ? Math.pow(10, layer.vmin!) : layer.vmin}&vmax=${layer.isLogScale ? Math.pow(10, layer.vmax!) : layer.vmax}&flip=${flipTiles}&log_norm=${layer.isLogScale}&abs=${layer.isAbsoluteValue}`,
             tileGrid: new TileGrid({
               extent: [-180, -90, 180, 90],
               origin: [-180, 90],
@@ -254,9 +278,7 @@ export function OpenLayersMap({
         view: new View(DEFAULT_INTERNAL_MAP_SETTINGS),
       });
 
-      mapRef.current.on('pointermove', (e) => {
-        setCoordinates(e.coordinate);
-      });
+      setIsMapInitialized(true);
 
       /**
        * BEGIN
@@ -347,7 +369,7 @@ export function OpenLayersMap({
         }
       }
     },
-    [externalSearchMarkerRef.current, flipTiles]
+    [externalSearchMarkerRef, flipTiles]
   );
 
   useEffect(() => {
@@ -390,7 +412,7 @@ export function OpenLayersMap({
   }, [flipTiles]);
 
   /**
-   * Updates tilelayers when new baselayer is selected and/or color map settings change
+   * Updates map layer when new baselayer is selected and/or color map settings change
    */
   useEffect(() => {
     if (mapRef.current && activeBaselayer) {
@@ -405,6 +427,10 @@ export function OpenLayersMap({
         const activeLayer = tileLayers!.find(
           (t) => t.get('id') === 'baselayer-' + activeBaselayer!.layer_id
         )!;
+        const activeLayerSource = activeLayer.getSource();
+        activeLayerSource?.setUrl(
+          `${SERVICE_URL}/maps/${activeBaselayer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${activeBaselayer.cmap}&vmin=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmin!) : activeBaselayer.vmin}&vmax=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmax!) : activeBaselayer.vmax}&flip=${flipTiles}&log_norm=${activeBaselayer.isLogScale}&abs=${activeBaselayer.isAbsoluteValue}`
+        );
         mapRef.current.addLayer(activeLayer);
       } else {
         const externalBaselayer = EXTERNAL_BASELAYERS.find(
@@ -419,7 +445,7 @@ export function OpenLayersMap({
         mapRef.current.addLayer(activeLayer);
       }
     }
-  }, [activeBaselayer, tileLayers]);
+  }, [activeBaselayer, tileLayers, externalTileLayers, flipTiles]);
 
   /**
    * Add keyboard support for switching baselayers
@@ -474,7 +500,7 @@ export function OpenLayersMap({
       view.setCenter(newCenter);
     }
     setFlipTiles(!flipTiles);
-  }, [setFlipTiles, flipTiles, mapRef.current]);
+  }, [setFlipTiles, flipTiles, mapRef]);
 
   return (
     <div id="map" style={{ cursor: isDrawing ? 'crosshair' : 'auto' }}>
@@ -547,16 +573,18 @@ export function OpenLayersMap({
         goBack={goBack}
         goForward={goForward}
       />
-      <GraticuleLayer mapRef={mapRef} flipped={flipTiles} />
-      {coordinates && (
-        <CoordinatesDisplay
-          coordinates={coordinates}
-          flipped={flipTiles}
-          mapRef={mapRef}
-          externalSearchRef={externalSearchRef}
-          externalSearchMarkerRef={externalSearchMarkerRef}
-        />
-      )}
+      <GraticuleLayer
+        mapRef={mapRef}
+        flipped={flipTiles}
+        isMapInitialized={isMapInitialized}
+      />
+      <CoordinatesDisplay
+        flipped={flipTiles}
+        mapRef={mapRef}
+        externalSearchRef={externalSearchRef}
+        externalSearchMarkerRef={externalSearchMarkerRef}
+        isMapInitialized={isMapInitialized}
+      />
     </div>
   );
 }

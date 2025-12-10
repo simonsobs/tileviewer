@@ -14,12 +14,12 @@ type Props = {
   onBaselayerChange: LayerSelectorProps['onBaselayerChange'];
   activeBaselayerId: LayerSelectorProps['activeBaselayerId'];
   searchText: string;
-  expandedState: Set<String>;
+  expandedState: Set<string>;
   markMatchingSearchText: (
     label: string,
     shouldHighlight?: boolean
   ) => string | ReactNode;
-  matchedIds: Set<String>;
+  matchedIds: Set<string>;
   highlightMatch: boolean;
   handleToggle: (id: string) => void;
 };
@@ -46,7 +46,7 @@ export function CollapsibleSection({
     } else {
       detailsRef.current.open = expandedState.has(getNodeId(node));
     }
-  }, [searchText, detailsRef]);
+  }, [searchText, detailsRef, expandedState, node]);
 
   if ('band_id' in node) {
     children = (node as BandResponse).layers.map((layer) => (
