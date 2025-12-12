@@ -10,6 +10,20 @@
   border: 1px solid var(--border-color-unhovered);
   max-height: 90vh;
   max-width: 400px;
+  row-gap: 2px;
+}
+
+.layer-filter-container {
+  display: flex;
+  justify-content: center;
+}
+
+#layer-filter-input {
+  width: 200px;
+  font-size: 10px;
+  border-radius: 5px;
+  padding: 1px 5px;
+  margin: 1px 1px 0px 1px;
 }
 
 .layers-fieldset-container {
@@ -79,7 +93,8 @@
 
 .input-container > input {
   margin: 0;
-  font-size: 0.5;
+  margin-left: 10px;
+  height: 11px;
 }
 
 .layers-icon {
@@ -117,20 +132,39 @@ input[type='radio']:disabled {
   width: 1em;
 }
 
-.layer-selecter-input-label {
+.layer-title-container {
+  display: flex;
+  align-items: center;
+  cursor: default;
+}
+
+.external-layer-selector-input-label,
+.layer-selector-input-label {
   font-size: 10px;
   display: inline-block;
+}
+
+.layer-selector-input-label {
   margin-right: 15px;
 }
 
-.layer-selecter-input-label > input {
+.layer-selector-input-label:first-of-type {
+  margin-left: 10px;
+}
+
+.layer-selector-input-label > input {
   margin: 0;
   margin-right: 4px;
-  height: 12px;
+  height: 11px;
 }
 
 .source-group-input {
   outline-style: solid;
   outline-width: 2px;
   outline-offset: -2px;
+}
+
+mark {
+  color: white;
+  background-color: #f26522;
 }
