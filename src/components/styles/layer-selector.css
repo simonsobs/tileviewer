@@ -93,7 +93,8 @@
 
 .input-container > input {
   margin: 0;
-  font-size: 0.5;
+  margin-left: 10px;
+  height: 11px;
 }
 
 .layers-icon {
@@ -131,16 +132,30 @@ input[type='radio']:disabled {
   width: 1em;
 }
 
+.layer-title-container {
+  display: flex;
+  align-items: center;
+  cursor: default;
+}
+
+.external-layer-selector-input-label,
 .layer-selector-input-label {
   font-size: 10px;
   display: inline-block;
+}
+
+.layer-selector-input-label {
   margin-right: 15px;
+}
+
+.layer-selector-input-label:first-of-type {
+  margin-left: 10px;
 }
 
 .layer-selector-input-label > input {
   margin: 0;
   margin-right: 4px;
-  height: 12px;
+  height: 11px;
 }
 
 .source-group-input {

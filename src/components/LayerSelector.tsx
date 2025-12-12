@@ -9,7 +9,7 @@ import {
 } from './BaselayerHistoryNavigation';
 import { LockClosedIcon } from './icons/LockClosedIcon';
 import { LockOpenIcon } from './icons/LockOpenIcon';
-import { BaselayerSections } from './BaselayerSections';
+import BaselayerSections from './BaselayerSections';
 import { getCatalogMarkerColor } from '../utils/layerUtils';
 
 export interface LayerSelectorProps
@@ -53,6 +53,7 @@ export function LayerSelector({
   const [lockMenu, setLockMenu] = useState(false);
   const previousLockMenuHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
   const [searchText, setSearchText] = useState('');
+  const [debouncedSearchText, setDebouncedSearchText] = useState('');
 
   useEffect(() => {
     if (previousLockMenuHandlerRef.current) {
@@ -102,6 +103,14 @@ export function LayerSelector({
     menuRef.current.classList.add('hide');
   }, [lockMenu]);
 
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 300);
+
+    return () => clearTimeout(id);
+  }, [searchText]);
+
   const handleFilterChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setSearchText(e.target.value);
   }, []);
@@ -118,16 +127,17 @@ export function LayerSelector({
   const markMatchingSearchText = useCallback(
     (label: string, shouldHighlight?: boolean) => {
       if (
-        !searchText.length ||
+        !debouncedSearchText.length ||
         (shouldHighlight !== undefined && !shouldHighlight)
       )
         return label;
 
       const substringStartIndex = label
         .toLowerCase()
-        .indexOf(searchText.toLowerCase());
+        .indexOf(debouncedSearchText.toLowerCase());
       if (substringStartIndex === -1) return label;
-      const substringStopIndex = substringStartIndex + searchText.length;
+      const substringStopIndex =
+        substringStartIndex + debouncedSearchText.length;
 
       const preMarkedSubstring = label.slice(0, substringStartIndex);
       const markedSubstring = label.slice(
@@ -144,16 +154,16 @@ export function LayerSelector({
         </>
       );
     },
-    [searchText]
+    [debouncedSearchText]
   );
 
   const filteredSourceGroups = sourceGroups.filter((sourceGroup) =>
-    sourceGroup.name.toLowerCase().includes(searchText.toLowerCase())
+    sourceGroup.name.toLowerCase().includes(debouncedSearchText.toLowerCase())
   );
 
   const filteredHighlightBoxes =
     highlightBoxes?.filter((box) =>
-      box.name.toLowerCase().includes(searchText.toLowerCase())
+      box.name.toLowerCase().includes(debouncedSearchText.toLowerCase())
     ) ?? [];
 
   return (
@@ -200,7 +210,7 @@ export function LayerSelector({
               activeBaselayerId={activeBaselayerId}
               isFlipped={isFlipped}
               onBaselayerChange={onBaselayerChange}
-              searchText={searchText}
+              searchText={debouncedSearchText}
               markMatchingSearchText={markMatchingSearchText}
             />
           </fieldset>

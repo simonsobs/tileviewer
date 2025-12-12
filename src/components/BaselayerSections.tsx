@@ -1,11 +1,13 @@
-import { useState, useEffect, ReactNode, useRef, useCallback } from 'react';
+import { useState, ReactNode, useCallback, memo } from 'react';
 import { LayerSelectorProps, NoMatches } from './LayerSelector';
-import { CollapsibleSection } from './CollapsibleSection';
+import CollapsibleSection from './CollapsibleSection';
 import {
   EXTERNAL_BASELAYERS,
   EXTERNAL_DETAILS_ID,
 } from '../configs/mapSettings';
 import { getDefaultExpandedState, filterMapGroups } from '../utils/filterUtils';
+import { ChevronRightIcon } from './icons/ChevronRightIcon';
+import { ChevronDownIcon } from './icons/ChevronDownIcon';
 
 type BaselayerSectionsProps = {
   mapGroups: LayerSelectorProps['mapGroups'];
@@ -19,7 +21,7 @@ type BaselayerSectionsProps = {
   ) => string | ReactNode;
 };
 
-export function BaselayerSections({
+function BaselayerSections({
   mapGroups,
   activeBaselayerId,
   isFlipped,
@@ -30,8 +32,6 @@ export function BaselayerSections({
   const [expandedState, setExpandedState] = useState<Set<string>>(
     getDefaultExpandedState(mapGroups, activeBaselayerId)
   );
-  const externalDetailsRef = useRef<HTMLDetailsElement>(null);
-
   const { filteredMapGroups, matchedIds } = filterMapGroups(
     mapGroups,
     searchText
@@ -57,15 +57,6 @@ export function BaselayerSections({
     [expandedState]
   );
 
-  useEffect(() => {
-    if (!externalDetailsRef.current) return;
-    if (searchText.length > 0) {
-      externalDetailsRef.current.open = true;
-    } else {
-      externalDetailsRef.current.open = expandedState.has(EXTERNAL_DETAILS_ID);
-    }
-  }, [searchText, externalDetailsRef, expandedState]);
-
   if (isEmpty) {
     return <NoMatches />;
   }
@@ -88,42 +79,51 @@ export function BaselayerSections({
         />
       ))}
       {filteredExternalLayers.length > 0 && (
-        <details ref={externalDetailsRef} onToggle={(e) => e.preventDefault()}>
-          <summary
+        <div>
+          <div
             title="External maps used for comparison"
             onClick={() => handleToggle(EXTERNAL_DETAILS_ID)}
+            className="layer-title-container"
           >
+            {expandedState.has(EXTERNAL_DETAILS_ID) ? (
+              <ChevronDownIcon />
+            ) : (
+              <ChevronRightIcon />
+            )}
             Comparison maps
-          </summary>
-          {filteredExternalLayers.map((bl) => (
-            <div
-              className={`input-container ${bl.disabledState(isFlipped) ? 'disabled' : ''}`}
-              key={bl.layer_id}
-              title={
-                bl.disabledState(isFlipped)
-                  ? 'The current RA range is incompatible with this baselayer.'
-                  : undefined
-              }
-            >
-              <input
-                type="radio"
-                id={bl.layer_id}
-                value={bl.layer_id}
-                name="baselayer"
-                checked={bl.layer_id === activeBaselayerId}
-                onChange={() => onBaselayerChange(bl.layer_id, 'layerMenu')}
-                disabled={bl.disabledState(isFlipped)}
-              />
-              <label
-                htmlFor={bl.layer_id}
-                className="layer-selector-input-label"
+          </div>
+          {expandedState.has(EXTERNAL_DETAILS_ID) &&
+            filteredExternalLayers.map((bl) => (
+              <div
+                className={`input-container ${bl.disabledState(isFlipped) ? 'disabled' : ''}`}
+                key={bl.layer_id}
+                title={
+                  bl.disabledState(isFlipped)
+                    ? 'The current RA range is incompatible with this baselayer.'
+                    : undefined
+                }
               >
-                {markMatchingSearchText(bl.name)}
-              </label>
-            </div>
-          ))}
-        </details>
+                <input
+                  type="radio"
+                  id={bl.layer_id}
+                  value={bl.layer_id}
+                  name="baselayer"
+                  checked={bl.layer_id === activeBaselayerId}
+                  onChange={() => onBaselayerChange(bl.layer_id, 'layerMenu')}
+                  disabled={bl.disabledState(isFlipped)}
+                />
+                <label
+                  htmlFor={bl.layer_id}
+                  className="external-layer-selector-input-label"
+                >
+                  {markMatchingSearchText(bl.name)}
+                </label>
+              </div>
+            ))}
+        </div>
       )}
     </>
   );
 }
+
+export default memo(BaselayerSections);
