@@ -43,25 +43,32 @@ function CollapsibleSection({
 
   if (expandedState.has(nodeId) || searchText.length > 0) {
     if ('band_id' in node) {
-      children = (node as BandResponse).layers.map((layer) => (
-        <label
-          key={'baselayer-label-' + layer.layer_id}
-          className="layer-selector-input-label"
-        >
-          <input
-            key={'baselayer-input-' + layer.layer_id}
-            type="radio"
-            id={String(layer.layer_id)}
-            value={layer.layer_id}
-            name="baselayer"
-            checked={layer.layer_id === activeBaselayerId}
-            onChange={() =>
-              onBaselayerChange(String(layer.layer_id), 'layerMenu')
-            }
-          />
-          {markMatchingSearchText(layer.name, matchedIds.has(layer.layer_id))}
-        </label>
-      ));
+      children = (
+        <div className="layer-inputs-container">
+          {(node as BandResponse).layers.map((layer) => (
+            <label
+              key={'baselayer-label-' + layer.layer_id}
+              className="layer-selector-input-label"
+            >
+              <input
+                key={'baselayer-input-' + layer.layer_id}
+                type="radio"
+                id={String(layer.layer_id)}
+                value={layer.layer_id}
+                name="baselayer"
+                checked={layer.layer_id === activeBaselayerId}
+                onChange={() =>
+                  onBaselayerChange(String(layer.layer_id), 'layerMenu')
+                }
+              />
+              {markMatchingSearchText(
+                layer.name,
+                matchedIds.has(layer.layer_id)
+              )}
+            </label>
+          ))}
+        </div>
+      );
     } else if ('map_id' in node) {
       children = (node as MapResponse).bands.map((band) => (
         <CollapsibleSection

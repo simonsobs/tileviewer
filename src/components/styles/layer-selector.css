@@ -148,7 +148,8 @@ input[type='radio']:disabled {
   margin-right: 15px;
 }
 
-.layer-selector-input-label:first-of-type {
+.layer-inputs-container {
+  margin: 0;
   margin-left: 10px;
 }
 
