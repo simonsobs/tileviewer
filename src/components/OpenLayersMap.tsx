@@ -95,6 +95,7 @@ export function OpenLayersMap({
   const [isDrawing, setIsDrawing] = useState(false);
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
   const [flipTiles, setFlipTiles] = useState(true);
+  const [isMapInitialized, setIsMapInitialized] = useState(false);
 
   const [backHistoryStack, setBackHistoryStack] = useState<
     { id: string; flipped: boolean }[]
@@ -277,6 +278,8 @@ export function OpenLayersMap({
         target: 'map',
         view: new View(DEFAULT_INTERNAL_MAP_SETTINGS),
       });
+
+      setIsMapInitialized(true);
 
       /**
        * BEGIN
@@ -575,12 +578,17 @@ export function OpenLayersMap({
         goBack={goBack}
         goForward={goForward}
       />
-      <GraticuleLayer mapRef={mapRef} flipped={flipTiles} />
+      <GraticuleLayer
+        mapRef={mapRef}
+        flipped={flipTiles}
+        isMapInitialized={isMapInitialized}
+      />
       <CoordinatesDisplay
         flipped={flipTiles}
         mapRef={mapRef}
         externalSearchRef={externalSearchRef}
         externalSearchMarkerRef={externalSearchMarkerRef}
+        isMapInitialized={isMapInitialized}
       />
     </div>
   );

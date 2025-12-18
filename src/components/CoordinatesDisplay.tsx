@@ -11,11 +11,13 @@ export function CoordinatesDisplay({
   mapRef,
   externalSearchRef,
   externalSearchMarkerRef,
+  isMapInitialized,
 }: {
   flipped: boolean;
   mapRef: React.RefObject<Map | null>;
   externalSearchRef: React.RefObject<HTMLDivElement | null>;
   externalSearchMarkerRef: React.RefObject<Feature<Geometry> | null>;
+  isMapInitialized: boolean;
 }) {
   const [coordinates, setCoordinates] = useState<number[] | undefined>(
     undefined
@@ -56,12 +58,12 @@ export function CoordinatesDisplay({
   }, []);
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !isMapInitialized) return;
     const currentMapRef = mapRef.current;
     const updateCoords = (e: MapBrowserEvent) => setCoordinates(e.coordinate);
     currentMapRef.on('pointermove', updateCoords);
     return () => currentMapRef.un('pointermove', updateCoords);
-  }, [mapRef]);
+  }, [mapRef, isMapInitialized]);
 
   const onSubmit = useCallback(
     (e: FormEvent) => {

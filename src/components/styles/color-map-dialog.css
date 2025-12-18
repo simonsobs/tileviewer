@@ -14,7 +14,7 @@ header {
   margin-left: 2em;
 }
 
-label {
+.dialog-label {
   font-size: 1.25em;
   display: flex;
   flex-direction: column;
