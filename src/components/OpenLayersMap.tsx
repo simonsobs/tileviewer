@@ -538,6 +538,7 @@ export function OpenLayersMap({
       <AperturesLayer
         mapRef={mapRef}
         activeBaselayerId={activeBaselayer?.layer_id}
+        flipped={flipTiles}
       />
       <SourcesLayer
         sourceGroups={sourceGroups}
