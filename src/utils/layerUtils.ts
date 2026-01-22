@@ -54,28 +54,28 @@ export function transformCoords(
   }
 }
 
-export function transformSources(feature: Feature, flipped: boolean) {
-  const sourceData = feature.get('sourceData') as SourceData;
-  let newOverlayCoords = [sourceData.ra, sourceData.dec];
-  let newSourceData = { ...sourceData };
+export function transformFeatureCoords(feature: Feature, flipped: boolean) {
+  const currData = feature.get('data');
+  let newOverlayCoords = [currData.ra, currData.dec];
+  let newFeatureData = { ...currData };
   if (flipped) {
     newOverlayCoords = transformCoords(
-      [sourceData.ra, sourceData.dec],
+      [currData.ra, currData.dec],
       flipped,
       'layer'
     );
-    newSourceData = {
-      ...sourceData,
-      ra: sourceData.ra < 0 ? sourceData.ra + 360 : sourceData.ra,
+    newFeatureData = {
+      ...currData,
+      ra: currData.ra < 0 ? currData.ra + 360 : currData.ra,
     };
   }
   return {
     newOverlayCoords,
-    newSourceData,
+    newFeatureData,
   };
 }
 
-export function transformBoxes(boxExtent: BoxExtent, flipped: boolean) {
+export function transformBoxCoords(boxExtent: BoxExtent, flipped: boolean) {
   const newBoxPosition = {
     ...boxExtent,
   };
