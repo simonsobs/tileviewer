@@ -16,6 +16,7 @@ import { click } from 'ol/events/condition';
 import Feature from 'ol/Feature';
 import type { FeatureLike } from 'ol/Feature';
 import '../styles/aperture-layer.css';
+import { Coordinate } from 'ol/coordinate';
 
 type AperturesLayerProps = {
   mapRef: React.RefObject<Map | null>;
@@ -106,6 +107,20 @@ export function AperturesLayer({
     const drawApertureInteraction = new Draw({
       source: drawApertureSource,
       type: 'Circle',
+      geometryFunction: (coordinates, geometry) => {
+        const center = coordinates[0] as Coordinate;
+        const last = coordinates[coordinates.length - 1] as Coordinate;
+        const dx = center[0] - last[0];
+        const dy = center[1] - last[1];
+        const maxRadius = 0.5; // in degrees
+        const radius = Math.min(Math.sqrt(dx * dx + dy * dy), maxRadius);
+        if (!geometry) {
+          geometry = new Circle(center, radius);
+        } else {
+          (geometry as Circle).setCenterAndRadius(center, radius);
+        }
+        return geometry;
+      },
     });
     map.addInteraction(drawApertureInteraction);
 
@@ -155,19 +170,36 @@ export function AperturesLayer({
         }),
         text: new Text({
           text: data
-            ? `Mean: ${data.mean.toFixed(3)}\n` +
-              `Std: ${data.std.toFixed(3)}\n` +
-              `Max: ${data.max.toFixed(3)}\n` +
-              `Min: ${data.min.toFixed(3)}`
+            ? [
+                'Mean',
+                'bold 11px monospace',
+                ` ${data.mean}`,
+                '11px monospace',
+                '\n',
+                '',
+                'Std',
+                'bold 11px monospace',
+                ` ${data.std}`,
+                '11px monospace',
+                '\n',
+                '',
+                'Max',
+                'bold 11px monospace',
+                ` ${data.max}`,
+                '11px monospace',
+                '\n',
+                '',
+                'Min',
+                'bold 11px monospace',
+                ` ${data.min}`,
+                '11px monospace',
+              ]
             : '',
-          fill: new Fill({ color: '#fff' }),
-          stroke: new Stroke({
-            color: '#000',
-            width: 2,
-          }),
-          font: '11px sans-serif',
           textAlign: 'start',
-          offsetX: radiusInPixels + 5,
+          offsetX: radiusInPixels + 10,
+          placement: 'point',
+          backgroundFill: new Fill({ color: 'rgba(255,255,255,0.5)' }),
+          padding: [2, 5, 2, 5],
         }),
       });
     },
