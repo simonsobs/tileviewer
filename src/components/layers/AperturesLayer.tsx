@@ -261,11 +261,17 @@ export function AperturesLayer({
       if (!newAperture || !aperturesSourceRef.current || !activeBaselayerId)
         return;
       const { ra, dec, radius } = newAperture;
+
+      let transformedRa = ra;
+      if (flipped) {
+        transformedRa = transformCoords([ra, dec], flipped, 'layer')[0];
+      }
+
       const apertureData = await fetch(
-        `${SERVICE_URL}/analysis/aperture/${activeBaselayerId}?ra=${ra}&dec=${dec}&radius=${radius}`
+        `${SERVICE_URL}/analysis/aperture/${activeBaselayerId}?ra=${transformedRa}&dec=${dec}&radius=${radius}`
       );
 
-      const id = `${ra},${dec}`;
+      const id = crypto.randomUUID();
       const response = (await apertureData.json()) as ApertureResponse;
 
       const circle = new Circle([ra, dec], radius / 60);
@@ -273,7 +279,7 @@ export function AperturesLayer({
         geometry: circle,
         data: {
           ...response,
-          ra: transformCoords([ra, dec], flipped, 'layer')[0],
+          ra: transformedRa,
         },
       });
 
@@ -295,11 +301,7 @@ export function AperturesLayer({
   useEffect(() => {
     aperturesSourceRef.current?.getFeatures().forEach((feature) => {
       const circleGeometry = feature.getGeometry() as Circle;
-      const { newOverlayCoords, newFeatureData } = transformFeatureCoords(
-        feature,
-        flipped
-      );
-      feature.set('data', newFeatureData);
+      const { newOverlayCoords } = transformFeatureCoords(feature, flipped);
       circleGeometry.setCenter(newOverlayCoords);
       feature.changed();
     });
@@ -319,15 +321,14 @@ export function AperturesLayer({
         aperturesLayerRef.current?.setVisible(true);
         aperturesSourceRef.current?.getFeatures().forEach(async (feature) => {
           const data = feature.get('data');
-          const id = feature.getId() as string;
-          const [ra, dec] = id.split(',');
+
           const apertureData = await fetch(
-            `${SERVICE_URL}/analysis/aperture/${activeBaselayerId}?ra=${ra}&dec=${dec}&radius=${data.radius}`
+            `${SERVICE_URL}/analysis/aperture/${activeBaselayerId}?ra=${data.ra}&dec=${data.dec}&radius=${data.radius}`
           );
           const response = (await apertureData.json()) as ApertureResponse;
           feature.set('data', {
             ...response,
-            ra: transformCoords([data.ra, data.dec], flipped, 'layer')[0],
+            ra: data.ra,
           });
           feature.changed();
         });
