@@ -6,7 +6,7 @@ import {
   SubmapFileExtensions,
 } from '../configs/submapConfigs';
 import { downloadSubmap } from '../utils/fetchUtils';
-import { transformBoxes } from '../utils/layerUtils';
+import { transformBoxCoords } from '../utils/layerUtils';
 import { Map } from 'ol';
 
 type BoxMenuProps = {
@@ -42,7 +42,7 @@ export function BoxMenu({
   const onDownloadClick = useCallback(
     (ext: SubmapFileExtensions) => {
       if (submapData) {
-        const boxPosition = transformBoxes(boxData, flipped);
+        const boxPosition = transformBoxCoords(boxData, flipped);
         downloadSubmap(
           {
             ...submapData,

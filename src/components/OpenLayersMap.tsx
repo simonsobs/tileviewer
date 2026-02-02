@@ -56,6 +56,7 @@ import {
 import { ToggleSwitch } from './ToggleSwitch';
 import { CenterMapFeature } from './CenterMapFeature';
 import { getHistogramData } from '../utils/fetchUtils';
+import { AperturesLayer } from './layers/AperturesLayer';
 
 export type MapProps = {
   mapGroups: MapGroupResponse[];
@@ -532,6 +533,11 @@ export function OpenLayersMap({
         mapRef={mapRef}
         externalSearchRef={externalSearchRef}
         externalSearchMarkerRef={externalSearchMarkerRef}
+        flipped={flipTiles}
+      />
+      <AperturesLayer
+        mapRef={mapRef}
+        activeBaselayerId={activeBaselayer?.layer_id}
         flipped={flipTiles}
       />
       <SourcesLayer
