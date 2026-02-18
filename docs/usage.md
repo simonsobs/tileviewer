@@ -260,3 +260,33 @@ Alternatively, use the dialog box shown above to precisely set `vmin` and `vmax`
 #### Changing `cmap`
 
 Users can use the dropdown selector to choose between one of the built-in options. If a different `cmap` value compatible with `matplotlib` is desired, use the dialog box and enter its value in the color map field.
+
+## Apertures
+
+This feature allows a user to more deeply inspect a small region of a baselayer. Specifically, a user can draw a circle overlay with a maximum 1-degree diameter. A request then returns the mean, standard deviation, maximum, and minimum pixel values contained within the region.
+
+The apertures will automatically update data when changing baselayers and users are limited to at most 3 apertures. Note, however, that this feature is disabled for external baselayers. When a user changes to an external baselayer, the button to add apertures will be disabled and any apertures shown on the map will be hidden.
+
+(todo: insert image of an aperture and its overlay)
+
+### Adding an Aperture
+
+(todo: insert image showing button that enables user to draw an aperture)
+
+To draw an aperture, a user will:
+
+1. Click on the button to enable the draw feature
+2. Select a point on the map to be the center of the aperture
+3. Use the mouse to adjust the diameter of the aperture, which is restricted to a maximum of 1 degree.
+4. Click the map to finalize the aperture. This triggers the data retrieval that, once received, will be rendered.
+
+Note that users are limited to 3 apertures. Once the limit is reached, the button to add apertures will be disabled.
+
+### Removing an Aperture
+
+(todo: insert image showing highlighted aperture ready for deletion)
+
+To remove an aperture, a user will:
+
+1. Click to select an aperture. Refer to the screenshot to note how the aperture will appear when selected.
+2. Press `delete` on the keyboard to remove the aperture.
