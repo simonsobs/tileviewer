@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 type UseQueryParams<T> = {
   queryFn: () => Promise<T>;
-  queryKey: any[];
+  queryKey: unknown[];
   initialData: T;
 };
 

@@ -11,7 +11,7 @@ import {
   createSourcePopupContent,
   getCatalogMarkerColor,
   transformCoords,
-  transformSources,
+  transformFeatureCoords,
 } from '../../utils/layerUtils';
 import { SourceData } from '../../types/maps';
 
@@ -54,15 +54,15 @@ export function SourcesLayer({
         return;
       }
       selectedFeatures.forEach((feature) => {
-        const { newOverlayCoords, newSourceData } = transformSources(
+        const { newOverlayCoords, newFeatureData } = transformFeatureCoords(
           feature,
           flipped
         );
         popupOverlay.setPosition(newOverlayCoords);
         if (popupDiv) {
-          createSourcePopupContent(popupDiv, newSourceData);
+          createSourcePopupContent(popupDiv, newFeatureData);
         }
-        setSelectedSourceId(newSourceData.id);
+        setSelectedSourceId(newFeatureData.id);
       });
     },
     [flipped]
@@ -115,7 +115,7 @@ export function SourcesLayer({
 
     sourceGroupRef.current = group;
     map.addLayer(group);
-  }, [sourceGroups, activeSourceGroupIds, flipped]);
+  }, [mapRef, sourceGroups, activeSourceGroupIds, flipped]);
 
   // Set up interaction and popup
   useEffect(() => {
@@ -149,7 +149,7 @@ export function SourcesLayer({
       map.removeOverlay(popupOverlay);
       map.removeInteraction(select);
     };
-  }, [mapRef.current]);
+  }, [mapRef]);
 
   useEffect(() => {
     if (mapRef.current) {
@@ -162,7 +162,7 @@ export function SourcesLayer({
       handleSourceClickRef.current = handleSourceClick;
       selectInteractionRef.current?.on('select', handleSourceClick);
     }
-  }, [handleSourceClick, selectInteractionRef.current]);
+  }, [mapRef, handleSourceClick, selectInteractionRef]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -173,24 +173,24 @@ export function SourcesLayer({
       if (source instanceof VectorSource) {
         source.getFeatures().forEach((f: Feature) => {
           if (f) {
-            const { newOverlayCoords, newSourceData } = transformSources(
+            const { newOverlayCoords, newFeatureData } = transformFeatureCoords(
               f,
               flipped
             );
             const circle = f.getGeometry() as Circle;
             circle.setCenter(newOverlayCoords);
-            if (newSourceData.id === selectedSourceId) {
+            if (newFeatureData.id === selectedSourceId) {
               popupOverlayRef.current?.setPosition(newOverlayCoords);
-              setSelectedSourceId(newSourceData.id);
+              setSelectedSourceId(newFeatureData.id);
               if (popupRef.current) {
-                createSourcePopupContent(popupRef.current, newSourceData);
+                createSourcePopupContent(popupRef.current, newFeatureData);
               }
             }
           }
         });
       }
     });
-  }, [flipped]);
+  }, [mapRef, flipped, selectedSourceId]);
 
   return null;
 }

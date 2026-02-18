@@ -101,7 +101,7 @@ export function CenterMapFeature({
             className="center-feature-form generic-form"
             onSubmit={onSubmit}
           >
-            <label>
+            <label className="dialog-label">
               Feature Name:
               <input
                 name="feature_name"

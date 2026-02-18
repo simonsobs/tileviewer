@@ -7,7 +7,7 @@ import Polygon, { fromExtent } from 'ol/geom/Polygon';
 import { MenuIcon } from '../icons/MenuIcon';
 import { MapProps } from '../OpenLayersMap';
 import { BoxMenu } from '../BoxMenu';
-import { transformBoxes, isBoxSynced } from '../../utils/layerUtils';
+import { transformBoxCoords, isBoxSynced } from '../../utils/layerUtils';
 
 type HightlightBoxLayerProps = {
   highlightBoxes: MapProps['highlightBoxes'];
@@ -106,7 +106,7 @@ export function HighlightBoxLayer({
       if (!activeBoxIds.includes(box.id)) return;
       if (addedLayerIdsRef.current.has(layerId)) return;
 
-      const boxPosition = transformBoxes(
+      const boxPosition = transformBoxCoords(
         {
           top_left_ra: box.top_left_ra,
           top_left_dec: box.top_left_dec,
@@ -141,7 +141,7 @@ export function HighlightBoxLayer({
       map?.addLayer(layer);
       addedLayerIdsRef.current.add(layerId);
     });
-  }, [mapRef.current, highlightBoxes, activeBoxIds, flipped]);
+  }, [mapRef, highlightBoxes, activeBoxIds, flipped]);
 
   useEffect(() => {
     if (!mapRef.current || !boxOverlayRef.current) return;
@@ -152,7 +152,7 @@ export function HighlightBoxLayer({
       });
       mapRef.current.addOverlay(overlayRef.current);
     }
-  }, [mapRef.current, boxOverlayRef.current]);
+  }, [mapRef, boxOverlayRef]);
 
   useEffect(() => {
     if (mapRef.current) {
@@ -162,7 +162,7 @@ export function HighlightBoxLayer({
       handleBoxHoverRef.current = handleBoxHover;
       mapRef.current.on('pointermove', handleBoxHover);
     }
-  }, [mapRef.current, handleBoxHover]);
+  }, [mapRef, handleBoxHover]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -218,7 +218,7 @@ export function HighlightBoxLayer({
               return;
             }
 
-            const newExtent = transformBoxes(currentExtent, flipped);
+            const newExtent = transformBoxCoords(currentExtent, flipped);
             box.setCoordinates([
               [
                 [newExtent.top_left_ra, newExtent.top_left_dec],
@@ -240,7 +240,7 @@ export function HighlightBoxLayer({
         }
       }
     });
-  }, [flipped, highlightBoxes]);
+  }, [mapRef, flipped, highlightBoxes]);
 
   return (
     <>

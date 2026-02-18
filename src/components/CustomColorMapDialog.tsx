@@ -130,7 +130,7 @@ export function CustomColorMapDialog({
           handleUpdate();
         }}
       >
-        <label>
+        <label className="dialog-label">
           <span>
             Specify a{' '}
             <a
@@ -146,7 +146,7 @@ export function CustomColorMapDialog({
             onChange={(e) => setTempCmap(e.target.value)}
           />
         </label>
-        <label>
+        <label className="dialog-label">
           Minimum of {units}
           <input
             type="number"
@@ -159,7 +159,7 @@ export function CustomColorMapDialog({
             }
           />
         </label>
-        <label>
+        <label className="dialog-label">
           Maximum of {units}
           <input
             type="number"
@@ -173,7 +173,7 @@ export function CustomColorMapDialog({
           />
         </label>
         <div className="cmap-toggles">
-          <label className="cmap-dialog-toggle">
+          <label className="dialog-label cmap-dialog-toggle">
             <input
               type="checkbox"
               checked={tempIsLogScale}
@@ -181,7 +181,7 @@ export function CustomColorMapDialog({
             />
             Log Scale
           </label>
-          <label className="cmap-dialog-toggle">
+          <label className="dialog-label cmap-dialog-toggle">
             <input
               type="checkbox"
               checked={tempIsAbsValue}

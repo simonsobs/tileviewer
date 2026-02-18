@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, FormEvent } from 'react';
-import { Map, Feature } from 'ol';
+import { Map, Feature, MapBrowserEvent } from 'ol';
 import { Geometry } from 'ol/geom';
 import { NUMBER_OF_FIXED_COORDINATE_DECIMALS } from '../configs/mapSettings';
 import { transformGraticuleCoords } from '../utils/layerUtils';
@@ -7,18 +7,21 @@ import './styles/coordinates-display.css';
 import { searchOverlayHelper } from '../utils/externalSearchUtils';
 
 export function CoordinatesDisplay({
-  coordinates,
   flipped,
   mapRef,
   externalSearchRef,
   externalSearchMarkerRef,
+  isMapInitialized,
 }: {
-  coordinates: number[];
   flipped: boolean;
   mapRef: React.RefObject<Map | null>;
   externalSearchRef: React.RefObject<HTMLDivElement | null>;
   externalSearchMarkerRef: React.RefObject<Feature<Geometry> | null>;
+  isMapInitialized: boolean;
 }) {
+  const [coordinates, setCoordinates] = useState<number[] | undefined>(
+    undefined
+  );
   const [showCoordInputs, setShowCoordInputs] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -54,6 +57,14 @@ export function CoordinatesDisplay({
     };
   }, []);
 
+  useEffect(() => {
+    if (!mapRef.current || !isMapInitialized) return;
+    const currentMapRef = mapRef.current;
+    const updateCoords = (e: MapBrowserEvent) => setCoordinates(e.coordinate);
+    currentMapRef.on('pointermove', updateCoords);
+    return () => currentMapRef.un('pointermove', updateCoords);
+  }, [mapRef, isMapInitialized]);
+
   const onSubmit = useCallback(
     (e: FormEvent) => {
       e.preventDefault();
@@ -86,6 +97,9 @@ export function CoordinatesDisplay({
     },
     [mapRef, externalSearchRef, externalSearchMarkerRef, flipped]
   );
+
+  // Return early if coordinates aren't defined
+  if (!coordinates) return;
 
   const transformedCoords = transformGraticuleCoords(coordinates, flipped);
   return (

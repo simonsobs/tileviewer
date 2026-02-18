@@ -7,6 +7,7 @@ import {
   SourceGroup,
   SourceGroupResponse,
   SubmapDataWithBounds,
+  HistogramResponse,
 } from '../types/maps';
 import { SubmapFileExtensions } from '../configs/submapConfigs';
 
@@ -22,13 +23,19 @@ export async function fetchMaps() {
     mapGroup.maps.forEach((map) =>
       map.bands.forEach((band) =>
         band.layers.forEach((layer) => {
+          // Set to undefined if 'auto' so we can know to set this value
+          // with the layer's histogram response instead
+          const vmin = layer.vmin === 'auto' ? undefined : layer.vmin;
+          const vmax = layer.vmax === 'auto' ? undefined : layer.vmax;
+
           const internalBaselayer: InternalBaselayer = {
             ...layer,
             mapId: map.map_id,
             bandId: band.band_id,
             isLogScale: false,
             isAbsoluteValue: false,
-            recommendedCmapValuesRange: layer.vmax - layer.vmin,
+            vmin,
+            vmax,
           };
           internalBaselayers.push(internalBaselayer);
         })
@@ -83,12 +90,23 @@ export async function fetchBoxes() {
  */
 export function downloadSubmap(
   submapDataWithBounds: SubmapDataWithBounds,
-  fileExtension: SubmapFileExtensions
+  fileExtension: SubmapFileExtensions,
+  flip: boolean
 ) {
   // Use the submapEndpointData to construct the request endpoint
-  const { layer_id, left, right, top, bottom, vmin, vmax, cmap } =
-    submapDataWithBounds;
-  const endpoint = `${SERVICE_URL}/maps/${layer_id}/submap/${left}/${right}/${top}/${bottom}/image.${fileExtension}?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}`;
+  const {
+    layer_id,
+    left,
+    right,
+    top,
+    bottom,
+    vmin,
+    vmax,
+    cmap,
+    isLogScale,
+    isAbsoluteValue,
+  } = submapDataWithBounds;
+  const endpoint = `${SERVICE_URL}/maps/${layer_id}/submap/${left}/${right}/${top}/${bottom}/image.${fileExtension}?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}&log_norm=${isLogScale}&abs=${isAbsoluteValue}&flip=${flip}`;
 
   fetch(endpoint, { method: 'GET' })
     .then((response) => {
@@ -120,4 +138,35 @@ export function downloadSubmap(
 export function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
   return match ? match[2] : null;
+}
+
+// Create a cache for cmap images
+const cmapCache = new Map<string, string>();
+
+// Get cmap image from a fetch or from the cache
+export async function getCmapImage(cmap: string) {
+  if (cmapCache.has(cmap)) {
+    return cmapCache.get(cmap) as string;
+  }
+
+  const image = await fetch(`${SERVICE_URL}/histograms/${cmap}.png`);
+  cmapCache.set(cmap, image.url);
+
+  return image.url;
+}
+
+// Create a cache of histogram data
+const histogramCache = new Map<string, HistogramResponse>();
+
+// Get histogram data; uses a cache to only fetch the data once
+export async function getHistogramData(layerId: string) {
+  if (histogramCache.has(layerId)) {
+    return histogramCache.get(layerId) as HistogramResponse;
+  }
+
+  const response = await fetch(`${SERVICE_URL}/histograms/data/${layerId}`);
+
+  const data: HistogramResponse = await response.json();
+  histogramCache.set(layerId, data);
+  return data;
 }

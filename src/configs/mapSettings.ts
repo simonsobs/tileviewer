@@ -20,6 +20,8 @@ export const DEFAULT_INTERNAL_MAP_SETTINGS = {
   multiWorld: true,
 };
 
+export const EXTERNAL_DETAILS_ID = 'external-comparison-maps';
+
 export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
   {
     layer_id: 'external-unwise-neo6',
