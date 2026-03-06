@@ -156,6 +156,8 @@ export function ColorMapControls(props: ColorMapControlsProps) {
     [onCmapChange]
   );
 
+  const shouldDisableLog = values[0] <= 0;
+
   return (
     <>
       <CustomColorMapDialog
@@ -191,6 +193,12 @@ export function ColorMapControls(props: ColorMapControlsProps) {
                   type="checkbox"
                   checked={isLogScale}
                   onChange={(e) => onLogScaleChange(e.target.checked)}
+                  disabled={shouldDisableLog}
+                  title={
+                    shouldDisableLog
+                      ? 'Disabled due to a non-positive vmin value.'
+                      : undefined
+                  }
                 />
                 Log
               </label>
