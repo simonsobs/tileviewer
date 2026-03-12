@@ -1,3 +1,4 @@
+import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
 import {
   BaselayersState,
   ExternalBaselayer,
@@ -65,7 +66,7 @@ type ChangeBaselayerAction = {
 type SetBaselayersAction = {
   type: typeof SET_BASELAYERS_STATE;
   internalBaselayers: InternalBaselayer[];
-  histogramData: HistogramResponse;
+  histogramData: HistogramResponse | undefined;
 };
 
 export type Action =
@@ -81,7 +82,12 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
     case 'SET_BASELAYERS_STATE': {
       return {
         internalBaselayers: action.internalBaselayers,
-        activeBaselayer: action.internalBaselayers[0],
+        // If no internalBaselayers are returned from server request, set activeBaselayer to be first external baselayer; note
+        // that the histogramData in this scenario will be set to undefined
+        activeBaselayer:
+          action.internalBaselayers.length === 0
+            ? EXTERNAL_BASELAYERS[0]
+            : action.internalBaselayers[0],
         histogramData: action.histogramData,
       };
     }

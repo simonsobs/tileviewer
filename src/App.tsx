@@ -39,36 +39,42 @@ function App() {
       // map baselayers
       const { mapGroups, internalBaselayers } = await fetchMaps();
 
-      // If we end up with no maps for some reason, return early
-      if (!mapGroups.length || !internalBaselayers.length) return;
-
-      // Get what will be the default baselayer's histogram data to set in the reducer state
-      const defaultInitialBaselayer = { ...internalBaselayers[0] };
-      const histogramData = await getHistogramData(
-        defaultInitialBaselayer.layer_id
-      );
-
-      // Check if the default baselayer has an undefined vmin or vmax; if so, set the
-      // vmin and vmax for the baselayer
-      if (
-        defaultInitialBaselayer.vmin === undefined ||
-        defaultInitialBaselayer.vmax === undefined
-      ) {
+      if (!mapGroups.length || !internalBaselayers.length) {
+        // If we end up with no maps, SET_BASELAYERS_STATE will fall back to an external baselayer as its default initial baselayer
+        dispatchBaselayersChange({
+          type: SET_BASELAYERS_STATE,
+          internalBaselayers: [],
+          histogramData: undefined,
+        });
+      } else {
+        // Otherwise, get what will be the default baselayer's histogram data to set in the reducer state
+        const defaultInitialBaselayer = { ...internalBaselayers[0] };
         const histogramData = await getHistogramData(
           defaultInitialBaselayer.layer_id
         );
-        defaultInitialBaselayer.vmin = histogramData.vmin;
-        defaultInitialBaselayer.vmax = histogramData.vmax;
-        internalBaselayers[0] = defaultInitialBaselayer;
-      }
 
-      // Set the baselayersState with the internalBaselayers; note that this action will also set the
-      // activeBaselayer to be finalBands[0]
-      dispatchBaselayersChange({
-        type: SET_BASELAYERS_STATE,
-        internalBaselayers: internalBaselayers,
-        histogramData,
-      });
+        // Check if the default baselayer has an undefined vmin or vmax; if so, set the
+        // vmin and vmax for the baselayer
+        if (
+          defaultInitialBaselayer.vmin === undefined ||
+          defaultInitialBaselayer.vmax === undefined
+        ) {
+          const histogramData = await getHistogramData(
+            defaultInitialBaselayer.layer_id
+          );
+          defaultInitialBaselayer.vmin = histogramData.vmin;
+          defaultInitialBaselayer.vmax = histogramData.vmax;
+          internalBaselayers[0] = defaultInitialBaselayer;
+        }
+
+        // Set the baselayersState with the internalBaselayers; note that this action will also set the
+        // activeBaselayer to be the first element in internalBaselayers
+        dispatchBaselayersChange({
+          type: SET_BASELAYERS_STATE,
+          internalBaselayers: internalBaselayers,
+          histogramData,
+        });
+      }
 
       return mapGroups;
     },
