@@ -16,18 +16,13 @@ export interface LayerSelectorProps
   extends Omit<
     MapProps & BaselayerHistoryNavigationProps,
     | 'baselayersState'
-    | 'sourceLists'
+    | 'optimisticBaselayerId'
+    | 'flipTiles'
+    | 'setFlipTiles'
+    | 'submapData'
+    | 'isPending'
     | 'setActiveBoxIds'
-    | 'setBoxes'
-    | 'addOptimisticHighlightBox'
-    | 'dispatchBaselayersChange'
-    | 'isLogScale'
   > {
-  onBaselayerChange: (
-    selectedBaselayerId: string,
-    context: 'layerMenu' | 'goBack' | 'goForward',
-    flipped?: boolean
-  ) => void;
   activeBaselayerId?: number | string;
   sourceGroups: SourceGroup[];
   isFlipped: boolean;

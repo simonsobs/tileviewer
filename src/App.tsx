@@ -18,8 +18,10 @@ import {
   SET_BASELAYERS_STATE,
 } from './reducers/baselayersReducer';
 import { useQuery } from './hooks/useQuery';
+import { useBaselayerChange } from './hooks/useBaselayerChange';
 import { OpenLayersMap } from './components/OpenLayersMap';
 import { Login } from './components/Login';
+import { LoadingOverlay } from './components/LoadingOverlay';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
@@ -30,8 +32,12 @@ function App() {
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
+  const [flipTiles, setFlipTiles] = useState(true);
+
   /** query the map groups to use as the baselayers of the map */
-  const { data: mapGroups } = useQuery<MapGroupResponse[] | undefined>({
+  const { data: mapGroups, isLoading: areMapGroupsLoading } = useQuery<
+    MapGroupResponse[] | undefined
+  >({
     initialData: undefined,
     queryKey: [isAuthenticated],
     queryFn: async () => {
@@ -81,7 +87,9 @@ function App() {
   });
 
   /** sourceLists are used as FeatureGroups in the map, which can be toggled on/off in the map legend */
-  const { data: sourceGroups } = useQuery<SourceGroup[] | undefined>({
+  const { data: sourceGroups, isLoading: areSourceGroupsLoading } = useQuery<
+    SourceGroup[] | undefined
+  >({
     initialData: undefined,
     queryKey: [isAuthenticated],
     queryFn: async () => {
@@ -93,16 +101,17 @@ function App() {
   });
 
   /** highlight boxes allow users to download submaps and to highlight regions of the map */
-  const { data: highlightBoxes } = useQuery<Box[] | undefined>({
-    initialData: undefined,
-    queryKey: [isAuthenticated],
-    queryFn: async () => {
-      // Fetch the highlight boxes
-      const boxes = await fetchBoxes();
+  const { data: highlightBoxes, isLoading: areHighlightBoxesLoading } =
+    useQuery<Box[] | undefined>({
+      initialData: undefined,
+      queryKey: [isAuthenticated],
+      queryFn: async () => {
+        // Fetch the highlight boxes
+        const boxes = await fetchBoxes();
 
-      return boxes;
-    },
-  });
+        return boxes;
+      },
+    });
 
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
@@ -213,8 +222,24 @@ function App() {
     [baselayersState.activeBaselayer]
   );
 
+  const {
+    changeBaselayer,
+    goBack,
+    goForward,
+    optimisticBaselayerId,
+    isPending,
+    disableGoBack,
+    disableGoForward,
+  } = useBaselayerChange(
+    baselayersState,
+    dispatchBaselayersChange,
+    flipTiles,
+    setFlipTiles
+  );
+
   const { activeBaselayer, internalBaselayers, histogramData } =
     baselayersState;
+
   return (
     <>
       <Login
@@ -228,7 +253,13 @@ function App() {
           <OpenLayersMap
             mapGroups={mapGroups}
             baselayersState={baselayersState}
-            dispatchBaselayersChange={dispatchBaselayersChange}
+            onBaselayerChange={changeBaselayer}
+            optimisticBaselayerId={optimisticBaselayerId}
+            isPending={isPending}
+            disableGoBack={disableGoBack}
+            disableGoForward={disableGoForward}
+            goBack={goBack}
+            goForward={goForward}
             sourceGroups={sourceGroups}
             activeSourceGroupIds={activeSourceGroupIds}
             onSelectedSourceGroupsChange={onSelectedSourceGroupsChange}
@@ -237,6 +268,8 @@ function App() {
             setActiveBoxIds={setActiveBoxIds}
             onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
             submapData={submapData}
+            flipTiles={flipTiles}
+            setFlipTiles={setFlipTiles}
           />
         )}
       {isAuthenticated !== null &&
@@ -260,6 +293,13 @@ function App() {
             histogramData={histogramData}
           />
         )}
+      <LoadingOverlay
+        isLoading={
+          areMapGroupsLoading ||
+          areSourceGroupsLoading ||
+          areHighlightBoxesLoading
+        }
+      />
     </>
   );
 }

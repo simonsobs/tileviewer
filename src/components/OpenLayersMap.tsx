@@ -18,10 +18,8 @@ import { Point } from 'ol/geom';
 import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
 import {
-  InternalBaselayer,
   BaselayersState,
   Box,
-  ExternalBaselayer,
   SourceGroup,
   SubmapData,
   MapGroupResponse,
@@ -43,11 +41,7 @@ import {
   searchOverlayHelper,
 } from '../utils/externalSearchUtils';
 import './styles/highlight-box.css';
-import {
-  Action,
-  assertInternalBaselayer,
-  CHANGE_BASELAYER,
-} from '../reducers/baselayersReducer';
+import { assertInternalBaselayer } from '../reducers/baselayersReducer';
 import {
   getBaselayerResolutions,
   transformCoords,
@@ -55,13 +49,23 @@ import {
 } from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
 import { CenterMapFeature } from './CenterMapFeature';
-import { getHistogramData } from '../utils/fetchUtils';
 import { AperturesLayer } from './layers/AperturesLayer';
+import { LoadingOverlay } from './LoadingOverlay';
 
 export type MapProps = {
   mapGroups: MapGroupResponse[];
   baselayersState: BaselayersState;
-  dispatchBaselayersChange: React.ActionDispatch<[action: Action]>;
+  onBaselayerChange: (
+    id: string,
+    context: 'layerMenu' | 'goBack' | 'goForward',
+    flipped?: boolean
+  ) => void;
+  optimisticBaselayerId: string | undefined;
+  isPending: boolean;
+  disableGoBack: boolean;
+  disableGoForward: boolean;
+  goBack: () => void;
+  goForward: () => void;
   sourceGroups?: SourceGroup[];
   activeSourceGroupIds: string[];
   onSelectedSourceGroupsChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -70,12 +74,20 @@ export type MapProps = {
   setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
   onSelectedHighlightBoxChange: (e: ChangeEvent<HTMLInputElement>) => void;
   submapData?: SubmapData;
+  flipTiles: boolean;
+  setFlipTiles: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export function OpenLayersMap({
   mapGroups,
   baselayersState,
-  dispatchBaselayersChange,
+  onBaselayerChange,
+  optimisticBaselayerId,
+  isPending,
+  disableGoBack,
+  disableGoForward,
+  goBack,
+  goForward,
   sourceGroups = [],
   onSelectedSourceGroupsChange,
   activeSourceGroupIds,
@@ -84,6 +96,8 @@ export function OpenLayersMap({
   setActiveBoxIds,
   onSelectedHighlightBoxChange,
   submapData,
+  flipTiles,
+  setFlipTiles,
 }: MapProps) {
   const mapRef = useRef<Map | null>(null);
   const drawBoxRef = useRef<VectorLayer | null>(null);
@@ -94,130 +108,9 @@ export function OpenLayersMap({
   const previousKeyboardHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
-  const [flipTiles, setFlipTiles] = useState(true);
   const [isMapInitialized, setIsMapInitialized] = useState(false);
 
-  const [backHistoryStack, setBackHistoryStack] = useState<
-    { id: string; flipped: boolean }[]
-  >([]);
-  const [forwardHistoryStack, setForwardHistoryStack] = useState<
-    { id: string; flipped: boolean }[]
-  >([]);
-
   const { activeBaselayer, internalBaselayers } = baselayersState;
-
-  /**
-   * Handler fires when user changes map layers. If the units of the new
-   * layer are the same as the active layer, then we just set a new active
-   * layer. If the units differ, we set new values for vmin, vmax, and cmap
-   * from the band's recommended values in order to prevent nonsensical
-   * TileLayer requests.
-   */
-  const onBaselayerChange = useCallback(
-    async (
-      selectedBaselayerId: string,
-      context: 'layerMenu' | 'goBack' | 'goForward',
-      flipped?: boolean
-    ) => {
-      const isExternalBaselayer = selectedBaselayerId.includes('external');
-
-      const { activeBaselayer, internalBaselayers } = baselayersState;
-
-      let newActiveBaselayer:
-        | ExternalBaselayer
-        | InternalBaselayer
-        | undefined = undefined;
-
-      if (isExternalBaselayer) {
-        newActiveBaselayer = EXTERNAL_BASELAYERS.find(
-          (b) => b.layer_id === selectedBaselayerId
-        );
-      } else {
-        newActiveBaselayer = internalBaselayers?.find(
-          (b) => b.layer_id === selectedBaselayerId
-        );
-      }
-
-      if (!newActiveBaselayer) return;
-
-      if (context === 'goBack') {
-        setBackHistoryStack((prev) => prev.slice(0, -1));
-        setForwardHistoryStack((prev) =>
-          [...prev].concat({
-            id: String(activeBaselayer?.layer_id),
-            flipped: flipTiles,
-          })
-        );
-      } else if (context === 'goForward') {
-        setBackHistoryStack((prev) =>
-          [...prev].concat({
-            id: String(activeBaselayer?.layer_id),
-            flipped: flipTiles,
-          })
-        );
-        setForwardHistoryStack((prev) => prev.slice(0, -1));
-      } else {
-        setBackHistoryStack((prev) =>
-          [...prev].concat({
-            id: String(activeBaselayer?.layer_id),
-            flipped: flipTiles,
-          })
-        );
-        setForwardHistoryStack([]);
-      }
-
-      if (flipped !== undefined) {
-        setFlipTiles(flipped);
-      }
-
-      // If we switch to an internal baselayer, we need to fetch its histogram data
-      // in order to update it in the reducer
-      if (assertInternalBaselayer(newActiveBaselayer)) {
-        const histogramData = await getHistogramData(
-          newActiveBaselayer.layer_id
-        );
-
-        // If the new layer doesn't yet have vmin or vmax set, set it with the
-        // histogram data
-        if (
-          newActiveBaselayer.vmin === undefined ||
-          newActiveBaselayer.vmax === undefined
-        ) {
-          dispatchBaselayersChange({
-            type: CHANGE_BASELAYER,
-            newBaselayer: {
-              ...newActiveBaselayer,
-              vmin: histogramData.vmin,
-              vmax: histogramData.vmax,
-            },
-            histogramData,
-          });
-        } else {
-          dispatchBaselayersChange({
-            type: CHANGE_BASELAYER,
-            newBaselayer: newActiveBaselayer,
-            histogramData,
-          });
-        }
-      } else {
-        dispatchBaselayersChange({
-          type: CHANGE_BASELAYER,
-          newBaselayer: newActiveBaselayer,
-        });
-      }
-    },
-    [baselayersState, dispatchBaselayersChange, flipTiles, setFlipTiles]
-  );
-
-  const goBack = useCallback(() => {
-    const baselayer = backHistoryStack[backHistoryStack.length - 1];
-    onBaselayerChange(baselayer.id, 'goBack', baselayer.flipped);
-  }, [onBaselayerChange, backHistoryStack]);
-
-  const goForward = useCallback(() => {
-    const baselayer = forwardHistoryStack[forwardHistoryStack.length - 1];
-    onBaselayerChange(baselayer.id, 'goForward', baselayer.flipped);
-  }, [onBaselayerChange, forwardHistoryStack]);
 
   const tileLayers = useMemo(() => {
     return internalBaselayers?.map(
@@ -466,10 +359,10 @@ export function OpenLayersMap({
       if ((e.target as HTMLElement)?.closest('input')) {
         return;
       }
-      if (backHistoryStack.length && e.key === 'h') {
+      if (!disableGoBack && e.key === 'h') {
         goBack();
       }
-      if (forwardHistoryStack.length && e.key === 'l') {
+      if (!disableGoForward && e.key === 'l') {
         goForward();
       }
     };
@@ -484,7 +377,7 @@ export function OpenLayersMap({
         'keypress',
         previousKeyboardHandlerRef.current ?? newHandler
       );
-  }, [backHistoryStack, forwardHistoryStack, goBack, goForward]);
+  }, [disableGoBack, disableGoForward, goBack, goForward]);
 
   const disableToggleForNewBox = isDrawing || isNewBoxDrawn;
 
@@ -566,7 +459,7 @@ export function OpenLayersMap({
       <LayerSelector
         mapGroups={mapGroups}
         onBaselayerChange={onBaselayerChange}
-        activeBaselayerId={activeBaselayer?.layer_id}
+        activeBaselayerId={optimisticBaselayerId}
         sourceGroups={sourceGroups}
         activeSourceGroupIds={activeSourceGroupIds}
         onSelectedSourceGroupsChange={onSelectedSourceGroupsChange}
@@ -574,8 +467,8 @@ export function OpenLayersMap({
         activeBoxIds={activeBoxIds}
         onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
         isFlipped={flipTiles}
-        disableGoBack={!backHistoryStack.length}
-        disableGoForward={!forwardHistoryStack.length}
+        disableGoBack={disableGoBack}
+        disableGoForward={disableGoForward}
         goBack={goBack}
         goForward={goForward}
       />
@@ -591,6 +484,7 @@ export function OpenLayersMap({
         externalSearchMarkerRef={externalSearchMarkerRef}
         isMapInitialized={isMapInitialized}
       />
+      <LoadingOverlay isLoading={isPending} />
     </div>
   );
 }
