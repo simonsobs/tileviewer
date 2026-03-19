@@ -51,6 +51,7 @@ import { ToggleSwitch } from './ToggleSwitch';
 import { CenterMapFeature } from './CenterMapFeature';
 import { AperturesLayer } from './layers/AperturesLayer';
 import { LoadingOverlay } from './LoadingOverlay';
+import { useTileLoading } from '../hooks/useTileLoading';
 
 export type MapProps = {
   mapGroups: MapGroupResponse[];
@@ -109,6 +110,8 @@ export function OpenLayersMap({
   const [isDrawing, setIsDrawing] = useState(false);
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
   const [isMapInitialized, setIsMapInitialized] = useState(false);
+
+  const isLoadingTiles = useTileLoading(mapRef);
 
   const { activeBaselayer, internalBaselayers } = baselayersState;
 
@@ -484,7 +487,7 @@ export function OpenLayersMap({
         externalSearchMarkerRef={externalSearchMarkerRef}
         isMapInitialized={isMapInitialized}
       />
-      <LoadingOverlay isLoading={isPending} />
+      <LoadingOverlay isLoading={isPending || isLoadingTiles} />
     </div>
   );
 }
