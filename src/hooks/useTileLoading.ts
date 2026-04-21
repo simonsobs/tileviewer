@@ -12,6 +12,13 @@ export function useTileLoading(mapRef: React.RefObject<Map | null>) {
 
     let pendingTiles = 0;
 
+    function onMoveStart() {
+      pendingTiles = 0;
+      setIsLoadingTiles(false);
+    }
+
+    map.on('movestart', onMoveStart);
+
     function onLoadStart() {
       pendingTiles++;
       setIsLoadingTiles(true);
@@ -58,6 +65,7 @@ export function useTileLoading(mapRef: React.RefObject<Map | null>) {
     });
 
     return () => {
+      map.un('movestart', onMoveStart);
       map.getLayers().forEach((layer) => {
         if (layer instanceof TileLayer) unbindSource(layer as TileLayer<XYZ>);
       });
