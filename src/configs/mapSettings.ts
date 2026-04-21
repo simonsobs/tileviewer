@@ -49,19 +49,6 @@ export const EXTERNAL_BASELAYERS: ExternalBaselayer[] = [
     disabledState: (isFlipped: boolean) => !isFlipped,
   },
   {
-    layer_id: 'external-unwise-neo6',
-    name: 'Legacy Survey | unWISE neo6',
-    projection: 'EPSG:3857',
-    url: 'https://s3.us-west-2.amazonaws.com/unwise-neo6.legacysurvey.org/{z}/{x}/{y}.jpg',
-    extent: transformExtent(
-      [-180, -MERCATOR_MAX_LAT, 180, MERCATOR_MAX_LAT],
-      'EPSG:4326',
-      'EPSG:3857'
-    ),
-    maxZoom: 16,
-    disabledState: (isFlipped: boolean) => !isFlipped,
-  },
-  {
     layer_id: 'external-legacy-vlass',
     name: 'Legacy Survey | VLASS 1.2',
     projection: 'EPSG:3857',
