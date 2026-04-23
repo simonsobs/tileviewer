@@ -65,7 +65,7 @@ type ChangeBaselayerAction = {
 
 type SetBaselayersAction = {
   type: typeof SET_BASELAYERS_STATE;
-  internalBaselayers: InternalBaselayer[];
+  defaultInternalBaselayer: InternalBaselayer | undefined;
   histogramData: HistogramResponse | undefined;
 };
 
@@ -80,14 +80,24 @@ export type Action =
 export function baselayersReducer(state: BaselayersState, action: Action) {
   switch (action.type) {
     case 'SET_BASELAYERS_STATE': {
+      const internalBaselayers = new Map();
+      const hasDefaultBaselayer = assertInternalBaselayer(
+        action.defaultInternalBaselayer
+      );
+
+      if (hasDefaultBaselayer) {
+        internalBaselayers.set(
+          action.defaultInternalBaselayer!.layer_id,
+          action.defaultInternalBaselayer
+        );
+      }
       return {
-        internalBaselayers: action.internalBaselayers,
+        internalBaselayers,
         // If no internalBaselayers are returned from server request, set activeBaselayer to be first external baselayer; note
         // that the histogramData in this scenario will be set to undefined
-        activeBaselayer:
-          action.internalBaselayers.length === 0
-            ? EXTERNAL_BASELAYERS[0]
-            : action.internalBaselayers[0],
+        activeBaselayer: hasDefaultBaselayer
+          ? action.defaultInternalBaselayer
+          : EXTERNAL_BASELAYERS[0],
         histogramData: action.histogramData,
       };
     }
@@ -99,16 +109,10 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
         };
         return {
           ...state,
-          internalBaselayers: state.internalBaselayers?.map((layer) => {
-            if (
-              layer.layer_id ===
-              (action.activeBaselayer as InternalBaselayer).layer_id
-            ) {
-              return updatedActiveBaselayer;
-            } else {
-              return layer;
-            }
-          }),
+          internalBaselayers: state.internalBaselayers?.set(
+            action.activeBaselayer.layer_id,
+            updatedActiveBaselayer
+          ),
           activeBaselayer: updatedActiveBaselayer,
         };
       } else {
@@ -150,16 +154,10 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
 
         return {
           ...state,
-          internalBaselayers: state.internalBaselayers?.map((layer) => {
-            if (
-              layer.layer_id ===
-              (action.activeBaselayer as InternalBaselayer).layer_id
-            ) {
-              return updatedActiveBaselayer;
-            } else {
-              return layer;
-            }
-          }),
+          internalBaselayers: state.internalBaselayers?.set(
+            action.activeBaselayer.layer_id,
+            updatedActiveBaselayer
+          ),
           activeBaselayer: updatedActiveBaselayer,
         };
       } else {
@@ -195,16 +193,10 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
 
         return {
           ...state,
-          internalBaselayers: state.internalBaselayers?.map((layer) => {
-            if (
-              layer.layer_id ===
-              (action.activeBaselayer as InternalBaselayer).layer_id
-            ) {
-              return updatedActiveBaselayer;
-            } else {
-              return layer;
-            }
-          }),
+          internalBaselayers: state.internalBaselayers?.set(
+            action.activeBaselayer.layer_id,
+            updatedActiveBaselayer
+          ),
           activeBaselayer: updatedActiveBaselayer,
         };
       } else {
@@ -222,16 +214,10 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
         };
         return {
           ...state,
-          internalBaselayers: state.internalBaselayers?.map((layer) => {
-            if (
-              layer.layer_id ===
-              (action.activeBaselayer as InternalBaselayer).layer_id
-            ) {
-              return updatedActiveBaselayer;
-            } else {
-              return layer;
-            }
-          }),
+          internalBaselayers: state.internalBaselayers?.set(
+            action.activeBaselayer.layer_id,
+            updatedActiveBaselayer
+          ),
           activeBaselayer: updatedActiveBaselayer,
         };
       } else {
@@ -243,9 +229,15 @@ export function baselayersReducer(state: BaselayersState, action: Action) {
     case 'CHANGE_BASELAYER': {
       const { newBaselayer, histogramData } = action;
 
+      const isNewInternalBaselayer =
+        assertInternalBaselayer(newBaselayer) &&
+        !state.internalBaselayers?.has(newBaselayer.layer_id);
+
       if (histogramData) {
         return {
-          ...state,
+          internalBaselayers: isNewInternalBaselayer
+            ? state.internalBaselayers?.set(newBaselayer.layer_id, newBaselayer)
+            : state.internalBaselayers,
           histogramData,
           activeBaselayer: newBaselayer,
         };

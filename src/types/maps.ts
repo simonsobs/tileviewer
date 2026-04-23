@@ -138,7 +138,7 @@ export type BaselayersState = {
   /** the active baselayer selected in the map's legend */
   activeBaselayer?: InternalBaselayer | ExternalBaselayer;
   /** the internal SO layers used as baselayers */
-  internalBaselayers?: InternalBaselayer[];
+  internalBaselayers?: Map<string, InternalBaselayer>;
   /** the active baselayer's histogram data */
   histogramData?: HistogramResponse;
 };
