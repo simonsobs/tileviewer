@@ -1,16 +1,12 @@
 import { useOptimistic, useState, useTransition, useCallback } from 'react';
-import {
-  BaselayersState,
-  InternalBaselayer,
-  ExternalBaselayer,
-} from '../types/maps';
+import { BaselayersState } from '../types/maps';
 import {
   Action,
   assertInternalBaselayer,
   CHANGE_BASELAYER,
 } from '../reducers/baselayersReducer';
 import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
-import { getHistogramData } from '../utils/fetchUtils';
+import { fetchLayer, getHistogramData } from '../utils/fetchUtils';
 
 export function useBaselayerChange(
   baselayersState: BaselayersState,
@@ -40,33 +36,23 @@ export function useBaselayerChange(
     ) => {
       if (selectedBaselayerId === optimisticBaselayerId) return;
 
-      const isExternal = selectedBaselayerId.includes('external');
-      const newActiveBaselayer:
-        | ExternalBaselayer
-        | InternalBaselayer
-        | undefined = isExternal
-        ? EXTERNAL_BASELAYERS.find((b) => b.layer_id === selectedBaselayerId)
-        : internalBaselayers?.find((b) => b.layer_id === selectedBaselayerId);
-
-      if (!newActiveBaselayer) return;
-
       // Update history stacks synchronously before the transition
       if (context === 'goBack') {
         setBackHistoryStack((prev) => prev.slice(0, -1));
         setForwardHistoryStack((prev) => [
           ...prev,
-          { id: String(activeBaselayer?.layer_id), flipped: flipTiles },
+          { id: String(selectedBaselayerId), flipped: flipTiles },
         ]);
       } else if (context === 'goForward') {
         setBackHistoryStack((prev) => [
           ...prev,
-          { id: String(activeBaselayer?.layer_id), flipped: flipTiles },
+          { id: String(selectedBaselayerId), flipped: flipTiles },
         ]);
         setForwardHistoryStack((prev) => prev.slice(0, -1));
       } else {
         setBackHistoryStack((prev) => [
           ...prev,
-          { id: String(activeBaselayer?.layer_id), flipped: flipTiles },
+          { id: String(selectedBaselayerId), flipped: flipTiles },
         ]);
         setForwardHistoryStack([]);
       }
@@ -75,6 +61,22 @@ export function useBaselayerChange(
 
       startTransition(async () => {
         setOptimisticBaselayerId(selectedBaselayerId); // instant UI feedback
+        let newActiveBaselayer = undefined;
+
+        const isExternal = selectedBaselayerId.includes('external');
+
+        if (isExternal) {
+          newActiveBaselayer = EXTERNAL_BASELAYERS.find(
+            (b) => b.layer_id === selectedBaselayerId
+          );
+        } else {
+          newActiveBaselayer = await fetchLayer(
+            selectedBaselayerId,
+            internalBaselayers
+          );
+        }
+
+        if (!newActiveBaselayer) return;
 
         try {
           if (assertInternalBaselayer(newActiveBaselayer)) {

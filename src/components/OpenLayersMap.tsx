@@ -1,15 +1,5 @@
-import {
-  ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { Map, View, Feature, MapBrowserEvent } from 'ol';
-import { TileGrid } from 'ol/tilegrid';
-import { Tile as TileLayer } from 'ol/layer';
-import { XYZ } from 'ol/source';
 import { Overlay } from 'ol';
 import ScaleLine from 'ol/control/ScaleLine.js';
 import VectorLayer from 'ol/layer/Vector';
@@ -26,7 +16,6 @@ import {
 } from '../types/maps';
 import {
   DEFAULT_INTERNAL_MAP_SETTINGS,
-  EXTERNAL_BASELAYERS,
   SERVICE_URL,
 } from '../configs/mapSettings';
 import { CoordinatesDisplay } from './CoordinatesDisplay';
@@ -42,16 +31,13 @@ import {
 } from '../utils/externalSearchUtils';
 import './styles/highlight-box.css';
 import { assertInternalBaselayer } from '../reducers/baselayersReducer';
-import {
-  getBaselayerResolutions,
-  transformCoords,
-  transformGraticuleCoords,
-} from '../utils/layerUtils';
+import { transformCoords, transformGraticuleCoords } from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
 import { CenterMapFeature } from './CenterMapFeature';
 import { AperturesLayer } from './layers/AperturesLayer';
 import { LoadingOverlay } from './LoadingOverlay';
 import { useTileLoading } from '../hooks/useTileLoading';
+import { useLayerRegistry } from '../hooks/useLayerRegistry';
 
 export type MapProps = {
   mapGroups: MapGroupResponse[];
@@ -113,55 +99,9 @@ export function OpenLayersMap({
 
   const isLoadingTiles = useTileLoading(mapRef);
 
-  const { activeBaselayer, internalBaselayers } = baselayersState;
+  const { activeBaselayer } = baselayersState;
 
-  const tileLayers = useMemo(() => {
-    return internalBaselayers?.map(
-      (layer) =>
-        new TileLayer({
-          properties: { id: 'baselayer-' + layer.layer_id },
-          source: new XYZ({
-            url: `${SERVICE_URL}/maps/${layer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${layer.cmap}&vmin=${layer.isLogScale ? Math.pow(10, layer.vmin!) : layer.vmin}&vmax=${layer.isLogScale ? Math.pow(10, layer.vmax!) : layer.vmax}&flip=${flipTiles}&log_norm=${layer.isLogScale}&abs=${layer.isAbsoluteValue}`,
-            tileGrid: new TileGrid({
-              extent: [-180, -90, 180, 90],
-              origin: [-180, 90],
-              tileSize: layer.tile_size,
-              resolutions: getBaselayerResolutions(
-                180,
-                layer.tile_size,
-                layer.number_of_levels - 1
-              ),
-            }),
-            interpolate: false,
-            projection: 'EPSG:4326',
-            tilePixelRatio: layer.tile_size / 256,
-          }),
-        })
-    );
-  }, [internalBaselayers, flipTiles]);
-
-  const externalTileLayers = useMemo(() => {
-    return EXTERNAL_BASELAYERS.map((b) => {
-      return new TileLayer({
-        properties: { id: b.layer_id },
-        source: new XYZ({
-          url: typeof b.url === 'string' ? b.url : undefined,
-          tileUrlFunction: typeof b.url !== 'string' ? b.url : undefined,
-          projection: b.projection,
-          tileGrid: new TileGrid({
-            extent: b.extent,
-            resolutions: getBaselayerResolutions(
-              b.extent[2] - b.extent[0],
-              256,
-              b.maxZoom
-            ),
-            origin: [b.extent[0], b.extent[3]],
-          }),
-          wrapX: true,
-        }),
-      });
-    });
-  }, []);
+  const { getOrCreateLayer } = useLayerRegistry();
 
   /**
    * Create the map with a scale control, a layer for the "add box" functionality
@@ -320,29 +260,18 @@ export function OpenLayersMap({
           mapRef.current?.removeLayer(layer);
         }
       });
-      if (assertInternalBaselayer(activeBaselayer)) {
-        const activeLayer = tileLayers!.find(
-          (t) => t.get('id') === 'baselayer-' + activeBaselayer!.layer_id
-        )!;
-        const activeLayerSource = activeLayer.getSource();
-        activeLayerSource?.setUrl(
-          `${SERVICE_URL}/maps/${activeBaselayer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${activeBaselayer.cmap}&vmin=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmin!) : activeBaselayer.vmin}&vmax=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmax!) : activeBaselayer.vmax}&flip=${flipTiles}&log_norm=${activeBaselayer.isLogScale}&abs=${activeBaselayer.isAbsoluteValue}`
-        );
-        mapRef.current.addLayer(activeLayer);
-      } else {
-        const externalBaselayer = EXTERNAL_BASELAYERS.find(
-          (b) => b.layer_id === activeBaselayer.layer_id
-        );
-        const activeLayer = externalTileLayers.find(
-          (t) => t.get('id') === activeBaselayer.layer_id
-        )!;
 
-        if (!externalBaselayer || !activeLayer) return;
+      const isInternal = assertInternalBaselayer(activeBaselayer);
 
-        mapRef.current.addLayer(activeLayer);
-      }
+      const activeLayer = getOrCreateLayer(
+        activeBaselayer,
+        isInternal
+          ? `${SERVICE_URL}/layers/${activeBaselayer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${activeBaselayer.cmap}&vmin=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmin!) : activeBaselayer.vmin}&vmax=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmax!) : activeBaselayer.vmax}&flip=${flipTiles}&log_norm=${activeBaselayer.isLogScale}&abs=${activeBaselayer.isAbsoluteValue}`
+          : undefined
+      );
+      mapRef.current.addLayer(activeLayer);
     }
-  }, [activeBaselayer, tileLayers, externalTileLayers, flipTiles]);
+  }, [activeBaselayer, flipTiles]);
 
   /**
    * Add keyboard support for switching baselayers
