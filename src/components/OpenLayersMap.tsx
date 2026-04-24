@@ -9,11 +9,12 @@ import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
 import {
   BaselayersState,
-  Box,
-  SourceGroup,
-  SubmapData,
-  MapGroupResponse,
-} from '../types/maps';
+  DefaultLayer,
+  MapGroup,
+  // MapGroupResponse,
+} from '../types/layers';
+import { Box, SubmapData } from '../types/submaps';
+import { SourceGroup } from '../types/sources';
 import {
   DEFAULT_INTERNAL_MAP_SETTINGS,
   SERVICE_URL,
@@ -40,7 +41,7 @@ import { useTileLoading } from '../hooks/useTileLoading';
 import { useLayerRegistry } from '../hooks/useLayerRegistry';
 
 export type MapProps = {
-  mapGroups: MapGroupResponse[];
+  defaultMenuState: MapGroup[];
   baselayersState: BaselayersState;
   onBaselayerChange: (
     id: string,
@@ -66,7 +67,7 @@ export type MapProps = {
 };
 
 export function OpenLayersMap({
-  mapGroups,
+  defaultMenuState,
   baselayersState,
   onBaselayerChange,
   optimisticBaselayerId,
@@ -389,7 +390,7 @@ export function OpenLayersMap({
         flipped={flipTiles}
       />
       <LayerSelector
-        mapGroups={mapGroups}
+        defaultMenuState={defaultMenuState}
         onBaselayerChange={onBaselayerChange}
         activeBaselayerId={optimisticBaselayerId}
         sourceGroups={sourceGroups}

@@ -1,14 +1,8 @@
 import { SERVICE_URL } from '../configs/mapSettings';
-import {
-  Box,
-  BoxResponse,
-  InternalBaselayer,
-  MapGroupResponse,
-  SourceGroup,
-  SourceGroupResponse,
-  SubmapDataWithBounds,
-  HistogramResponse,
-} from '../types/maps';
+import { InternalBaselayer } from '../types/layers';
+import { Box, BoxResponse, SubmapDataWithBounds } from '../types/submaps';
+import { SourceGroup, SourceGroupResponse } from '../types/sources';
+import { HistogramResponse } from '../types/histogram';
 import { SubmapFileExtensions } from '../configs/submapConfigs';
 
 const cachedLayerIds = new Set<string>();
@@ -20,63 +14,6 @@ export async function fetchInitialState() {
   ).json();
 
   cachedLayerIds.add(defaultLayerData.layer.layer_id);
-
-  // Get map group summaries for layer menu
-  const mapGroupSummaries = await (
-    await fetch(`${SERVICE_URL}/map-groups`)
-  ).json();
-
-  const mapSummaries = await (
-    await fetch(
-      `${SERVICE_URL}/map-groups/${defaultLayerData.map_group_id}/maps`
-    )
-  ).json();
-
-  const bandSummaries = await (
-    await fetch(`${SERVICE_URL}/maps/${defaultLayerData.map_id}/bands`)
-  ).json();
-
-  const layerSummaries = await (
-    await fetch(`${SERVICE_URL}/bands/${defaultLayerData.band_id}/layers`)
-  ).json();
-
-  const mapGroups = mapGroupSummaries.map((mapGroup) => {
-    if (mapGroup.map_group_id === defaultLayerData.map_group_id) {
-      return {
-        ...mapGroup,
-        maps: mapSummaries.map((map) => {
-          if (map.map_id === defaultLayerData.map_id) {
-            return {
-              ...map,
-              bands: bandSummaries.map((band) => {
-                if (band.band_id === defaultLayerData.band_id) {
-                  return {
-                    ...band,
-                    layers: layerSummaries,
-                  };
-                } else {
-                  return {
-                    ...band,
-                    layers: [],
-                  };
-                }
-              }),
-            };
-          } else {
-            return {
-              ...map,
-              bands: [],
-            };
-          }
-        }),
-      };
-    } else {
-      return {
-        ...mapGroup,
-        maps: [],
-      };
-    }
-  });
 
   // Set to undefined if 'auto' so we can know to set this value
   // with the layer's histogram response instead
@@ -97,7 +34,10 @@ export async function fetchInitialState() {
     vmax,
   };
 
-  return { defaultLayer, mapGroupSummaries, mapGroups };
+  return {
+    defaultLayer,
+    defaultMenuState: defaultLayerData.default_layer_menu,
+  };
 }
 
 export async function fetchLayer(
@@ -127,44 +67,6 @@ export async function fetchLayer(
 
     return newLayer;
   }
-}
-
-export async function fetchMaps() {
-  // Get the list of map groups and unpack the response
-  const mapGroups: MapGroupResponse[] = await (
-    await fetch(`${SERVICE_URL}/maps`)
-  ).json();
-
-  const internalBaselayers: InternalBaselayer[] = [];
-
-  mapGroups.forEach((mapGroup) => {
-    mapGroup.maps.forEach((map) =>
-      map.bands.forEach((band) =>
-        band.layers.forEach((layer) => {
-          // Set to undefined if 'auto' so we can know to set this value
-          // with the layer's histogram response instead
-          const vmin = layer.vmin === 'auto' ? undefined : layer.vmin;
-          const vmax = layer.vmax === 'auto' ? undefined : layer.vmax;
-
-          const internalBaselayer: InternalBaselayer = {
-            ...layer,
-            mapId: map.map_id,
-            bandId: band.band_id,
-            isLogScale: false,
-            isAbsoluteValue: false,
-            vmin,
-            vmax,
-          };
-          internalBaselayers.push(internalBaselayer);
-        })
-      )
-    );
-  });
-
-  return {
-    mapGroups,
-    internalBaselayers,
-  };
 }
 
 export async function fetchSources() {

@@ -1,9 +1,9 @@
 import {
-  MapGroupResponse,
-  MapResponse,
-  BandResponse,
-  LayerResponse,
-} from '../types/maps';
+  MapGroup,
+  MapSummary,
+  BandSummary,
+  LayerSummary,
+} from '../types/layers';
 import { EXTERNAL_DETAILS_ID } from '../configs/mapSettings';
 import { LayerSelectorProps } from '../components/LayerSelector';
 
@@ -16,7 +16,7 @@ import { LayerSelectorProps } from '../components/LayerSelector';
  * @returns A set of IDs that are used to control the open/close state of <details> elements
  */
 export function getDefaultExpandedState(
-  mapGroups: MapGroupResponse[],
+  mapGroups: MapGroup[],
   activeBaselayerId: LayerSelectorProps['activeBaselayerId']
 ) {
   const expandedState: Set<string> = new Set<string>();
@@ -67,7 +67,7 @@ function match(name: string, query: string) {
  * filter. The set of matchedIds is used to determine which node should have the <mark>
  * elements applied to the matching search query.
  */
-export function filterMapGroups(mapGroups: MapGroupResponse[], query: string) {
+export function filterMapGroups(mapGroups: MapGroup[], query: string) {
   const matchedIds = new Set<string>();
 
   const filteredMapGroups = mapGroups
@@ -113,21 +113,21 @@ export function filterMapGroups(mapGroups: MapGroupResponse[], query: string) {
                 return { ...band, layers: filteredLayers };
               }
             })
-            .filter(Boolean) as BandResponse[];
+            .filter(Boolean) as BandSummary[];
 
           // Otherwise include map only if any band matched
           if (filteredBands.length > 0) {
             return { ...map, bands: filteredBands };
           }
         })
-        .filter(Boolean) as MapResponse[];
+        .filter(Boolean) as MapSummary[];
 
       // Otherwise include group only if any map matched
       if (filteredMaps.length > 0) {
         return { ...group, maps: filteredMaps };
       }
     })
-    .filter(Boolean) as MapGroupResponse[];
+    .filter(Boolean) as MapGroup[];
 
   return { filteredMapGroups, matchedIds };
 }
@@ -139,7 +139,7 @@ export function filterMapGroups(mapGroups: MapGroupResponse[], query: string) {
  * @returns The ID of a node
  */
 export function getNodeId(
-  node: MapGroupResponse | MapResponse | BandResponse | LayerResponse
+  node: MapGroup | MapSummary | BandSummary | LayerSummary
 ) {
   let id = node.name;
   if ('layer_id' in node) {

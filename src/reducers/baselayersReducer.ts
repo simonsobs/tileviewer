@@ -4,7 +4,7 @@ import {
   ExternalBaselayer,
   HistogramResponse,
   InternalBaselayer,
-} from '../types/maps';
+} from '../types/layers';
 import { safeLog } from '../utils/numberUtils';
 
 export function assertExternalBaselayer(

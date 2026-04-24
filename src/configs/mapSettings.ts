@@ -1,5 +1,5 @@
 import { transformExtent } from 'ol/proj';
-import { ExternalBaselayer } from '../types/maps';
+import { ExternalBaselayer } from '../types/layers';
 
 // Uses a user-defined VITE_SERVICE_URL environment variable for development; otherwise
 // uses the window.location object's href string, minus the trailing forward slash

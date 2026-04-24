@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { NewBoxData } from '../../types/maps';
+import { NewBoxData } from '../../types/submaps';
 import Draw, { createBox } from 'ol/interaction/Draw.js';
 import { BoxMenu } from '../BoxMenu';
 import VectorLayer from 'ol/layer/Vector';

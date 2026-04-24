@@ -1,5 +1,5 @@
 import { ReactNode, useCallback } from 'react';
-import { BoxWithDimensions, NewBoxData, SubmapData } from '../types/maps';
+import { BoxWithDimensions, NewBoxData, SubmapData } from '../types/submaps';
 import { MenuIcon } from './icons/MenuIcon';
 import {
   SUBMAP_DOWNLOAD_OPTIONS,

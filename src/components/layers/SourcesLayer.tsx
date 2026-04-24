@@ -13,7 +13,7 @@ import {
   transformCoords,
   transformFeatureCoords,
 } from '../../utils/layerUtils';
-import { SourceData } from '../../types/maps';
+import { SourceData } from '../../types/sources';
 
 type SourcesLayerProps = {
   sourceGroups: MapProps['sourceGroups'];

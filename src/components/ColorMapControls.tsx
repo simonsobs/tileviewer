@@ -11,7 +11,7 @@ import {
   STEPS_DIVISOR,
 } from '../configs/cmapControlSettings';
 import { ColorMapSlider } from './ColorMapSlider';
-import { HistogramResponse } from '../types/maps';
+import { HistogramResponse } from '../types/histogram';
 import { ColorMapHistogram } from './ColorMapHistogram';
 import { CustomColorMapDialog } from './CustomColorMapDialog';
 import { safeLog } from '../utils/numberUtils';

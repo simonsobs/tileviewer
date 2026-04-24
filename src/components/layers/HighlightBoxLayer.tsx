@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Box, BoxWithDimensions } from '../../types/maps';
+import { Box, BoxWithDimensions } from '../../types/submaps';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Feature, Map, MapBrowserEvent, Overlay } from 'ol';

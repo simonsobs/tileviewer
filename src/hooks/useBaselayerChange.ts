@@ -1,5 +1,5 @@
 import { useOptimistic, useState, useTransition, useCallback } from 'react';
-import { BaselayersState } from '../types/maps';
+import { BaselayersState } from '../types/layers';
 import {
   Action,
   assertInternalBaselayer,
