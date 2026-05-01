@@ -1,17 +1,15 @@
 import { useState, ReactNode, useCallback, memo } from 'react';
 import { LayerSelectorProps, NoMatches } from './LayerSelector';
-import CollapsibleSection from './CollapsibleSection';
 import {
   EXTERNAL_BASELAYERS,
   EXTERNAL_DETAILS_ID,
 } from '../configs/mapSettings';
-import { getDefaultExpandedState, filterMapGroups } from '../utils/filterUtils';
 import { ChevronRightIcon } from './icons/ChevronRightIcon';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
 
-type BaselayerSectionsProps = {
-  mapGroups: LayerSelectorProps['mapGroups'];
-  activeBaselayerId: LayerSelectorProps['activeBaselayerId'];
+type ExternalBaselayersSectionProps = {
+  internalSearchLength: number | undefined;
+  activeBaselayerId: LayerSelectorProps['selectedBaselayerId'];
   isFlipped: LayerSelectorProps['isFlipped'];
   onBaselayerChange: LayerSelectorProps['onBaselayerChange'];
   searchText: string;
@@ -21,26 +19,20 @@ type BaselayerSectionsProps = {
   ) => string | ReactNode;
 };
 
-function BaselayerSections({
-  mapGroups,
+function ExternalBaselayersSection({
+  internalSearchLength,
   activeBaselayerId,
   isFlipped,
   onBaselayerChange,
   searchText,
   markMatchingSearchText,
-}: BaselayerSectionsProps) {
+}: ExternalBaselayersSectionProps) {
   const [expandedState, setExpandedState] = useState<Set<string>>(
-    getDefaultExpandedState(mapGroups, activeBaselayerId)
-  );
-  const { filteredMapGroups, matchedIds } = filterMapGroups(
-    mapGroups,
-    searchText
+    new Set([EXTERNAL_DETAILS_ID])
   );
   const filteredExternalLayers = EXTERNAL_BASELAYERS.filter((bl) =>
     bl.name.toLowerCase().includes(searchText.toLowerCase())
   );
-  const isEmpty =
-    filteredMapGroups.length + filteredExternalLayers.length === 0;
 
   const handleToggle = useCallback(
     (id: string) => {
@@ -57,27 +49,12 @@ function BaselayerSections({
     [expandedState]
   );
 
-  if (isEmpty) {
+  if (internalSearchLength === 0 && filteredExternalLayers.length === 0) {
     return <NoMatches />;
   }
 
   return (
     <>
-      {filteredMapGroups.map((group) => (
-        <CollapsibleSection
-          key={group.name}
-          node={group}
-          nestedDepth={0}
-          onBaselayerChange={onBaselayerChange}
-          activeBaselayerId={activeBaselayerId}
-          searchText={searchText}
-          expandedState={expandedState}
-          markMatchingSearchText={markMatchingSearchText}
-          matchedIds={matchedIds}
-          highlightMatch={matchedIds.has(group.name)}
-          handleToggle={handleToggle}
-        />
-      ))}
       {filteredExternalLayers.length > 0 && (
         <div>
           <div
@@ -109,7 +86,14 @@ function BaselayerSections({
                   value={bl.layer_id}
                   name="baselayer"
                   checked={bl.layer_id === activeBaselayerId}
-                  onChange={() => onBaselayerChange(bl.layer_id, 'layerMenu')}
+                  onChange={() =>
+                    onBaselayerChange(
+                      bl.layer_id,
+                      'layerMenu',
+                      undefined,
+                      undefined
+                    )
+                  }
                   disabled={bl.disabledState(isFlipped)}
                 />
                 <label
@@ -126,4 +110,4 @@ function BaselayerSections({
   );
 }
 
-export default memo(BaselayerSections);
+export default memo(ExternalBaselayersSection);

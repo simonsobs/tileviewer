@@ -4,7 +4,7 @@ import { Tile as TileLayer } from 'ol/layer';
 import { XYZ } from 'ol/source';
 import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
 import { getBaselayerResolutions } from '../utils/layerUtils';
-import { ExternalBaselayer, InternalBaselayer } from '../types/maps';
+import { ExternalBaselayer, InternalBaselayer } from '../types/layers';
 import { assertInternalBaselayer } from '../reducers/baselayersReducer';
 
 export function useLayerRegistry() {

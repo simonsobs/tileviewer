@@ -1,5 +1,5 @@
 import { useOptimistic, useState, useTransition, useCallback } from 'react';
-import { BaselayersState } from '../types/layers';
+import { BaselayersState, InternalBaselayer } from '../types/layers';
 import {
   Action,
   assertInternalBaselayer,
@@ -32,7 +32,8 @@ export function useBaselayerChange(
     (
       selectedBaselayerId: string,
       context: 'layerMenu' | 'goBack' | 'goForward',
-      flipped?: boolean
+      flipped: boolean | undefined,
+      mergeSearchSelection?: (newActiveBaselayer: InternalBaselayer) => void
     ) => {
       if (selectedBaselayerId === optimisticBaselayerId) return;
 
@@ -96,6 +97,9 @@ export function useBaselayerChange(
                   : newActiveBaselayer,
               histogramData,
             });
+            if (mergeSearchSelection) {
+              mergeSearchSelection(newActiveBaselayer);
+            }
           } else {
             dispatchBaselayersChange({
               type: CHANGE_BASELAYER,
@@ -111,7 +115,6 @@ export function useBaselayerChange(
     [
       optimisticBaselayerId,
       setOptimisticBaselayerId,
-      activeBaselayer,
       internalBaselayers,
       flipTiles,
       setFlipTiles,

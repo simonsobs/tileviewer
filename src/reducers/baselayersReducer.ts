@@ -2,9 +2,9 @@ import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
 import {
   BaselayersState,
   ExternalBaselayer,
-  HistogramResponse,
   InternalBaselayer,
 } from '../types/layers';
+import { HistogramResponse } from '../types/histogram';
 import { safeLog } from '../utils/numberUtils';
 
 export function assertExternalBaselayer(

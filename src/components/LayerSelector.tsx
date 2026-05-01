@@ -1,5 +1,12 @@
-import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { SourceGroup } from '../types/maps';
+import {
+  ChangeEvent,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import { SourceGroup } from '../types/sources';
 import { LayersIcon } from './icons/LayersIcon';
 import './styles/layer-selector.css';
 import { MapProps } from './OpenLayersMap';
@@ -9,8 +16,12 @@ import {
 } from './BaselayerHistoryNavigation';
 import { LockClosedIcon } from './icons/LockClosedIcon';
 import { LockOpenIcon } from './icons/LockOpenIcon';
-import BaselayerSections from './BaselayerSections';
 import { getCatalogMarkerColor } from '../utils/layerUtils';
+import { useLayerMenu } from '../hooks/useLayerMenu';
+import { InternalBaselayersTree } from './InternalBaselayersTree';
+import { ExternalBaselayer, InternalBaselayer } from '../types/layers';
+import { fetchFilteredMenu } from '../utils/fetchUtils';
+import ExternalBaselayersSection from './ExternalBaselayersSection';
 
 export interface LayerSelectorProps
   extends Omit<
@@ -23,15 +34,17 @@ export interface LayerSelectorProps
     | 'isPending'
     | 'setActiveBoxIds'
   > {
-  activeBaselayerId?: number | string;
+  selectedBaselayerId?: string;
+  activeBaselayer?: InternalBaselayer | ExternalBaselayer;
   sourceGroups: SourceGroup[];
   isFlipped: boolean;
 }
 
 export function LayerSelector({
-  mapGroups,
+  defaultData,
   onBaselayerChange,
-  activeBaselayerId,
+  selectedBaselayerId,
+  // activeBaselayer,
   sourceGroups,
   onSelectedSourceGroupsChange,
   activeSourceGroupIds,
@@ -47,9 +60,16 @@ export function LayerSelector({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [lockMenu, setLockMenu] = useState(false);
   const previousLockMenuHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
+  const [tempSearchText, setTempSearchText] = useState('');
   const [searchText, setSearchText] = useState('');
-  const [debouncedSearchText, setDebouncedSearchText] = useState('');
-
+  const {
+    state,
+    expandGroup,
+    expandMap,
+    expandBand,
+    setSearchState,
+    mergeSearchSelection,
+  } = useLayerMenu(defaultData);
   useEffect(() => {
     if (previousLockMenuHandlerRef.current) {
       document.removeEventListener(
@@ -98,41 +118,55 @@ export function LayerSelector({
     menuRef.current.classList.add('hide');
   }, [lockMenu]);
 
-  useEffect(() => {
-    const id = setTimeout(() => {
-      setDebouncedSearchText(searchText);
-    }, 300);
-
-    return () => clearTimeout(id);
-  }, [searchText]);
-
   const handleFilterChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    setSearchText(e.target.value);
+    setTempSearchText(e.target.value);
   }, []);
 
   const handleFilterKeyUp = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Escape') {
+        setTempSearchText('');
         setSearchText('');
+        setSearchState(undefined);
       }
     },
-    []
+    [setSearchState]
+  );
+
+  const handleFilterSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      const formData = new FormData(e.target as HTMLFormElement);
+      const val = String(formData.get('filter_input'));
+      if (val.length && val !== searchText) {
+        setSearchText(val);
+        const res = await fetchFilteredMenu(val);
+        setSearchState({
+          filtered_layer_menu: res.filtered_layer_menu,
+          matched_ids: res.matched_ids,
+        });
+      }
+      if (searchText.length && !val.length) {
+        setSearchText('');
+        setSearchState(undefined);
+      }
+    },
+    [searchText, setSearchState]
   );
 
   const markMatchingSearchText = useCallback(
     (label: string, shouldHighlight?: boolean) => {
       if (
-        !debouncedSearchText.length ||
+        !searchText.length ||
         (shouldHighlight !== undefined && !shouldHighlight)
       )
         return label;
 
       const substringStartIndex = label
         .toLowerCase()
-        .indexOf(debouncedSearchText.toLowerCase());
+        .indexOf(searchText.toLowerCase());
       if (substringStartIndex === -1) return label;
-      const substringStopIndex =
-        substringStartIndex + debouncedSearchText.length;
+      const substringStopIndex = substringStartIndex + searchText.length;
 
       const preMarkedSubstring = label.slice(0, substringStartIndex);
       const markedSubstring = label.slice(
@@ -149,16 +183,16 @@ export function LayerSelector({
         </>
       );
     },
-    [debouncedSearchText]
+    [searchText]
   );
 
   const filteredSourceGroups = sourceGroups.filter((sourceGroup) =>
-    sourceGroup.name.toLowerCase().includes(debouncedSearchText.toLowerCase())
+    sourceGroup.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
   const filteredHighlightBoxes =
     highlightBoxes?.filter((box) =>
-      box.name.toLowerCase().includes(debouncedSearchText.toLowerCase())
+      box.name.toLowerCase().includes(searchText.toLowerCase())
     ) ?? [];
 
   return (
@@ -188,24 +222,49 @@ export function LayerSelector({
           />
         </div>
         <div className="layer-filter-container">
-          <input
-            id="layer-filter-input"
-            type="text"
-            placeholder="Filter layers..."
-            value={searchText}
-            onChange={handleFilterChange}
-            onKeyUp={handleFilterKeyUp}
-          />
+          <form onSubmit={handleFilterSubmit}>
+            <input
+              name="filter_input"
+              id="layer-filter-input"
+              type="text"
+              placeholder="Filter layers..."
+              value={tempSearchText}
+              onChange={handleFilterChange}
+              onKeyUp={handleFilterKeyUp}
+            />
+          </form>
         </div>
         <div className="layers-fieldset-container">
           <fieldset>
             <legend>Baselayers</legend>
-            <BaselayerSections
-              mapGroups={mapGroups}
-              activeBaselayerId={activeBaselayerId}
+            <InternalBaselayersTree
+              mapGroups={
+                state.search && searchText
+                  ? state.search.groups
+                  : state.mapGroups
+              }
+              selectedBaselayerId={selectedBaselayerId}
+              onExpandGroup={expandGroup}
+              onExpandMap={expandMap}
+              onExpandBand={expandBand}
+              onBaselayerChange={onBaselayerChange}
+              mergeSearchSelection={
+                state.search ? mergeSearchSelection : undefined
+              }
+              markMatchingSearchText={markMatchingSearchText}
+              matchedIds={state.search?.matchedIds}
+              expandedIds={
+                state.search ? state.search.expandedIds : state.expandedIds
+              }
+            />
+            <ExternalBaselayersSection
+              internalSearchLength={
+                state.search ? state.search.groups.length : undefined
+              }
+              activeBaselayerId={selectedBaselayerId}
               isFlipped={isFlipped}
               onBaselayerChange={onBaselayerChange}
-              searchText={debouncedSearchText}
+              searchText={searchText}
               markMatchingSearchText={markMatchingSearchText}
             />
           </fieldset>

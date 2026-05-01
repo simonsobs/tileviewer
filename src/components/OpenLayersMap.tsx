@@ -9,9 +9,8 @@ import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
 import {
   BaselayersState,
-  DefaultLayer,
-  MapGroup,
-  // MapGroupResponse,
+  DefaultData,
+  InternalBaselayer,
 } from '../types/layers';
 import { Box, SubmapData } from '../types/submaps';
 import { SourceGroup } from '../types/sources';
@@ -41,12 +40,13 @@ import { useTileLoading } from '../hooks/useTileLoading';
 import { useLayerRegistry } from '../hooks/useLayerRegistry';
 
 export type MapProps = {
-  defaultMenuState: MapGroup[];
+  defaultData: DefaultData;
   baselayersState: BaselayersState;
   onBaselayerChange: (
     id: string,
     context: 'layerMenu' | 'goBack' | 'goForward',
-    flipped?: boolean
+    flipped: boolean | undefined,
+    mergeSearchSelection?: (newActiveBaselayer: InternalBaselayer) => void
   ) => void;
   optimisticBaselayerId: string | undefined;
   isPending: boolean;
@@ -67,7 +67,7 @@ export type MapProps = {
 };
 
 export function OpenLayersMap({
-  defaultMenuState,
+  defaultData,
   baselayersState,
   onBaselayerChange,
   optimisticBaselayerId,
@@ -92,7 +92,11 @@ export function OpenLayersMap({
   const externalSearchRef = useRef<HTMLDivElement | null>(null);
   const externalSearchMarkerRef = useRef<Feature | null>(null);
   const previousSearchOverlayHandlerRef =
-    useRef<(e: MapBrowserEvent<any>) => void | null>(null);
+    useRef<
+      (
+        e: MapBrowserEvent<KeyboardEvent | PointerEvent | WheelEvent>
+      ) => void | null
+    >(null);
   const previousKeyboardHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
@@ -272,7 +276,7 @@ export function OpenLayersMap({
       );
       mapRef.current.addLayer(activeLayer);
     }
-  }, [activeBaselayer, flipTiles]);
+  }, [activeBaselayer, flipTiles, getOrCreateLayer]);
 
   /**
    * Add keyboard support for switching baselayers
@@ -390,9 +394,10 @@ export function OpenLayersMap({
         flipped={flipTiles}
       />
       <LayerSelector
-        defaultMenuState={defaultMenuState}
+        defaultData={defaultData}
         onBaselayerChange={onBaselayerChange}
-        activeBaselayerId={optimisticBaselayerId}
+        selectedBaselayerId={optimisticBaselayerId}
+        activeBaselayer={activeBaselayer}
         sourceGroups={sourceGroups}
         activeSourceGroupIds={activeSourceGroupIds}
         onSelectedSourceGroupsChange={onSelectedSourceGroupsChange}

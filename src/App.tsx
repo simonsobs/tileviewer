@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, useReducer, ChangeEvent } from 'react';
-import { DefaultLayer, MapGroup } from './types/layers';
+import { DefaultData } from './types/layers';
 import { SourceGroup } from './types/sources';
 import { Box } from './types/submaps';
 import { ColorMapControls } from './components/ColorMapControls';
@@ -37,15 +37,21 @@ function App() {
   const [flipTiles, setFlipTiles] = useState(true);
 
   /** query the map groups to use as the baselayers of the map */
-  const { data: defaultLayerData, isLoading: areMapGroupsLoading } = useQuery<
-    { defaultLayer: DefaultLayer; defaultMenuState: MapGroup[] } | undefined
+  const { data: defaultData, isLoading: areMapGroupsLoading } = useQuery<
+    DefaultData | undefined
   >({
     initialData: undefined,
     queryKey: [isAuthenticated],
     queryFn: async () => {
       // Fetch the maps and the map metadata in order to get the list of bands used as
       // map baselayers
-      const { defaultMenuState, defaultLayer } = await fetchInitialState();
+      const {
+        defaultMenuState,
+        defaultLayer,
+        defaultMapGroupId,
+        defaultBandId,
+        defaultMapId,
+      } = await fetchInitialState();
 
       if (!defaultLayer) {
         // If we end up with no maps, SET_BASELAYERS_STATE will fall back to an external baselayer as its default initial baselayer
@@ -79,7 +85,13 @@ function App() {
         });
       }
 
-      return { defaultMenuState, defaultLayer };
+      return {
+        defaultMenuState,
+        defaultLayer,
+        defaultMapId,
+        defaultMapGroupId,
+        defaultBandId,
+      };
     },
   });
 
@@ -246,9 +258,9 @@ function App() {
       {isAuthenticated !== null &&
         activeBaselayer &&
         internalBaselayers &&
-        defaultLayerData?.defaultMenuState && (
+        defaultData && (
           <OpenLayersMap
-            defaultMenuState={defaultLayerData.defaultMenuState}
+            defaultData={defaultData}
             baselayersState={baselayersState}
             onBaselayerChange={changeBaselayer}
             optimisticBaselayerId={optimisticBaselayerId}

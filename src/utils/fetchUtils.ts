@@ -1,9 +1,15 @@
 import { SERVICE_URL } from '../configs/mapSettings';
-import { InternalBaselayer } from '../types/layers';
+import {
+  BandSummary,
+  InternalBaselayer,
+  LayerSummary,
+  FilterMenuResponse,
+} from '../types/layers';
 import { Box, BoxResponse, SubmapDataWithBounds } from '../types/submaps';
 import { SourceGroup, SourceGroupResponse } from '../types/sources';
 import { HistogramResponse } from '../types/histogram';
 import { SubmapFileExtensions } from '../configs/submapConfigs';
+import { MapSummary } from '../types/layers';
 
 const cachedLayerIds = new Set<string>();
 
@@ -37,7 +43,48 @@ export async function fetchInitialState() {
   return {
     defaultLayer,
     defaultMenuState: defaultLayerData.default_layer_menu,
+    defaultMapGroupId: defaultLayerData.default_map_group_id,
+    defaultMapId: defaultLayerData.default_map_id,
+    defaultBandId: defaultLayerData.default_band_id,
   };
+}
+
+export async function fetchFilteredMenu(
+  query: string
+): Promise<FilterMenuResponse> {
+  const res = await fetch(`${SERVICE_URL}/search?q=${query}`);
+  if (!res.ok)
+    throw new Error(`Failed to filter layer menu for query '${query}'`);
+  return res.json();
+}
+
+export async function fetchMaps(
+  groupId: string,
+  signal?: AbortSignal
+): Promise<MapSummary[]> {
+  const res = await fetch(`${SERVICE_URL}/map-groups/${groupId}/maps`, {
+    signal,
+  });
+  if (!res.ok) throw new Error(`Failed to fetch maps for group ${groupId}`);
+  return res.json();
+}
+
+export async function fetchBands(
+  mapId: string,
+  signal?: AbortSignal
+): Promise<BandSummary[]> {
+  const res = await fetch(`${SERVICE_URL}/maps/${mapId}/bands`, { signal });
+  if (!res.ok) throw new Error(`Failed to fetch bands for map ${mapId}`);
+  return res.json();
+}
+
+export async function fetchLayers(
+  bandId: string,
+  signal?: AbortSignal
+): Promise<LayerSummary[]> {
+  const res = await fetch(`${SERVICE_URL}/bands/${bandId}/layers`, { signal });
+  if (!res.ok) throw new Error(`Failed to fetch layers for band ${bandId}`);
+  return res.json();
 }
 
 export async function fetchLayer(
@@ -48,6 +95,7 @@ export async function fetchLayer(
   if (isCached) {
     return internalBaselayers?.get(layerId);
   } else {
+    cachedLayerIds.add(layerId);
     const newLayerData = await (
       await fetch(`${SERVICE_URL}/layers/${layerId}`)
     ).json();

@@ -1,27 +1,24 @@
 import { HistogramResponse } from './histogram';
 
-export type MapGroupSummary = {
+type BaseSummary = {
+  name: string;
+  description: string;
+};
+
+export type MapGroupSummary = BaseSummary & {
   map_group_id: string;
-  name: string;
-  description: string;
 };
 
-export type MapSummary = {
+export type MapSummary = BaseSummary & {
   map_id: string;
-  name: string;
-  description: string;
 };
 
-export type BandSummary = {
+export type BandSummary = BaseSummary & {
   band_id: string;
-  name: string;
-  description: string;
 };
 
-export type LayerSummary = {
+export type LayerSummary = BaseSummary & {
   layer_id: string;
-  name: string;
-  description: string;
 };
 
 export type MapGroup = MapGroupSummary & {
@@ -51,15 +48,18 @@ export type LayerResponse = LayerSummary & {
   cmap: string;
 };
 
-export type DefaultLayer = LayerResponse & {
-  map_group_id: string;
-  map_id: string;
-  band_id: string;
+export type DefaultData = {
+  defaultLayer: LayerResponse;
+  defaultMenuState: MapGroup[];
+  defaultMapGroupId: string;
+  defaultMapId: string;
+  defaultBandId: string;
 };
 
 type EnhancedLayerAttributes = {
-  mapId: string;
-  bandId: string;
+  map_group_id: string;
+  map_id: string;
+  band_id: string;
   isLogScale: boolean;
   isAbsoluteValue: boolean;
 };
@@ -96,4 +96,27 @@ export type BaselayersState = {
   internalBaselayers?: Map<string, InternalBaselayer>;
   /** the active baselayer's histogram data */
   histogramData?: HistogramResponse;
+};
+
+export type LoadState<T> =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'loaded'; data: T }
+  | { status: 'error'; message: string };
+
+export interface BandMenuState extends BandSummary {
+  layers: LoadState<LayerSummary[]>;
+}
+
+export interface MapMenuState extends MapSummary {
+  bands: LoadState<BandMenuState[]>;
+}
+
+export interface MapGroupMenuState extends MapGroupSummary {
+  maps: LoadState<MapMenuState[]>;
+}
+
+export type FilterMenuResponse = {
+  filtered_layer_menu: MapGroup[];
+  matched_ids: string[];
 };
