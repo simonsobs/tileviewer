@@ -69,7 +69,7 @@ type SetBaselayersAction = {
   histogramData: HistogramResponse | undefined;
 };
 
-export type Action =
+export type BaselayersAction =
   | ChangeCmapAction
   | ChangeLogScaleAction
   | ChangeAbsoluteValueAction
@@ -77,7 +77,10 @@ export type Action =
   | ChangeBaselayerAction
   | SetBaselayersAction;
 
-export function baselayersReducer(state: BaselayersState, action: Action) {
+export function baselayersReducer(
+  state: BaselayersState,
+  action: BaselayersAction
+) {
   switch (action.type) {
     case 'SET_BASELAYERS_STATE': {
       const internalBaselayers = new Map();

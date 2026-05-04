@@ -33,18 +33,24 @@ export interface LayerSelectorProps
     | 'submapData'
     | 'isPending'
     | 'setActiveBoxIds'
+    | 'dispatchBaselayersChange'
   > {
   selectedBaselayerId?: string;
   activeBaselayer?: InternalBaselayer | ExternalBaselayer;
   sourceGroups: SourceGroup[];
   isFlipped: boolean;
+  onBaselayerChange: (
+    id: string,
+    context: 'layerMenu' | 'goBack' | 'goForward',
+    flipped: boolean | undefined,
+    mergeSearchSelection?: (newActiveBaselayer: InternalBaselayer) => void
+  ) => void;
 }
 
 export function LayerSelector({
   defaultData,
   onBaselayerChange,
   selectedBaselayerId,
-  // activeBaselayer,
   sourceGroups,
   onSelectedSourceGroupsChange,
   activeSourceGroupIds,

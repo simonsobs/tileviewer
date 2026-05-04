@@ -7,11 +7,7 @@ import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
 import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
-import {
-  BaselayersState,
-  DefaultData,
-  InternalBaselayer,
-} from '../types/layers';
+import { BaselayersState, DefaultData } from '../types/layers';
 import { Box, SubmapData } from '../types/submaps';
 import { SourceGroup } from '../types/sources';
 import {
@@ -30,7 +26,10 @@ import {
   searchOverlayHelper,
 } from '../utils/externalSearchUtils';
 import './styles/highlight-box.css';
-import { assertInternalBaselayer } from '../reducers/baselayersReducer';
+import {
+  assertInternalBaselayer,
+  BaselayersAction,
+} from '../reducers/baselayersReducer';
 import { transformCoords, transformGraticuleCoords } from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
 import { CenterMapFeature } from './CenterMapFeature';
@@ -38,22 +37,12 @@ import { AperturesLayer } from './layers/AperturesLayer';
 import { LoadingOverlay } from './LoadingOverlay';
 import { useTileLoading } from '../hooks/useTileLoading';
 import { useLayerRegistry } from '../hooks/useLayerRegistry';
+import { useBaselayerChange } from '../hooks/useBaselayerChange';
 
 export type MapProps = {
   defaultData: DefaultData;
   baselayersState: BaselayersState;
-  onBaselayerChange: (
-    id: string,
-    context: 'layerMenu' | 'goBack' | 'goForward',
-    flipped: boolean | undefined,
-    mergeSearchSelection?: (newActiveBaselayer: InternalBaselayer) => void
-  ) => void;
-  optimisticBaselayerId: string | undefined;
-  isPending: boolean;
-  disableGoBack: boolean;
-  disableGoForward: boolean;
-  goBack: () => void;
-  goForward: () => void;
+  dispatchBaselayersChange: React.ActionDispatch<[BaselayersAction]>;
   sourceGroups?: SourceGroup[];
   activeSourceGroupIds: string[];
   onSelectedSourceGroupsChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -69,13 +58,7 @@ export type MapProps = {
 export function OpenLayersMap({
   defaultData,
   baselayersState,
-  onBaselayerChange,
-  optimisticBaselayerId,
-  isPending,
-  disableGoBack,
-  disableGoForward,
-  goBack,
-  goForward,
+  dispatchBaselayersChange,
   sourceGroups = [],
   onSelectedSourceGroupsChange,
   activeSourceGroupIds,
@@ -107,6 +90,21 @@ export function OpenLayersMap({
   const { activeBaselayer } = baselayersState;
 
   const { getOrCreateLayer } = useLayerRegistry();
+
+  const {
+    changeBaselayer,
+    goBack,
+    goForward,
+    optimisticBaselayerId,
+    isPending,
+    disableGoBack,
+    disableGoForward,
+  } = useBaselayerChange(
+    baselayersState,
+    dispatchBaselayersChange,
+    flipTiles,
+    setFlipTiles
+  );
 
   /**
    * Create the map with a scale control, a layer for the "add box" functionality
@@ -395,7 +393,7 @@ export function OpenLayersMap({
       />
       <LayerSelector
         defaultData={defaultData}
-        onBaselayerChange={onBaselayerChange}
+        onBaselayerChange={changeBaselayer}
         selectedBaselayerId={optimisticBaselayerId}
         activeBaselayer={activeBaselayer}
         sourceGroups={sourceGroups}

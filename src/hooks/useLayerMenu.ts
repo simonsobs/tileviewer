@@ -60,7 +60,6 @@ function extractExpandedIds(
 function buildInitialState(defaultData: DefaultData): LayerMenuState {
   const { defaultMenuState, defaultMapGroupId, defaultMapId, defaultBandId } =
     defaultData;
-  console.log(defaultMenuState);
 
   const mapGroups = defaultMenuState.map(
     (mapGroup: MapGroup): MapGroupMenuState => {

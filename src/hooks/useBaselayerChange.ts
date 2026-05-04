@@ -1,7 +1,7 @@
 import { useOptimistic, useState, useTransition, useCallback } from 'react';
 import { BaselayersState, InternalBaselayer } from '../types/layers';
 import {
-  Action,
+  BaselayersAction,
   assertInternalBaselayer,
   CHANGE_BASELAYER,
 } from '../reducers/baselayersReducer';
@@ -10,7 +10,7 @@ import { fetchLayer, getHistogramData } from '../utils/fetchUtils';
 
 export function useBaselayerChange(
   baselayersState: BaselayersState,
-  dispatchBaselayersChange: React.ActionDispatch<[action: Action]>,
+  dispatchBaselayersChange: React.ActionDispatch<[action: BaselayersAction]>,
   flipTiles: boolean,
   setFlipTiles: (v: boolean) => void
 ) {
@@ -42,18 +42,18 @@ export function useBaselayerChange(
         setBackHistoryStack((prev) => prev.slice(0, -1));
         setForwardHistoryStack((prev) => [
           ...prev,
-          { id: String(selectedBaselayerId), flipped: flipTiles },
+          { id: String(optimisticBaselayerId), flipped: flipTiles },
         ]);
       } else if (context === 'goForward') {
         setBackHistoryStack((prev) => [
           ...prev,
-          { id: String(selectedBaselayerId), flipped: flipTiles },
+          { id: String(optimisticBaselayerId), flipped: flipTiles },
         ]);
         setForwardHistoryStack((prev) => prev.slice(0, -1));
       } else {
         setBackHistoryStack((prev) => [
           ...prev,
-          { id: String(selectedBaselayerId), flipped: flipTiles },
+          { id: String(optimisticBaselayerId), flipped: flipTiles },
         ]);
         setForwardHistoryStack([]);
       }

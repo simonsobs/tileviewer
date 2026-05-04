@@ -20,7 +20,6 @@ import {
   SET_BASELAYERS_STATE,
 } from './reducers/baselayersReducer';
 import { useQuery } from './hooks/useQuery';
-import { useBaselayerChange } from './hooks/useBaselayerChange';
 import { OpenLayersMap } from './components/OpenLayersMap';
 import { Login } from './components/Login';
 import { LoadingOverlay } from './components/LoadingOverlay';
@@ -231,21 +230,6 @@ function App() {
     [baselayersState.activeBaselayer]
   );
 
-  const {
-    changeBaselayer,
-    goBack,
-    goForward,
-    optimisticBaselayerId,
-    isPending,
-    disableGoBack,
-    disableGoForward,
-  } = useBaselayerChange(
-    baselayersState,
-    dispatchBaselayersChange,
-    flipTiles,
-    setFlipTiles
-  );
-
   const { activeBaselayer, internalBaselayers, histogramData } =
     baselayersState;
 
@@ -262,13 +246,7 @@ function App() {
           <OpenLayersMap
             defaultData={defaultData}
             baselayersState={baselayersState}
-            onBaselayerChange={changeBaselayer}
-            optimisticBaselayerId={optimisticBaselayerId}
-            isPending={isPending}
-            disableGoBack={disableGoBack}
-            disableGoForward={disableGoForward}
-            goBack={goBack}
-            goForward={goForward}
+            dispatchBaselayersChange={dispatchBaselayersChange}
             sourceGroups={sourceGroups}
             activeSourceGroupIds={activeSourceGroupIds}
             onSelectedSourceGroupsChange={onSelectedSourceGroupsChange}
