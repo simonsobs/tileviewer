@@ -6,57 +6,49 @@ import {
   useRef,
   useState,
 } from 'react';
-import { SourceGroup } from '../types/sources';
 import { LayersIcon } from './icons/LayersIcon';
 import './styles/layer-selector.css';
-import { MapProps } from './OpenLayersMap';
-import {
-  BaselayerHistoryNavigation,
-  BaselayerHistoryNavigationProps,
-} from './BaselayerHistoryNavigation';
+import { BaselayerHistoryNavigation } from './BaselayerHistoryNavigation';
 import { LockClosedIcon } from './icons/LockClosedIcon';
 import { LockOpenIcon } from './icons/LockOpenIcon';
 import { getCatalogMarkerColor } from '../utils/layerUtils';
 import { useLayerMenu } from '../hooks/useLayerMenu';
 import { InternalBaselayersTree } from './InternalBaselayersTree';
-import { ExternalBaselayer, InternalBaselayer } from '../types/layers';
+import {
+  DefaultData,
+  ExternalBaselayer,
+  InternalBaselayer,
+} from '../types/layers';
 import { fetchFilteredMenu } from '../utils/fetchUtils';
 import ExternalBaselayersSection from './ExternalBaselayersSection';
+import { OverlayData } from '../hooks/useOverlayData';
+import { BaselayerChangeHook } from '../hooks/useBaselayerChange';
 
 export interface LayerSelectorProps
-  extends Omit<
-    MapProps & BaselayerHistoryNavigationProps,
-    | 'baselayersState'
-    | 'optimisticBaselayerId'
-    | 'flipTiles'
-    | 'setFlipTiles'
-    | 'submapData'
-    | 'isPending'
-    | 'setActiveBoxIds'
-    | 'dispatchBaselayersChange'
-  > {
+  extends Omit<OverlayData, 'setActiveBoxIds'> {
+  defaultData: DefaultData;
   selectedBaselayerId?: string;
   activeBaselayer?: InternalBaselayer | ExternalBaselayer;
-  sourceGroups: SourceGroup[];
   isFlipped: boolean;
-  onBaselayerChange: (
-    id: string,
-    context: 'layerMenu' | 'goBack' | 'goForward',
-    flipped: boolean | undefined,
-    mergeSearchSelection?: (newActiveBaselayer: InternalBaselayer) => void
-  ) => void;
+  onBaselayerChange: BaselayerChangeHook['changeBaselayer'];
+  goBack: BaselayerChangeHook['goBack'];
+  goForward: BaselayerChangeHook['goForward'];
+  disableGoBack: BaselayerChangeHook['disableGoBack'];
+  disableGoForward: BaselayerChangeHook['disableGoForward'];
 }
 
 export function LayerSelector({
   defaultData,
   onBaselayerChange,
   selectedBaselayerId,
-  sourceGroups,
+  sourceGroups = [],
   onSelectedSourceGroupsChange,
   activeSourceGroupIds,
-  highlightBoxes,
+  // areSourceGroupsLoading,
+  highlightBoxes = [],
   activeBoxIds,
   onSelectedHighlightBoxChange,
+  // areHighlightBoxesLoading,
   isFlipped,
   disableGoBack,
   disableGoForward,
@@ -68,6 +60,7 @@ export function LayerSelector({
   const previousLockMenuHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
   const [tempSearchText, setTempSearchText] = useState('');
   const [searchText, setSearchText] = useState('');
+
   const {
     state,
     expandGroup,
@@ -76,6 +69,7 @@ export function LayerSelector({
     setSearchState,
     mergeSearchSelection,
   } = useLayerMenu(defaultData);
+
   useEffect(() => {
     if (previousLockMenuHandlerRef.current) {
       document.removeEventListener(
@@ -196,10 +190,9 @@ export function LayerSelector({
     sourceGroup.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const filteredHighlightBoxes =
-    highlightBoxes?.filter((box) =>
-      box.name.toLowerCase().includes(searchText.toLowerCase())
-    ) ?? [];
+  const filteredHighlightBoxes = highlightBoxes.filter((box) =>
+    box.name.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   return (
     <>
@@ -274,6 +267,7 @@ export function LayerSelector({
               markMatchingSearchText={markMatchingSearchText}
             />
           </fieldset>
+          {/** Only render this section if source groups are returned by server */}
           {sourceGroups.length ? (
             <fieldset>
               <legend>Source catalogs</legend>
@@ -311,7 +305,8 @@ export function LayerSelector({
               )}
             </fieldset>
           ) : null}
-          {highlightBoxes && highlightBoxes.length ? (
+          {/** Only render this section if highlight boxes are returned by server */}
+          {highlightBoxes.length ? (
             <fieldset>
               <legend>Highlight regions</legend>
               {filteredHighlightBoxes.length ? (

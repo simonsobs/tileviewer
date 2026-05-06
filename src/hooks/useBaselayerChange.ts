@@ -8,12 +8,30 @@ import {
 import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
 import { fetchLayer, getHistogramData } from '../utils/fetchUtils';
 
+type BaselayerNavigation = {
+  goBack: () => void;
+  goForward: () => void;
+  disableGoBack: boolean;
+  disableGoForward: boolean;
+};
+
+export type BaselayerChangeHook = BaselayerNavigation & {
+  changeBaselayer: (
+    selectedBaselayerId: string,
+    context: 'layerMenu' | 'goBack' | 'goForward',
+    flipped: boolean | undefined,
+    mergeSearchSelection?: (newActiveBaselayer: InternalBaselayer) => void
+  ) => void;
+  optimisticBaselayerId: string | undefined;
+  isPending: boolean;
+};
+
 export function useBaselayerChange(
   baselayersState: BaselayersState,
   dispatchBaselayersChange: React.ActionDispatch<[action: BaselayersAction]>,
   flipTiles: boolean,
   setFlipTiles: (v: boolean) => void
-) {
+): BaselayerChangeHook {
   const { activeBaselayer, internalBaselayers } = baselayersState;
 
   const [backHistoryStack, setBackHistoryStack] = useState<

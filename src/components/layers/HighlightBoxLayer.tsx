@@ -8,12 +8,13 @@ import { MenuIcon } from '../icons/MenuIcon';
 import { MapProps } from '../OpenLayersMap';
 import { BoxMenu } from '../BoxMenu';
 import { transformBoxCoords, isBoxSynced } from '../../utils/layerUtils';
+import { HighlightBoxData } from '../../hooks/useOverlayData';
 
-type HightlightBoxLayerProps = {
-  highlightBoxes: MapProps['highlightBoxes'];
-  activeBoxIds: MapProps['activeBoxIds'];
+type HightlightBoxLayerProps = Omit<
+  HighlightBoxData,
+  'areHighlightBoxesLoading' | 'onSelectedHighlightBoxChange'
+> & {
   mapRef: React.RefObject<Map | null>;
-  setActiveBoxIds: MapProps['setActiveBoxIds'];
   submapData: MapProps['submapData'];
   flipped: boolean;
 };

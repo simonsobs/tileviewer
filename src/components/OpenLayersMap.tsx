@@ -1,4 +1,4 @@
-import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Map, View, Feature, MapBrowserEvent } from 'ol';
 import { Overlay } from 'ol';
 import ScaleLine from 'ol/control/ScaleLine.js';
@@ -8,8 +8,7 @@ import { Point } from 'ol/geom';
 import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
 import { BaselayersState, DefaultData } from '../types/layers';
-import { Box, SubmapData } from '../types/submaps';
-import { SourceGroup } from '../types/sources';
+import { SubmapData } from '../types/submaps';
 import {
   DEFAULT_INTERNAL_MAP_SETTINGS,
   SERVICE_URL,
@@ -38,37 +37,22 @@ import { LoadingOverlay } from './LoadingOverlay';
 import { useTileLoading } from '../hooks/useTileLoading';
 import { useLayerRegistry } from '../hooks/useLayerRegistry';
 import { useBaselayerChange } from '../hooks/useBaselayerChange';
+import { useOverlayData } from '../hooks/useOverlayData';
 
 export type MapProps = {
+  isAuthenticated: boolean;
   defaultData: DefaultData;
   baselayersState: BaselayersState;
   dispatchBaselayersChange: React.ActionDispatch<[BaselayersAction]>;
-  sourceGroups?: SourceGroup[];
-  activeSourceGroupIds: string[];
-  onSelectedSourceGroupsChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  highlightBoxes: Box[] | undefined;
-  activeBoxIds: number[];
-  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
-  onSelectedHighlightBoxChange: (e: ChangeEvent<HTMLInputElement>) => void;
   submapData?: SubmapData;
-  flipTiles: boolean;
-  setFlipTiles: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export function OpenLayersMap({
+  isAuthenticated,
   defaultData,
   baselayersState,
   dispatchBaselayersChange,
-  sourceGroups = [],
-  onSelectedSourceGroupsChange,
-  activeSourceGroupIds,
-  highlightBoxes,
-  activeBoxIds,
-  setActiveBoxIds,
-  onSelectedHighlightBoxChange,
   submapData,
-  flipTiles,
-  setFlipTiles,
 }: MapProps) {
   const mapRef = useRef<Map | null>(null);
   const drawBoxRef = useRef<VectorLayer | null>(null);
@@ -84,6 +68,7 @@ export function OpenLayersMap({
   const [isDrawing, setIsDrawing] = useState(false);
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
   const [isMapInitialized, setIsMapInitialized] = useState(false);
+  const [flipTiles, setFlipTiles] = useState(true);
 
   const isLoadingTiles = useTileLoading(mapRef);
 
@@ -105,6 +90,18 @@ export function OpenLayersMap({
     flipTiles,
     setFlipTiles
   );
+
+  const {
+    sourceGroups,
+    activeSourceGroupIds,
+    areSourceGroupsLoading,
+    onSelectedSourceGroupsChange,
+    highlightBoxes,
+    activeBoxIds,
+    areHighlightBoxesLoading,
+    setActiveBoxIds,
+    onSelectedHighlightBoxChange,
+  } = useOverlayData(isAuthenticated);
 
   /**
    * Create the map with a scale control, a layer for the "add box" functionality
@@ -399,9 +396,11 @@ export function OpenLayersMap({
         sourceGroups={sourceGroups}
         activeSourceGroupIds={activeSourceGroupIds}
         onSelectedSourceGroupsChange={onSelectedSourceGroupsChange}
+        areSourceGroupsLoading={areSourceGroupsLoading}
         highlightBoxes={highlightBoxes}
         activeBoxIds={activeBoxIds}
         onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
+        areHighlightBoxesLoading={areHighlightBoxesLoading}
         isFlipped={flipTiles}
         disableGoBack={disableGoBack}
         disableGoForward={disableGoForward}

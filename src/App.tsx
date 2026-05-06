@@ -1,14 +1,7 @@
-import { useCallback, useMemo, useState, useReducer, ChangeEvent } from 'react';
+import { useCallback, useMemo, useState, useReducer } from 'react';
 import { DefaultData } from './types/layers';
-import { SourceGroup } from './types/sources';
-import { Box } from './types/submaps';
 import { ColorMapControls } from './components/ColorMapControls';
-import {
-  fetchBoxes,
-  fetchInitialState,
-  fetchSources,
-  getHistogramData,
-} from './utils/fetchUtils';
+import { fetchInitialState, getHistogramData } from './utils/fetchUtils';
 import {
   assertInternalBaselayer,
   baselayersReducer,
@@ -33,17 +26,13 @@ function App() {
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  const [flipTiles, setFlipTiles] = useState(true);
-
-  /** query the map groups to use as the baselayers of the map */
-  const { data: defaultData, isLoading: areMapGroupsLoading } = useQuery<
+  /** Fetch the default state to use as the initial baselayer and layer menu  hierarchy */
+  const { data: defaultData, isLoading: isInitializing } = useQuery<
     DefaultData | undefined
   >({
     initialData: undefined,
     queryKey: [isAuthenticated],
     queryFn: async () => {
-      // Fetch the maps and the map metadata in order to get the list of bands used as
-      // map baselayers
       const {
         defaultMenuState,
         defaultLayer,
@@ -53,7 +42,7 @@ function App() {
       } = await fetchInitialState();
 
       if (!defaultLayer) {
-        // If we end up with no maps, SET_BASELAYERS_STATE will fall back to an external baselayer as its default initial baselayer
+        // If default state errors or is null, SET_BASELAYERS_STATE will fall back to an external baselayer as its default initial baselayer
         dispatchBaselayersChange({
           type: SET_BASELAYERS_STATE,
           defaultInternalBaselayer: undefined,
@@ -61,7 +50,6 @@ function App() {
         });
       } else {
         // Otherwise, get what will be the default baselayer's histogram data to set in the reducer state
-        // const defaultInitialBaselayer = { ...internalBaselayers[0] };
         const histogramData = await getHistogramData(defaultLayer.layer_id);
 
         // Check if the default baselayer has an undefined vmin or vmax; if so, set the
@@ -70,13 +58,12 @@ function App() {
           defaultLayer.vmin === undefined ||
           defaultLayer.vmax === undefined
         ) {
-          const histogramData = await getHistogramData(defaultLayer.layer_id);
           defaultLayer.vmin = histogramData.vmin;
           defaultLayer.vmax = histogramData.vmax;
         }
 
-        // Set the baselayersState with the internalBaselayers; note that this action will also set the
-        // activeBaselayer to be the first element in internalBaselayers
+        // Set the baselayersState with the default baselayer; note that this action will also set the
+        // activeBaselayer to be the default baselayer
         dispatchBaselayersChange({
           type: SET_BASELAYERS_STATE,
           defaultInternalBaselayer: defaultLayer,
@@ -93,72 +80,6 @@ function App() {
       };
     },
   });
-
-  /** sourceLists are used as FeatureGroups in the map, which can be toggled on/off in the map legend */
-  const { data: sourceGroups, isLoading: areSourceGroupsLoading } = useQuery<
-    SourceGroup[] | undefined
-  >({
-    initialData: undefined,
-    queryKey: [isAuthenticated],
-    queryFn: async () => {
-      // Fetch the sources
-      const sourceGroups = await fetchSources();
-
-      return sourceGroups;
-    },
-  });
-
-  /** highlight boxes allow users to download submaps and to highlight regions of the map */
-  const { data: highlightBoxes, isLoading: areHighlightBoxesLoading } =
-    useQuery<Box[] | undefined>({
-      initialData: undefined,
-      queryKey: [isAuthenticated],
-      queryFn: async () => {
-        // Fetch the highlight boxes
-        const boxes = await fetchBoxes();
-
-        return boxes;
-      },
-    });
-
-  /** tracks highlight boxes that are "checked" and visible on the map  */
-  const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
-
-  const [activeSourceGroupIds, setActiveSourceGroupIds] = useState<string[]>(
-    []
-  );
-
-  const onSelectedSourceGroupsChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      if (!sourceGroups) return;
-      if (e.target.checked) {
-        setActiveSourceGroupIds((prevState) =>
-          prevState.concat(e.target.value)
-        );
-      } else {
-        setActiveSourceGroupIds((prevState) =>
-          prevState.filter((id) => id !== e.target.value)
-        );
-      }
-    },
-    [sourceGroups]
-  );
-
-  const onSelectedHighlightBoxChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      if (!highlightBoxes) return;
-      if (e.target.checked) {
-        setActiveBoxIds((prevState) =>
-          prevState.concat(Number(e.target.value))
-        );
-      } else {
-        setActiveBoxIds((prevState) =>
-          prevState.filter((id) => id !== Number(e.target.value))
-        );
-      }
-    },
-    [highlightBoxes]
-  );
 
   const onCmapValuesChange = useCallback(
     (values: number[]) => {
@@ -247,16 +168,8 @@ function App() {
             defaultData={defaultData}
             baselayersState={baselayersState}
             dispatchBaselayersChange={dispatchBaselayersChange}
-            sourceGroups={sourceGroups}
-            activeSourceGroupIds={activeSourceGroupIds}
-            onSelectedSourceGroupsChange={onSelectedSourceGroupsChange}
-            highlightBoxes={highlightBoxes}
-            activeBoxIds={activeBoxIds}
-            setActiveBoxIds={setActiveBoxIds}
-            onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
             submapData={submapData}
-            flipTiles={flipTiles}
-            setFlipTiles={setFlipTiles}
+            isAuthenticated={isAuthenticated}
           />
         )}
       {isAuthenticated !== null &&
@@ -280,13 +193,7 @@ function App() {
             histogramData={histogramData}
           />
         )}
-      <LoadingOverlay
-        isLoading={
-          areMapGroupsLoading ||
-          areSourceGroupsLoading ||
-          areHighlightBoxesLoading
-        }
-      />
+      <LoadingOverlay isLoading={isInitializing} />
     </>
   );
 }
