@@ -1,14 +1,10 @@
-import { useCallback, useMemo, useState, useReducer } from 'react';
+import { useMemo, useState, useReducer } from 'react';
 import { DefaultData } from './types/layers';
 import { ColorMapControls } from './components/ColorMapControls';
 import { fetchInitialState, getHistogramData } from './utils/fetchUtils';
 import {
   assertInternalBaselayer,
   baselayersReducer,
-  CHANGE_CMAP_TYPE,
-  CHANGE_CMAP_VALUES,
-  CHANGE_LOG_SCALE,
-  CHANGE_ABSOLUTE_VALUE,
   initialBaselayersState,
   SET_BASELAYERS_STATE,
 } from './reducers/baselayersReducer';
@@ -81,33 +77,6 @@ function App() {
     },
   });
 
-  const onCmapValuesChange = useCallback(
-    (values: number[]) => {
-      if (baselayersState.activeBaselayer) {
-        dispatchBaselayersChange({
-          type: CHANGE_CMAP_VALUES,
-          activeBaselayer: baselayersState.activeBaselayer,
-          vmin: values[0],
-          vmax: values[1],
-        });
-      }
-    },
-    [baselayersState.activeBaselayer]
-  );
-
-  const onCmapChange = useCallback(
-    (cmap: string) => {
-      if (baselayersState.activeBaselayer) {
-        dispatchBaselayersChange({
-          type: CHANGE_CMAP_TYPE,
-          activeBaselayer: baselayersState.activeBaselayer,
-          cmap,
-        });
-      }
-    },
-    [baselayersState.activeBaselayer]
-  );
-
   /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
     composed from state at this level, we must construct it here and pass it down. */
   const submapData = useMemo(() => {
@@ -125,34 +94,7 @@ function App() {
     }
   }, [baselayersState.activeBaselayer]);
 
-  const onLogScaleChange = useCallback(
-    (checked: boolean) => {
-      if (baselayersState.activeBaselayer) {
-        dispatchBaselayersChange({
-          type: CHANGE_LOG_SCALE,
-          activeBaselayer: baselayersState.activeBaselayer,
-          isLogScale: checked,
-        });
-      }
-    },
-    [baselayersState.activeBaselayer]
-  );
-
-  const onAbsoluteValueChange = useCallback(
-    (checked: boolean) => {
-      if (baselayersState.activeBaselayer) {
-        dispatchBaselayersChange({
-          type: CHANGE_ABSOLUTE_VALUE,
-          activeBaselayer: baselayersState.activeBaselayer,
-          isAbsoluteValue: checked,
-        });
-      }
-    },
-    [baselayersState.activeBaselayer]
-  );
-
-  const { activeBaselayer, internalBaselayers, histogramData } =
-    baselayersState;
+  const { activeBaselayer, histogramData } = baselayersState;
 
   return (
     <>
@@ -160,36 +102,21 @@ function App() {
         isAuthenticated={isAuthenticated}
         setIsAuthenticated={setIsAuthenticated}
       />
-      {isAuthenticated !== null &&
-        activeBaselayer &&
-        internalBaselayers &&
-        defaultData && (
-          <OpenLayersMap
-            defaultData={defaultData}
-            baselayersState={baselayersState}
-            dispatchBaselayersChange={dispatchBaselayersChange}
-            submapData={submapData}
-            isAuthenticated={isAuthenticated}
-          />
-        )}
+      {isAuthenticated !== null && activeBaselayer && defaultData && (
+        <OpenLayersMap
+          defaultData={defaultData}
+          baselayersState={baselayersState}
+          dispatchBaselayersChange={dispatchBaselayersChange}
+          submapData={submapData}
+          isAuthenticated={isAuthenticated}
+        />
+      )}
       {isAuthenticated !== null &&
         assertInternalBaselayer(activeBaselayer) &&
-        activeBaselayer.vmin !== undefined &&
-        activeBaselayer.vmax !== undefined &&
         histogramData && (
           <ColorMapControls
-            values={[activeBaselayer.vmin, activeBaselayer.vmax]}
-            cmapRange={histogramData.vmax - histogramData.vmin}
-            onCmapValuesChange={onCmapValuesChange}
-            cmap={activeBaselayer.cmap}
-            onCmapChange={onCmapChange}
-            activeBaselayerId={activeBaselayer.layer_id}
-            units={activeBaselayer.units}
-            quantity={activeBaselayer.quantity}
-            isLogScale={activeBaselayer.isLogScale}
-            isAbsoluteValue={activeBaselayer.isAbsoluteValue}
-            onLogScaleChange={onLogScaleChange}
-            onAbsoluteValueChange={onAbsoluteValueChange}
+            activeBaselayer={activeBaselayer}
+            dispatchBaselayersChange={dispatchBaselayersChange}
             histogramData={histogramData}
           />
         )}

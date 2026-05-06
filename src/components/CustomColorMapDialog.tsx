@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ColorMapControlsProps } from './ColorMapControls';
+import { ColorMapConfigChangeAction } from './ColorMapControls';
 import './styles/color-map-dialog.css';
 import { Dialog } from './Dialog';
 import { safeLog } from '../utils/numberUtils';
+import { InternalBaselayer } from '../types/layers';
+import {
+  CHANGE_LOG_SCALE,
+  CHANGE_ABSOLUTE_VALUE,
+  CHANGE_CMAP_TYPE,
+  CHANGE_CMAP_VALUES,
+} from '../reducers/baselayersReducer';
 
 /**
  * TODOS/QUESTIONS:
@@ -10,7 +17,12 @@ import { safeLog } from '../utils/numberUtils';
  * 2. Should we also persist a user's parameters?
  */
 
-interface Props extends Omit<ColorMapControlsProps, 'activeLayerId'> {
+interface Props
+  extends Pick<
+    InternalBaselayer,
+    'cmap' | 'units' | 'isLogScale' | 'isAbsoluteValue'
+  > {
+  values: [number, number];
   /** Boolean to control dialog display/hide status */
   isOpen: boolean;
   /** Handler to set modal to be closed */
@@ -19,6 +31,7 @@ interface Props extends Omit<ColorMapControlsProps, 'activeLayerId'> {
   setCmapOptions: (options: string[]) => void;
   /** The list of color map options used to determine whether or not to append a new color map option */
   cmapOptions: string[];
+  onColorMapConfigChange: (action: ColorMapConfigChangeAction) => void;
 }
 
 export function CustomColorMapDialog({
@@ -26,15 +39,12 @@ export function CustomColorMapDialog({
   closeModal,
   values,
   cmap,
-  onCmapChange,
-  onCmapValuesChange,
   cmapOptions,
   setCmapOptions,
   units,
   isLogScale,
-  onLogScaleChange,
   isAbsoluteValue,
-  onAbsoluteValueChange,
+  onColorMapConfigChange,
 }: Props) {
   // Create temporary values to maintain component state without setting the global state, which is only done during "Update Map"
   const [tempCmap, setTempCmap] = useState(cmap);
@@ -71,26 +81,42 @@ export function CustomColorMapDialog({
     // For each input, only fire the update handler if the value changed
 
     if (tempCmap !== cmap) {
-      onCmapChange(tempCmap);
+      onColorMapConfigChange({ type: CHANGE_CMAP_TYPE, cmap: tempCmap });
     }
 
     if (
       Number(tempValues[0]) !== values[0] ||
       Number(tempValues[1]) !== values[1]
     ) {
-      onCmapValuesChange(
-        tempValues.map((v) =>
-          v ? (isLogScale ? safeLog(Number(v)) : Number(v)) : 0
-        )
-      );
+      const safeVmin = tempValues[0]
+        ? isLogScale
+          ? safeLog(Number(tempValues[0]))
+          : Number(tempValues[0])
+        : 0;
+      const safeVmax = tempValues[1]
+        ? isLogScale
+          ? safeLog(Number(tempValues[1]))
+          : Number(tempValues[1])
+        : 0;
+      onColorMapConfigChange({
+        type: CHANGE_CMAP_VALUES,
+        vmin: safeVmin,
+        vmax: safeVmax,
+      });
     }
 
     if (tempIsLogScale !== isLogScale) {
-      onLogScaleChange(tempIsLogScale);
+      onColorMapConfigChange({
+        type: CHANGE_LOG_SCALE,
+        isLogScale: tempIsLogScale,
+      });
     }
 
     if (tempIsAbsValue !== isAbsoluteValue) {
-      onAbsoluteValueChange(tempIsAbsValue);
+      onColorMapConfigChange({
+        type: CHANGE_ABSOLUTE_VALUE,
+        isAbsoluteValue: tempIsAbsValue,
+      });
     }
 
     // Check if tempCmap exists in cmapOptions and concat as a new option if not
@@ -99,9 +125,8 @@ export function CustomColorMapDialog({
     }
     closeModal();
   }, [
-    onCmapChange,
+    onColorMapConfigChange,
     tempCmap,
-    onCmapValuesChange,
     tempValues,
     closeModal,
     cmapOptions,
@@ -110,10 +135,8 @@ export function CustomColorMapDialog({
     tempIsLogScale,
     cmap,
     values,
-    onLogScaleChange,
     tempIsAbsValue,
     isAbsoluteValue,
-    onAbsoluteValueChange,
   ]);
 
   return (

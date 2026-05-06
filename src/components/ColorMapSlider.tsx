@@ -5,26 +5,25 @@ import {
   formatNumberForDisplay,
   safeLog,
 } from '../utils/numberUtils';
-import { ColorMapControlsProps } from './ColorMapControls';
 import './styles/color-map-controls.css';
+import { InternalBaselayer } from '../types/layers';
 
 let THUMB_KEY_COUNTER = 1;
 
-interface ColorMapSliderProps
-  extends Omit<
-    ColorMapControlsProps,
-    | 'activeBaselayerId'
-    | 'cmap'
-    | 'onCmapChange'
-    | 'onLogScaleChange'
-    | 'onAbsoluteValueChange'
-    | 'histogramData'
+export interface ColorMapSliderProps
+  extends Pick<
+    InternalBaselayer,
+    'isLogScale' | 'isAbsoluteValue' | 'units' | 'quantity'
   > {
+  vmin: number;
+  vmax: number;
   /** The URL to the color map image */
   cmapImage?: string;
+  cmapRange: number;
   /** The min, max, and step values for the range slider, determined by histogram's edges and
       the user's min and max setting */
   sliderAttributes: { min: number; max: number; step: number };
+  onCmapValuesChange: (vals: number[]) => void;
 }
 
 const regexToFindPercents = /\b\d+(\.\d+)?%/g;
@@ -36,7 +35,8 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
     units,
     sliderAttributes,
     quantity,
-    values,
+    vmin,
+    vmax,
     cmapRange,
     isLogScale,
     isAbsoluteValue,
@@ -45,7 +45,7 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
    * Create temporary values for range slider min/max to maintain component state without setting the global state;
    * the RangeSlider has an onFinalChange handler that will set the global state once a user releases the slider handle
    */
-  const [tempValues, setTempValues] = useState([values[0], values[1]]);
+  const [tempValues, setTempValues] = useState([vmin, vmax]);
   const prevKeyUpHandler = useRef<(e: KeyboardEvent) => void>(null);
   const prevKeyDownHandler = useRef<(e: KeyboardEvent) => void>(null);
 
@@ -89,23 +89,23 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
     vminRef.current?.setCustomValidity('');
     vmaxRef.current?.setCustomValidity('');
 
-    const vmin = parseFloat(vminRef.current?.value ?? '');
-    const vmax = parseFloat(vmaxRef.current?.value ?? '');
+    const vminToValidate = parseFloat(vminRef.current?.value ?? '');
+    const vmaxToValidate = parseFloat(vmaxRef.current?.value ?? '');
 
-    if (!Number.isNaN(vmin) && !Number.isNaN(vmax)) {
-      if (vmin >= vmax) {
+    if (!Number.isNaN(vminToValidate) && !Number.isNaN(vmaxToValidate)) {
+      if (vminToValidate >= vmaxToValidate) {
         const msg = 'vmax must be greater than vmin';
         vmaxRef.current?.setCustomValidity(msg);
       }
 
       // Ensure vmin and vmax are valid for isLogScale
       if (isLogScale) {
-        if (vmin <= 0) {
+        if (vminToValidate <= 0) {
           const msg = 'vmin must be greater than 0';
           vminRef.current?.setCustomValidity(msg);
         }
 
-        if (vmax <= 0) {
+        if (vmaxToValidate <= 0) {
           const msg = 'vmax must be greater than 0';
           vmaxRef.current?.setCustomValidity(msg);
         }
@@ -114,12 +114,12 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
       // isLogScale validation is generally the same as isAbsValue
       // except that 0 is valid if only isAbsValue is true
       if (!isLogScale && isAbsoluteValue) {
-        if (vmin < 0) {
+        if (vminToValidate < 0) {
           const msg = 'vmin must be greater than or equal to 0';
           vminRef.current?.setCustomValidity(msg);
         }
 
-        if (vmax < 0) {
+        if (vmaxToValidate < 0) {
           const msg = 'vmax must be greater than or equal to 0';
           vmaxRef.current?.setCustomValidity(msg);
         }
@@ -136,13 +136,13 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
       const vmaxStr = String(formData.get('vmax'));
 
       if (vminStr.length && vmaxStr.length) {
-        const vmin = parseFloat(vminStr);
-        const vmax = parseFloat(vmaxStr);
+        const vminFloat = parseFloat(vminStr);
+        const vmaxFloat = parseFloat(vmaxStr);
 
         if (isLogScale) {
-          onCmapValuesChange([safeLog(vmin), safeLog(vmax)]);
+          onCmapValuesChange([safeLog(vminFloat), safeLog(vmaxFloat)]);
         } else {
-          onCmapValuesChange([vmin, vmax]);
+          onCmapValuesChange([vminFloat, vmaxFloat]);
         }
         setShowVminVmaxInputs(false);
         (e.target as HTMLFormElement).reset();
@@ -240,8 +240,8 @@ export function ColorMapSlider(props: ColorMapSliderProps) {
 
   /** Sync the temp values  */
   useEffect(() => {
-    setTempValues([values[0], values[1]]);
-  }, [values]);
+    setTempValues([vmin, vmax]);
+  }, [vmin, vmax]);
 
   /**
    * The getTrackBackground react-range function returns a string with a CSS gradient that

@@ -32,25 +32,25 @@ export const CHANGE_CMAP_VALUES = 'CHANGE_CMAP_VALUES';
 export const CHANGE_BASELAYER = 'CHANGE_BASELAYER';
 export const SET_BASELAYERS_STATE = 'SET_BASELAYERS_STATE';
 
-type ChangeCmapAction = {
+export type ChangeCmapAction = {
   type: typeof CHANGE_CMAP_TYPE;
   activeBaselayer: InternalBaselayer | ExternalBaselayer;
   cmap: string;
 };
 
-type ChangeLogScaleAction = {
+export type ChangeLogScaleAction = {
   type: typeof CHANGE_LOG_SCALE;
   activeBaselayer: InternalBaselayer | ExternalBaselayer;
   isLogScale: boolean;
 };
 
-type ChangeAbsoluteValueAction = {
+export type ChangeAbsoluteValueAction = {
   type: typeof CHANGE_ABSOLUTE_VALUE;
   activeBaselayer: InternalBaselayer | ExternalBaselayer;
   isAbsoluteValue: boolean;
 };
 
-type ChangeCmapValuesAction = {
+export type ChangeCmapValuesAction = {
   type: typeof CHANGE_CMAP_VALUES;
   activeBaselayer: InternalBaselayer | ExternalBaselayer;
   vmin: number;
