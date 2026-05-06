@@ -1,19 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { NewBoxData } from '../../types/submaps';
+import { NewBoxData, SubmapData } from '../../types/submaps';
 import Draw, { createBox } from 'ol/interaction/Draw.js';
 import { BoxMenu } from '../BoxMenu';
 import VectorLayer from 'ol/layer/Vector';
 import { Map } from 'ol';
-import { MapProps } from '../OpenLayersMap';
 import { drawStyle } from '../../utils/layerUtils';
 
-type AddHightlightBoxLayerProps = {
+export type AddHightlightBoxLayerProps = {
   mapRef: React.RefObject<Map | null>;
   drawBoxRef: React.RefObject<VectorLayer | null>;
   isDrawing: boolean;
   setIsDrawing: (drawing: boolean) => void;
   setIsNewBoxDrawn: (drawn: boolean) => void;
-  submapData: MapProps['submapData'];
+  submapData?: SubmapData;
   flipped: boolean;
 };
 

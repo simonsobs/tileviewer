@@ -1,11 +1,10 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Box, BoxWithDimensions } from '../../types/submaps';
+import { Box, BoxWithDimensions, SubmapData } from '../../types/submaps';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Feature, Map, MapBrowserEvent, Overlay } from 'ol';
 import Polygon, { fromExtent } from 'ol/geom/Polygon';
 import { MenuIcon } from '../icons/MenuIcon';
-import { MapProps } from '../OpenLayersMap';
 import { BoxMenu } from '../BoxMenu';
 import { transformBoxCoords, isBoxSynced } from '../../utils/layerUtils';
 import { HighlightBoxData } from '../../hooks/useOverlayData';
@@ -15,7 +14,7 @@ type HightlightBoxLayerProps = Omit<
   'areHighlightBoxesLoading' | 'onSelectedHighlightBoxChange'
 > & {
   mapRef: React.RefObject<Map | null>;
-  submapData: MapProps['submapData'];
+  submapData?: SubmapData;
   flipped: boolean;
 };
 

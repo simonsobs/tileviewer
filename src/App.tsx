@@ -1,4 +1,4 @@
-import { useMemo, useState, useReducer } from 'react';
+import { useState, useReducer } from 'react';
 import { DefaultData } from './types/layers';
 import { ColorMapControls } from './components/ColorMapControls';
 import { fetchInitialState, getHistogramData } from './utils/fetchUtils';
@@ -77,23 +77,6 @@ function App() {
     },
   });
 
-  /** Creates an object of data needed by the submap endpoints to download and to add regions. Since it's 
-    composed from state at this level, we must construct it here and pass it down. */
-  const submapData = useMemo(() => {
-    if (assertInternalBaselayer(baselayersState.activeBaselayer)) {
-      const { layer_id, cmap, vmin, vmax, isLogScale, isAbsoluteValue } =
-        baselayersState.activeBaselayer;
-      return {
-        layer_id,
-        vmin,
-        vmax,
-        cmap,
-        isLogScale,
-        isAbsoluteValue,
-      };
-    }
-  }, [baselayersState.activeBaselayer]);
-
   const { activeBaselayer, histogramData } = baselayersState;
 
   return (
@@ -107,7 +90,6 @@ function App() {
           defaultData={defaultData}
           baselayersState={baselayersState}
           dispatchBaselayersChange={dispatchBaselayersChange}
-          submapData={submapData}
           isAuthenticated={isAuthenticated}
         />
       )}

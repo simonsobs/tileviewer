@@ -8,7 +8,6 @@ import { Point } from 'ol/geom';
 import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
 import { BaselayersState, DefaultData } from '../types/layers';
-import { SubmapData } from '../types/submaps';
 import {
   DEFAULT_INTERNAL_MAP_SETTINGS,
   SERVICE_URL,
@@ -16,10 +15,8 @@ import {
 import { CoordinatesDisplay } from './CoordinatesDisplay';
 import { LayerSelector } from './LayerSelector';
 import { CropIcon } from './icons/CropIcon';
-import { HighlightBoxLayer } from './layers/HighlightBoxLayer';
 import { GraticuleLayer } from './layers/GraticuleLayer';
 import { SourcesLayer } from './layers/SourcesLayer';
-import { AddHighlightBoxLayer } from './layers/AddHighlightBoxLayer';
 import {
   generateSearchContent,
   searchOverlayHelper,
@@ -38,13 +35,13 @@ import { useTileLoading } from '../hooks/useTileLoading';
 import { useLayerRegistry } from '../hooks/useLayerRegistry';
 import { useBaselayerChange } from '../hooks/useBaselayerChange';
 import { useOverlayData } from '../hooks/useOverlayData';
+import { BoxLayers } from './layers/BoxLayers';
 
 export type MapProps = {
   isAuthenticated: boolean;
   defaultData: DefaultData;
   baselayersState: BaselayersState;
   dispatchBaselayersChange: React.ActionDispatch<[BaselayersAction]>;
-  submapData?: SubmapData;
 };
 
 export function OpenLayersMap({
@@ -52,7 +49,6 @@ export function OpenLayersMap({
   defaultData,
   baselayersState,
   dispatchBaselayersChange,
-  submapData,
 }: MapProps) {
   const mapRef = useRef<Map | null>(null);
   const drawBoxRef = useRef<VectorLayer | null>(null);
@@ -371,22 +367,17 @@ export function OpenLayersMap({
         mapRef={mapRef}
         flipped={flipTiles}
       />
-      <HighlightBoxLayer
-        highlightBoxes={highlightBoxes}
-        activeBoxIds={activeBoxIds}
-        mapRef={mapRef}
-        setActiveBoxIds={setActiveBoxIds}
-        submapData={submapData}
-        flipped={flipTiles}
-      />
-      <AddHighlightBoxLayer
+      <BoxLayers
         mapRef={mapRef}
         drawBoxRef={drawBoxRef}
         isDrawing={isDrawing}
         setIsDrawing={setIsDrawing}
         setIsNewBoxDrawn={setIsNewBoxDrawn}
-        submapData={submapData}
         flipped={flipTiles}
+        highlightBoxes={highlightBoxes}
+        activeBoxIds={activeBoxIds}
+        setActiveBoxIds={setActiveBoxIds}
+        activeBaselayer={activeBaselayer}
       />
       <LayerSelector
         defaultData={defaultData}

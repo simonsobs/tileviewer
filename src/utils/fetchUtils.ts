@@ -174,7 +174,7 @@ export function downloadSubmap(
     isLogScale,
     isAbsoluteValue,
   } = submapDataWithBounds;
-  const endpoint = `${SERVICE_URL}/maps/${layer_id}/submap/${left}/${right}/${top}/${bottom}/image.${fileExtension}?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}&log_norm=${isLogScale}&abs=${isAbsoluteValue}&flip=${flip}`;
+  const endpoint = `${SERVICE_URL}/layers/${layer_id}/submap/${left}/${right}/${top}/${bottom}/image.${fileExtension}?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}&log_norm=${isLogScale}&abs=${isAbsoluteValue}&flip=${flip}`;
 
   fetch(endpoint, { method: 'GET' })
     .then((response) => {
