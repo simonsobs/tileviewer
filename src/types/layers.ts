@@ -49,11 +49,11 @@ export type LayerResponse = LayerSummary & {
 };
 
 export type DefaultData = {
-  defaultLayer: LayerResponse;
+  defaultLayer: LayerResponse | null;
   defaultMenuState: MapGroup[];
-  defaultMapGroupId: string;
-  defaultMapId: string;
-  defaultBandId: string;
+  defaultMapGroupId: string | null;
+  defaultMapId: string | null;
+  defaultBandId: string | null;
 };
 
 type EnhancedLayerAttributes = {

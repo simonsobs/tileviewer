@@ -103,9 +103,12 @@ function buildInitialState(defaultData: DefaultData): LayerMenuState {
   );
 
   const expandedIds: Record<string, true> = {};
-  expandedIds[defaultMapGroupId] = true;
-  expandedIds[defaultMapId] = true;
-  expandedIds[defaultBandId] = true;
+
+  if (defaultMapGroupId && defaultMapId && defaultBandId) {
+    expandedIds[defaultMapGroupId] = true;
+    expandedIds[defaultMapId] = true;
+    expandedIds[defaultBandId] = true;
+  }
 
   return {
     mapGroups,
