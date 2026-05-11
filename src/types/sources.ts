@@ -1,4 +1,4 @@
-export type SourceGroupResponse = {
+export type SourceGroupSummaryResponse = {
   /** id of the source catalog */
   source_group_id: string;
   /** name of the source group */
@@ -20,9 +20,12 @@ export type Source = {
 
 export type SourceData = Source & { id: string };
 
-export interface SourceGroup extends SourceGroupResponse {
-  /** used to map coloway hex strings to source groups */
-  clientId: number;
+export interface SourceGroupResponse extends SourceGroupSummaryResponse {
   /** the list of sources associated with a source catalog */
   sources: Source[];
+}
+
+export interface SourceGroup extends SourceGroupResponse {
+  /** used to map colorway hex strings to source groups */
+  clientId: number;
 }

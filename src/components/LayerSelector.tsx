@@ -19,7 +19,7 @@ import {
   ExternalBaselayer,
   InternalBaselayer,
 } from '../types/layers';
-import { fetchFilteredMenu } from '../utils/fetchUtils';
+import { mapApi } from '../api/client';
 import ExternalBaselayersSection from './ExternalBaselayersSection';
 import { OverlayData } from '../hooks/useOverlayData';
 import { BaselayerChangeHook } from '../hooks/useBaselayerChange';
@@ -140,7 +140,7 @@ export function LayerSelector({
       const val = String(formData.get('filter_input'));
       if (val.length && val !== searchText) {
         setSearchText(val);
-        const res = await fetchFilteredMenu(val);
+        const res = await mapApi.getFilteredMenu(val);
         setSearchState({
           filtered_layer_menu: res.filtered_layer_menu,
           matched_ids: res.matched_ids,

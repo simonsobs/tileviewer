@@ -16,7 +16,6 @@ import { ColorMapHistogram } from './ColorMapHistogram';
 import { CustomColorMapDialog } from './CustomColorMapDialog';
 import { safeLog } from '../utils/numberUtils';
 import { getAbsoluteHistogramData } from '../utils/histogramUtils';
-import { getCmapImage } from '../utils/fetchUtils';
 import {
   BaselayersAction,
   CHANGE_LOG_SCALE,
@@ -25,6 +24,7 @@ import {
   CHANGE_CMAP_VALUES,
 } from '../reducers/baselayersReducer';
 import { InternalBaselayer } from '../types/layers';
+import { mapApi } from '../api/client';
 
 export type ColorMapControlsProps = {
   activeBaselayer: InternalBaselayer;
@@ -90,7 +90,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
    */
   useEffect(() => {
     async function getImage() {
-      const image = await getCmapImage(cmap);
+      const image = await mapApi.getCmapImage(cmap);
       setCmapImage(image);
     }
     getImage();

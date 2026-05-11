@@ -46,20 +46,22 @@ export type LayerResponse = LayerSummary & {
   vmin: number | 'auto';
   vmax: number | 'auto';
   cmap: string;
-};
-
-export type DefaultData = {
-  defaultLayer: LayerResponse | null;
-  defaultMenuState: MapGroup[];
-  defaultMapGroupId: string | null;
-  defaultMapId: string | null;
-  defaultBandId: string | null;
-};
-
-type EnhancedLayerAttributes = {
   map_group_id: string;
   map_id: string;
   band_id: string;
+};
+
+export type DefaultDataResponse = {
+  layer: LayerResponse | null;
+  default_layer_menu: MapGroup[];
+};
+
+export type DefaultData = {
+  defaultLayer: InternalBaselayer | null;
+  defaultMenuState: MapGroup[];
+};
+
+type EnhancedLayerAttributes = {
   isLogScale: boolean;
   isAbsoluteValue: boolean;
 };

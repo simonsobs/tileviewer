@@ -1,8 +1,8 @@
 import { useState, useCallback, ChangeEvent } from 'react';
 import { SourceGroup } from '../types/sources';
 import { Box } from '../types/submaps';
-import { fetchBoxes, fetchSources } from '../utils/fetchUtils';
 import { useQuery } from './useQuery';
+import { mapApi } from '../api/client';
 
 export type SourceGroupData = {
   sourceGroups: SourceGroup[] | undefined;
@@ -38,7 +38,7 @@ export function useOverlayData(isAuthenticated: boolean | null): OverlayData {
     queryKey: [isAuthenticated],
     queryFn: async () => {
       // Fetch the sources
-      const sourceGroups = await fetchSources();
+      const sourceGroups = await mapApi.getSources();
       return sourceGroups;
     },
   });
@@ -49,7 +49,7 @@ export function useOverlayData(isAuthenticated: boolean | null): OverlayData {
       queryKey: [isAuthenticated],
       queryFn: async () => {
         // Fetch the highlight boxes
-        const boxes = await fetchBoxes();
+        const boxes = await mapApi.getHighlightBoxes();
 
         return boxes;
       },

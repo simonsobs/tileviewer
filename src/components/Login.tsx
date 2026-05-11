@@ -1,7 +1,11 @@
 import { useEffect } from 'react';
 import { LOGIN_URL, LOGOUT_URL } from '../configs/mapSettings';
-import { getCookie } from '../utils/fetchUtils';
 import './styles/login.css';
+
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? match[2] : null;
+}
 
 export function Login({
   isAuthenticated,

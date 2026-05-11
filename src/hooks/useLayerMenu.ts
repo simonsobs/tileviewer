@@ -1,6 +1,6 @@
 import { useReducer, useCallback } from 'react';
 import { layerMenuReducer, LayerMenuState } from '../reducers/layerMenuReducer';
-import { fetchMaps, fetchBands, fetchLayers } from '../utils/fetchUtils';
+import { mapApi } from '../api/client';
 import {
   BandMenuState,
   DefaultData,
@@ -58,24 +58,23 @@ function extractExpandedIds(
 }
 
 function buildInitialState(defaultData: DefaultData): LayerMenuState {
-  const { defaultMenuState, defaultMapGroupId, defaultMapId, defaultBandId } =
-    defaultData;
+  const { defaultMenuState, defaultLayer } = defaultData;
 
   const mapGroups = defaultMenuState.map(
     (mapGroup: MapGroup): MapGroupMenuState => {
-      if (mapGroup.map_group_id === defaultMapGroupId) {
+      if (mapGroup.map_group_id === defaultLayer?.map_group_id) {
         const hydratedMapGroup = {
           ...mapGroup,
           maps: {
             status: 'loaded',
             data: mapGroup.maps.map((map) => {
-              if (map.map_id === defaultMapId) {
+              if (map.map_id === defaultLayer.map_id) {
                 return {
                   ...map,
                   bands: {
                     status: 'loaded',
                     data: map.bands.map((band) => {
-                      if (band.band_id === defaultBandId) {
+                      if (band.band_id === defaultLayer.band_id) {
                         return {
                           ...band,
                           layers: {
@@ -104,10 +103,14 @@ function buildInitialState(defaultData: DefaultData): LayerMenuState {
 
   const expandedIds: Record<string, true> = {};
 
-  if (defaultMapGroupId && defaultMapId && defaultBandId) {
-    expandedIds[defaultMapGroupId] = true;
-    expandedIds[defaultMapId] = true;
-    expandedIds[defaultBandId] = true;
+  if (
+    defaultLayer?.map_group_id &&
+    defaultLayer.map_id &&
+    defaultLayer.band_id
+  ) {
+    expandedIds[defaultLayer.map_group_id] = true;
+    expandedIds[defaultLayer.map_id] = true;
+    expandedIds[defaultLayer.band_id] = true;
   }
 
   return {
@@ -139,7 +142,7 @@ export function useLayerMenu(defaultData: DefaultData) {
 
       dispatch({ type: 'FETCH_MAPS', groupId });
       try {
-        const mapsSummary = await fetchMaps(groupId);
+        const mapsSummary = await mapApi.getMapGroupMaps(groupId);
         const maps: MapMenuState[] = mapsSummary.map((m) => ({
           ...m,
           bands: { status: 'idle' },
@@ -173,7 +176,7 @@ export function useLayerMenu(defaultData: DefaultData) {
       if (!map || map.bands.status !== 'idle') return;
       dispatch({ type: 'FETCH_BANDS', groupId, mapId });
       try {
-        const bandsSummary = await fetchBands(mapId);
+        const bandsSummary = await mapApi.getMapBands(mapId);
         const bands: BandMenuState[] = bandsSummary.map((b) => ({
           ...b,
           layers: { status: 'idle' },
@@ -210,7 +213,7 @@ export function useLayerMenu(defaultData: DefaultData) {
 
       dispatch({ type: 'FETCH_LAYERS', groupId, mapId, bandId });
       try {
-        const layers = await fetchLayers(bandId);
+        const layers = await mapApi.getBandLayers(bandId);
         dispatch({ type: 'LOADED_LAYERS', groupId, mapId, bandId, layers });
       } catch (e) {
         const message =
@@ -243,9 +246,9 @@ export function useLayerMenu(defaultData: DefaultData) {
   const mergeSearchSelection = useCallback(
     async (selectedLayer: InternalBaselayer) => {
       if (state.search !== undefined) {
-        const maps = await fetchMaps(selectedLayer.map_group_id);
-        const bands = await fetchBands(selectedLayer.map_id);
-        const layers = await fetchLayers(selectedLayer.band_id);
+        const maps = await mapApi.getMapGroupMaps(selectedLayer.map_group_id);
+        const bands = await mapApi.getMapBands(selectedLayer.map_id);
+        const layers = await mapApi.getBandLayers(selectedLayer.band_id);
         dispatch({
           type: 'MERGE_SEARCH_SELECTION',
           layer: selectedLayer,

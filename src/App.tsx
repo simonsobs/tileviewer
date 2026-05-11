@@ -1,7 +1,7 @@
 import { useState, useReducer } from 'react';
 import { DefaultData } from './types/layers';
 import { ColorMapControls } from './components/ColorMapControls';
-import { fetchInitialState, getHistogramData } from './utils/fetchUtils';
+import { mapApi } from './api/client';
 import {
   assertInternalBaselayer,
   baselayersReducer,
@@ -29,13 +29,7 @@ function App() {
     initialData: undefined,
     queryKey: [isAuthenticated],
     queryFn: async () => {
-      const {
-        defaultMenuState,
-        defaultLayer,
-        defaultMapGroupId,
-        defaultBandId,
-        defaultMapId,
-      } = await fetchInitialState();
+      const { defaultMenuState, defaultLayer } = await mapApi.getInitialState();
 
       if (!defaultLayer) {
         // If default state errors or is null, SET_BASELAYERS_STATE will fall back to an external baselayer as its default initial baselayer
@@ -46,7 +40,9 @@ function App() {
         });
       } else {
         // Otherwise, get what will be the default baselayer's histogram data to set in the reducer state
-        const histogramData = await getHistogramData(defaultLayer.layer_id);
+        const histogramData = await mapApi.getHistogramData(
+          defaultLayer.layer_id
+        );
 
         // Check if the default baselayer has an undefined vmin or vmax; if so, set the
         // vmin and vmax for the baselayer
@@ -70,9 +66,6 @@ function App() {
       return {
         defaultMenuState,
         defaultLayer,
-        defaultMapId,
-        defaultMapGroupId,
-        defaultBandId,
       };
     },
   });

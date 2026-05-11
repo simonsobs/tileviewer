@@ -6,7 +6,7 @@ import {
   CHANGE_BASELAYER,
 } from '../reducers/baselayersReducer';
 import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
-import { fetchLayer, getHistogramData } from '../utils/fetchUtils';
+import { mapApi } from '../api/client';
 
 type BaselayerNavigation = {
   goBack: () => void;
@@ -89,7 +89,7 @@ export function useBaselayerChange(
             (b) => b.layer_id === selectedBaselayerId
           );
         } else {
-          newActiveBaselayer = await fetchLayer(
+          newActiveBaselayer = await mapApi.getLayer(
             selectedBaselayerId,
             internalBaselayers
           );
@@ -99,7 +99,7 @@ export function useBaselayerChange(
 
         try {
           if (assertInternalBaselayer(newActiveBaselayer)) {
-            const histogramData = await getHistogramData(
+            const histogramData = await mapApi.getHistogramData(
               newActiveBaselayer.layer_id
             );
             dispatchBaselayersChange({
