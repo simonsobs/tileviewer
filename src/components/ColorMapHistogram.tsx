@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { PointArray } from '@svgdotjs/svg.js';
-import { HistogramData } from '../types/maps';
+import { HistogramData } from '../types/histogram';
 import {
   HISTOGRAM_SIZE_X,
   HISTOGRAM_SIZE_Y,

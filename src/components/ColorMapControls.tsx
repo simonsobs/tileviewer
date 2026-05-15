@@ -11,41 +11,46 @@ import {
   STEPS_DIVISOR,
 } from '../configs/cmapControlSettings';
 import { ColorMapSlider } from './ColorMapSlider';
-import { HistogramResponse } from '../types/maps';
+import { HistogramResponse } from '../types/histogram';
 import { ColorMapHistogram } from './ColorMapHistogram';
 import { CustomColorMapDialog } from './CustomColorMapDialog';
 import { safeLog } from '../utils/numberUtils';
 import { getAbsoluteHistogramData } from '../utils/histogramUtils';
-import { getCmapImage } from '../utils/fetchUtils';
+import {
+  BaselayersAction,
+  CHANGE_LOG_SCALE,
+  CHANGE_ABSOLUTE_VALUE,
+  CHANGE_CMAP_TYPE,
+  CHANGE_CMAP_VALUES,
+} from '../reducers/baselayersReducer';
+import { InternalBaselayer } from '../types/layers';
+import { mapApi } from '../api/client';
 
 export type ColorMapControlsProps = {
-  /** the selected or default min and max values for the slider */
-  values: number[];
-  /** used to determine increment/decrement value for keyboard controls */
-  cmapRange: number;
-  /** handler to set new user-specified values for slider */
-  onCmapValuesChange: (values: number[]) => void;
-  /** the color map selected in the cmap selector */
-  cmap: string;
-  /** handler to set new color map */
-  onCmapChange: (cmap: string) => void;
-  /** the id of the selected map baselayer */
-  activeBaselayerId: string;
-  /** the units to display in the histogram range */
-  units?: string;
-  /** the quantity to display in the histogram range */
-  quantity?: string;
-  /** whether or not cmap x-axis is log scale */
-  isLogScale: boolean;
-  /** whether or not cmap x-axis is set to be absolute values */
-  isAbsoluteValue: boolean;
-  /** handler to update isLogScale state and to convert cmap values */
-  onLogScaleChange: (checked: boolean) => void;
-  /** handler to update isAbsoluteValue state and to set cmap values as necessary */
-  onAbsoluteValueChange: (checked: boolean) => void;
+  activeBaselayer: InternalBaselayer;
+  dispatchBaselayersChange: React.ActionDispatch<[BaselayersAction]>;
   /** the histogramData that is fetched/cached with each baselayer change */
   histogramData: HistogramResponse;
 };
+
+export type ColorMapConfigChangeAction =
+  | {
+      type: typeof CHANGE_LOG_SCALE;
+      isLogScale: boolean;
+    }
+  | {
+      type: typeof CHANGE_ABSOLUTE_VALUE;
+      isAbsoluteValue: boolean;
+    }
+  | {
+      type: typeof CHANGE_CMAP_TYPE;
+      cmap: string;
+    }
+  | {
+      type: typeof CHANGE_CMAP_VALUES;
+      vmin: number;
+      vmax: number;
+    };
 
 /**
  * A component that displays the ColorMapHistogram, along with components to control the histogram
@@ -55,30 +60,37 @@ export type ColorMapControlsProps = {
  * @returns ColorMapControls
  */
 export function ColorMapControls(props: ColorMapControlsProps) {
-  const {
-    values,
-    cmapRange,
-    onCmapValuesChange,
-    cmap,
-    onCmapChange,
-    units,
-    quantity,
-    isLogScale,
-    isAbsoluteValue,
-    onLogScaleChange,
-    onAbsoluteValueChange,
-    histogramData,
-  } = props;
+  const { activeBaselayer, dispatchBaselayersChange, histogramData } = props;
+
   const [cmapImage, setCmapImage] = useState<string | undefined>(undefined);
   const [showCustomDialog, setShowCustomDialog] = useState(false);
   const [cmapOptions, setCmapOptions] = useState(CMAP_OPTIONS);
+
+  const { cmap, units, quantity, isLogScale, isAbsoluteValue } =
+    activeBaselayer;
+
+  // This should be set in the parent component, so let's just assert here to keep Typescript happy
+  const vmin = activeBaselayer.vmin!;
+  const vmax = activeBaselayer.vmax!;
+
+  const onColorMapConfigChange = useCallback(
+    (action: ColorMapConfigChangeAction) => {
+      if (activeBaselayer) {
+        dispatchBaselayersChange({
+          ...action,
+          activeBaselayer,
+        });
+      }
+    },
+    [activeBaselayer, dispatchBaselayersChange]
+  );
 
   /**
    * Fetch or retrieve from cache the cmap image when user changes cmap selection
    */
   useEffect(() => {
     async function getImage() {
-      const image = await getCmapImage(cmap);
+      const image = await mapApi.getCmapImage(cmap);
       setCmapImage(image);
     }
     getImage();
@@ -139,24 +151,35 @@ export function ColorMapControls(props: ColorMapControlsProps) {
         histogram edges divided by STEPS_DIVISOR. */
   const sliderAttributes = useMemo(() => {
     if (!processedHistogramData?.edges) return;
-    const min = Math.min(...processedHistogramData.edges, values[0]);
-    const max = Math.max(...processedHistogramData.edges, values[1]);
+    const min = Math.min(...processedHistogramData.edges, vmin);
+    const max = Math.max(...processedHistogramData.edges, vmax);
     const stepCalc = (Math.abs(min) + Math.abs(max)) / STEPS_DIVISOR;
 
     const step = stepCalc >= 1 ? Math.floor(stepCalc) : stepCalc;
 
     return { min, max, step };
-  }, [processedHistogramData?.edges, values]);
+  }, [processedHistogramData?.edges, vmin, vmax]);
 
   /** Change handler for the color map <select> element */
   const handleCmapChange: ChangeEventHandler<HTMLSelectElement> = useCallback(
     (e) => {
-      onCmapChange(e.target.value);
+      onColorMapConfigChange({ type: CHANGE_CMAP_TYPE, cmap: e.target.value });
     },
-    [onCmapChange]
+    [onColorMapConfigChange]
   );
 
-  const shouldDisableLog = values[0] <= 0;
+  const onCmapValuesChange = useCallback(
+    (vals: number[]) => {
+      onColorMapConfigChange({
+        type: CHANGE_CMAP_VALUES,
+        vmin: vals[0],
+        vmax: vals[1],
+      });
+    },
+    [onColorMapConfigChange]
+  );
+
+  const shouldDisableLog = vmin <= 0;
 
   return (
     <>
@@ -165,7 +188,12 @@ export function ColorMapControls(props: ColorMapControlsProps) {
         closeModal={() => setShowCustomDialog(false)}
         cmapOptions={cmapOptions}
         setCmapOptions={setCmapOptions}
-        {...props}
+        values={[vmin, vmax]}
+        cmap={cmap}
+        units={units}
+        isLogScale={isLogScale}
+        isAbsoluteValue={isAbsoluteValue}
+        onColorMapConfigChange={onColorMapConfigChange}
       />
       <div
         className="cmap-controls-pane"
@@ -192,7 +220,12 @@ export function ColorMapControls(props: ColorMapControlsProps) {
                 <input
                   type="checkbox"
                   checked={isLogScale}
-                  onChange={(e) => onLogScaleChange(e.target.checked)}
+                  onChange={(e) =>
+                    onColorMapConfigChange({
+                      type: CHANGE_LOG_SCALE,
+                      isLogScale: e.target.checked,
+                    })
+                  }
                   disabled={shouldDisableLog}
                   title={
                     shouldDisableLog
@@ -206,7 +239,12 @@ export function ColorMapControls(props: ColorMapControlsProps) {
                 <input
                   type="checkbox"
                   checked={isAbsoluteValue}
-                  onChange={(e) => onAbsoluteValueChange(e.target.checked)}
+                  onChange={(e) =>
+                    onColorMapConfigChange({
+                      type: CHANGE_ABSOLUTE_VALUE,
+                      isAbsoluteValue: e.target.checked,
+                    })
+                  }
                 />
                 Abs.
               </label>
@@ -223,13 +261,14 @@ export function ColorMapControls(props: ColorMapControlsProps) {
         </div>
         <ColorMapHistogram
           data={processedHistogramData}
-          userMinAndMaxValues={{ min: values[0], max: values[1] }}
+          userMinAndMaxValues={{ min: vmin, max: vmax }}
         />
         {sliderAttributes && (
           <ColorMapSlider
             cmapImage={cmapImage}
-            values={values}
-            cmapRange={cmapRange}
+            vmin={vmin}
+            vmax={vmax}
+            cmapRange={vmax - vmin}
             onCmapValuesChange={onCmapValuesChange}
             units={units}
             quantity={quantity}

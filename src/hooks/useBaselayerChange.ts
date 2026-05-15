@@ -1,23 +1,37 @@
 import { useOptimistic, useState, useTransition, useCallback } from 'react';
+import { BaselayersState, InternalBaselayer } from '../types/layers';
 import {
-  BaselayersState,
-  InternalBaselayer,
-  ExternalBaselayer,
-} from '../types/maps';
-import {
-  Action,
+  BaselayersAction,
   assertInternalBaselayer,
   CHANGE_BASELAYER,
 } from '../reducers/baselayersReducer';
 import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
-import { getHistogramData } from '../utils/fetchUtils';
+import { mapApi } from '../api/client';
+
+type BaselayerNavigation = {
+  goBack: () => void;
+  goForward: () => void;
+  disableGoBack: boolean;
+  disableGoForward: boolean;
+};
+
+export type BaselayerChangeHook = BaselayerNavigation & {
+  changeBaselayer: (
+    selectedBaselayerId: string,
+    context: 'layerMenu' | 'goBack' | 'goForward',
+    flipped: boolean | undefined,
+    mergeSearchSelection?: (newActiveBaselayer: InternalBaselayer) => void
+  ) => void;
+  optimisticBaselayerId: string | undefined;
+  isPending: boolean;
+};
 
 export function useBaselayerChange(
   baselayersState: BaselayersState,
-  dispatchBaselayersChange: React.ActionDispatch<[action: Action]>,
+  dispatchBaselayersChange: React.ActionDispatch<[action: BaselayersAction]>,
   flipTiles: boolean,
   setFlipTiles: (v: boolean) => void
-) {
+): BaselayerChangeHook {
   const { activeBaselayer, internalBaselayers } = baselayersState;
 
   const [backHistoryStack, setBackHistoryStack] = useState<
@@ -36,37 +50,28 @@ export function useBaselayerChange(
     (
       selectedBaselayerId: string,
       context: 'layerMenu' | 'goBack' | 'goForward',
-      flipped?: boolean
+      flipped: boolean | undefined,
+      mergeSearchSelection?: (newActiveBaselayer: InternalBaselayer) => void
     ) => {
       if (selectedBaselayerId === optimisticBaselayerId) return;
-
-      const isExternal = selectedBaselayerId.includes('external');
-      const newActiveBaselayer:
-        | ExternalBaselayer
-        | InternalBaselayer
-        | undefined = isExternal
-        ? EXTERNAL_BASELAYERS.find((b) => b.layer_id === selectedBaselayerId)
-        : internalBaselayers?.find((b) => b.layer_id === selectedBaselayerId);
-
-      if (!newActiveBaselayer) return;
 
       // Update history stacks synchronously before the transition
       if (context === 'goBack') {
         setBackHistoryStack((prev) => prev.slice(0, -1));
         setForwardHistoryStack((prev) => [
           ...prev,
-          { id: String(activeBaselayer?.layer_id), flipped: flipTiles },
+          { id: String(optimisticBaselayerId), flipped: flipTiles },
         ]);
       } else if (context === 'goForward') {
         setBackHistoryStack((prev) => [
           ...prev,
-          { id: String(activeBaselayer?.layer_id), flipped: flipTiles },
+          { id: String(optimisticBaselayerId), flipped: flipTiles },
         ]);
         setForwardHistoryStack((prev) => prev.slice(0, -1));
       } else {
         setBackHistoryStack((prev) => [
           ...prev,
-          { id: String(activeBaselayer?.layer_id), flipped: flipTiles },
+          { id: String(optimisticBaselayerId), flipped: flipTiles },
         ]);
         setForwardHistoryStack([]);
       }
@@ -75,10 +80,26 @@ export function useBaselayerChange(
 
       startTransition(async () => {
         setOptimisticBaselayerId(selectedBaselayerId); // instant UI feedback
+        let newActiveBaselayer = undefined;
+
+        const isExternal = selectedBaselayerId.includes('external');
+
+        if (isExternal) {
+          newActiveBaselayer = EXTERNAL_BASELAYERS.find(
+            (b) => b.layer_id === selectedBaselayerId
+          );
+        } else {
+          newActiveBaselayer = await mapApi.getLayer(
+            selectedBaselayerId,
+            internalBaselayers
+          );
+        }
+
+        if (!newActiveBaselayer) return;
 
         try {
           if (assertInternalBaselayer(newActiveBaselayer)) {
-            const histogramData = await getHistogramData(
+            const histogramData = await mapApi.getHistogramData(
               newActiveBaselayer.layer_id
             );
             dispatchBaselayersChange({
@@ -94,6 +115,9 @@ export function useBaselayerChange(
                   : newActiveBaselayer,
               histogramData,
             });
+            if (mergeSearchSelection) {
+              mergeSearchSelection(newActiveBaselayer);
+            }
           } else {
             dispatchBaselayersChange({
               type: CHANGE_BASELAYER,
@@ -109,7 +133,6 @@ export function useBaselayerChange(
     [
       optimisticBaselayerId,
       setOptimisticBaselayerId,
-      activeBaselayer,
       internalBaselayers,
       flipTiles,
       setFlipTiles,
