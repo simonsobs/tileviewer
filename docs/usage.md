@@ -30,7 +30,7 @@ Baselayer history is tracked similarly to how web browsers track history. The le
 
 ### Highlight Regions
 
-When present in the database, a section will be rendered in the layer menu for highlight regions. These regions can be toggled on/off via checkboxes. The regions are rendered as simple rectangular overlays. When hovered over, information will be displayed and a user can open a menu in order to download a cutout of the active baselayer within the region's boundary.
+When applicable, a section will be rendered in the layer menu for highlight regions. These regions can be toggled on/off via checkboxes. The regions are rendered as simple rectangular overlays. When hovered over, information will be displayed and a user can open a menu in order to download a cutout of the active baselayer within the region's boundary.
 
 The screenshot below shows an example of a displayed highlight region named **Region 1** when the region is hovered over.
 
@@ -42,7 +42,7 @@ The screenshot below shows an example of a displayed highlight region named **Re
 
 ### Source Catalogs
 
-When present in the database, a section will be rendered in the layer menu for source catalogs. These catalogs can be toggled on/off via checkboxes. Each source in a catalog is rendered as a marker that can be clicked on to reveal its data.
+When applicable, a section will be rendered in the layer menu for source catalogs. These catalogs can be toggled on/off via checkboxes. Each source in a catalog is rendered as a marker that can be clicked on to reveal its data.
 
 The screenshot below shows the data displayed when a source's marker is clicked.
 
@@ -51,6 +51,18 @@ The screenshot below shows the data displayed when a source's marker is clicked.
 :width: 800px
 :align: center
 ```
+
+### Filtering
+
+```{image} images/layer_menu_filtering.png
+:alt: Layer menu after a search filter is applied
+:width: 400px
+:align: center
+```
+
+Enter a search term into the search bar, then press `Enter`. Note that the filter will be applied to the `Baselayers`, `Source catalogs`, and `Highlight regions`.
+
+When the search input is active, pressing `Esc` will clear the input and return the layer menu to its original, unfiltered state.
 
 ## Navigation
 
@@ -267,11 +279,19 @@ This feature allows a user to more deeply inspect a small region of a baselayer.
 
 The apertures will automatically update data when changing baselayers and users are limited to at most 3 apertures. Note, however, that this feature is disabled for external baselayers. When a user changes to an external baselayer, the button to add apertures will be disabled and any apertures shown on the map will be hidden.
 
-(todo: insert image of an aperture and its overlay)
+```{image} images/aperture_example.png
+:alt: An example aperture overlay with its data displayed in an adjacent overlay.
+:width: 800px
+:align: center
+```
 
 ### Adding an Aperture
 
-(todo: insert image showing button that enables user to draw an aperture)
+```{image} images/add_aperture.png
+:alt: Button to add an aperture
+:width: 400px
+:align: center
+```
 
 To draw an aperture, a user will:
 
@@ -284,9 +304,13 @@ Note that users are limited to 3 apertures. Once the limit is reached, the butto
 
 ### Removing an Aperture
 
-(todo: insert image showing highlighted aperture ready for deletion)
+```{image} images/remove_aperture.png
+:alt: Aperture overlay with red outline indicating it is selected for removal
+:width: 400px
+:align: center
+```
 
 To remove an aperture, a user will:
 
-1. Click to select an aperture. Refer to the screenshot to note how the aperture will appear when selected.
+1. Click the aperture or its data overlay in order to select an aperture for removal. Refer to the screenshot to note how the aperture will appear when selected.
 2. Press `delete` on the keyboard to remove the aperture.
