@@ -30,7 +30,7 @@ Baselayer history is tracked similarly to how web browsers track history. The le
 
 ### Highlight Regions
 
-When present in the database, a section will be rendered in the layer menu for highlight regions. These regions can be toggled on/off via checkboxes. The regions are rendered as simple rectangular overlays. When hovered over, information will be displayed and a user can open a menu in order to download a cutout of the active baselayer within the region's boundary.
+When applicable, a section will be rendered in the layer menu for highlight regions. These regions can be toggled on/off via checkboxes. The regions are rendered as simple rectangular overlays. When hovered over, information will be displayed and a user can open a menu in order to download a cutout of the active baselayer within the region's boundary.
 
 The screenshot below shows an example of a displayed highlight region named **Region 1** when the region is hovered over.
 
@@ -42,7 +42,7 @@ The screenshot below shows an example of a displayed highlight region named **Re
 
 ### Source Catalogs
 
-When present in the database, a section will be rendered in the layer menu for source catalogs. These catalogs can be toggled on/off via checkboxes. Each source in a catalog is rendered as a marker that can be clicked on to reveal its data.
+When applicable, a section will be rendered in the layer menu for source catalogs. These catalogs can be toggled on/off via checkboxes. Each source in a catalog is rendered as a marker that can be clicked on to reveal its data.
 
 The screenshot below shows the data displayed when a source's marker is clicked.
 
@@ -51,6 +51,18 @@ The screenshot below shows the data displayed when a source's marker is clicked.
 :width: 800px
 :align: center
 ```
+
+### Filtering
+
+```{image} images/layer_menu_filtering.png
+:alt: Layer menu after a search filter is applied
+:width: 400px
+:align: center
+```
+
+Enter a search term into the search bar, then press `Enter`. Note that the filter will be applied to the `Baselayers`, `Source catalogs`, and `Highlight regions`.
+
+When the search input is active, pressing `Esc` will clear the input and return the layer menu to its original, unfiltered state.
 
 ## Navigation
 
@@ -260,3 +272,45 @@ Alternatively, use the dialog box shown above to precisely set `vmin` and `vmax`
 #### Changing `cmap`
 
 Users can use the dropdown selector to choose between one of the built-in options. If a different `cmap` value compatible with `matplotlib` is desired, use the dialog box and enter its value in the color map field.
+
+## Apertures
+
+This feature allows a user to more deeply inspect a small region of a baselayer. Specifically, a user can draw a circle overlay with a maximum 1-degree diameter. A request then returns the mean, standard deviation, maximum, and minimum pixel values contained within the region.
+
+The apertures will automatically update data when changing baselayers and users are limited to at most 3 apertures. Note, however, that this feature is disabled for external baselayers. When a user changes to an external baselayer, the button to add apertures will be disabled and any apertures shown on the map will be hidden.
+
+```{image} images/aperture_example.png
+:alt: An example aperture overlay with its data displayed in an adjacent overlay.
+:width: 800px
+:align: center
+```
+
+### Adding an Aperture
+
+```{image} images/add_aperture.png
+:alt: Button to add an aperture
+:width: 400px
+:align: center
+```
+
+To draw an aperture, a user will:
+
+1. Click on the button to enable the draw feature
+2. Select a point on the map to be the center of the aperture
+3. Use the mouse to adjust the diameter of the aperture, which is restricted to a maximum of 1 degree.
+4. Click the map to finalize the aperture. This triggers the data retrieval that, once received, will be rendered.
+
+Note that users are limited to 3 apertures. Once the limit is reached, the button to add apertures will be disabled.
+
+### Removing an Aperture
+
+```{image} images/remove_aperture.png
+:alt: Aperture overlay with red outline indicating it is selected for removal
+:width: 400px
+:align: center
+```
+
+To remove an aperture, a user will:
+
+1. Click the aperture or its data overlay in order to select an aperture for removal. Refer to the screenshot to note how the aperture will appear when selected.
+2. Press `delete` on the keyboard to remove the aperture.
