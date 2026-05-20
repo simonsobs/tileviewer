@@ -1,13 +1,13 @@
 import { ReactNode, useCallback } from 'react';
-import { BoxWithDimensions, NewBoxData, SubmapData } from '../types/maps';
+import { BoxWithDimensions, NewBoxData, SubmapData } from '../types/submaps';
 import { MenuIcon } from './icons/MenuIcon';
 import {
   SUBMAP_DOWNLOAD_OPTIONS,
   SubmapFileExtensions,
 } from '../configs/submapConfigs';
-import { downloadSubmap } from '../utils/fetchUtils';
 import { transformBoxCoords } from '../utils/layerUtils';
 import { Map } from 'ol';
+import { mapApi } from '../api/client';
 
 type BoxMenuProps = {
   isNewBox: boolean;
@@ -43,7 +43,7 @@ export function BoxMenu({
     (ext: SubmapFileExtensions) => {
       if (submapData) {
         const boxPosition = transformBoxCoords(boxData, flipped);
-        downloadSubmap(
+        mapApi.downloadSubmap(
           {
             ...submapData,
             top: boxPosition.top_left_dec,

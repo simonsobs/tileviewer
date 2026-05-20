@@ -6,18 +6,17 @@ import LayerGroup from 'ol/layer/Group';
 import { Circle } from 'ol/geom';
 import Select, { SelectEvent } from 'ol/interaction/Select.js';
 import { click } from 'ol/events/condition';
-import { MapProps } from '../OpenLayersMap';
 import {
   createSourcePopupContent,
   getCatalogMarkerColor,
   transformCoords,
   transformFeatureCoords,
 } from '../../utils/layerUtils';
-import { SourceData } from '../../types/maps';
+import { SourceData, SourceGroup } from '../../types/sources';
 
 type SourcesLayerProps = {
-  sourceGroups: MapProps['sourceGroups'];
-  activeSourceGroupIds: MapProps['activeSourceGroupIds'];
+  sourceGroups: SourceGroup[] | undefined;
+  activeSourceGroupIds: string[];
   mapRef: React.RefObject<Map | null>;
   flipped: boolean;
 };

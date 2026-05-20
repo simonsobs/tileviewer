@@ -1,15 +1,5 @@
-import {
-  ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Map, View, Feature, MapBrowserEvent } from 'ol';
-import { TileGrid } from 'ol/tilegrid';
-import { Tile as TileLayer } from 'ol/layer';
-import { XYZ } from 'ol/source';
 import { Overlay } from 'ol';
 import ScaleLine from 'ol/control/ScaleLine.js';
 import VectorLayer from 'ol/layer/Vector';
@@ -17,255 +7,97 @@ import VectorSource from 'ol/source/Vector';
 import { Point } from 'ol/geom';
 import { Circle as CircleStyle, Style, Fill, Stroke } from 'ol/style';
 import 'ol/ol.css';
-import {
-  InternalBaselayer,
-  BaselayersState,
-  Box,
-  ExternalBaselayer,
-  SourceGroup,
-  SubmapData,
-  MapGroupResponse,
-} from '../types/maps';
+import { BaselayersState, DefaultData } from '../types/layers';
 import {
   DEFAULT_INTERNAL_MAP_SETTINGS,
-  EXTERNAL_BASELAYERS,
   SERVICE_URL,
 } from '../configs/mapSettings';
 import { CoordinatesDisplay } from './CoordinatesDisplay';
 import { LayerSelector } from './LayerSelector';
 import { CropIcon } from './icons/CropIcon';
-import { HighlightBoxLayer } from './layers/HighlightBoxLayer';
 import { GraticuleLayer } from './layers/GraticuleLayer';
 import { SourcesLayer } from './layers/SourcesLayer';
-import { AddHighlightBoxLayer } from './layers/AddHighlightBoxLayer';
 import {
   generateSearchContent,
   searchOverlayHelper,
 } from '../utils/externalSearchUtils';
 import './styles/highlight-box.css';
 import {
-  Action,
   assertInternalBaselayer,
-  CHANGE_BASELAYER,
+  BaselayersAction,
 } from '../reducers/baselayersReducer';
-import {
-  getBaselayerResolutions,
-  transformCoords,
-  transformGraticuleCoords,
-} from '../utils/layerUtils';
+import { transformCoords, transformGraticuleCoords } from '../utils/layerUtils';
 import { ToggleSwitch } from './ToggleSwitch';
 import { CenterMapFeature } from './CenterMapFeature';
-import { getHistogramData } from '../utils/fetchUtils';
 import { AperturesLayer } from './layers/AperturesLayer';
+import { LoadingOverlay } from './LoadingOverlay';
+import { useTileLoading } from '../hooks/useTileLoading';
+import { useLayerRegistry } from '../hooks/useLayerRegistry';
+import { useBaselayerChange } from '../hooks/useBaselayerChange';
+import { useOverlayData } from '../hooks/useOverlayData';
+import { BoxLayers } from './layers/BoxLayers';
 
 export type MapProps = {
-  mapGroups: MapGroupResponse[];
+  isAuthenticated: boolean;
+  defaultData: DefaultData;
   baselayersState: BaselayersState;
-  dispatchBaselayersChange: React.ActionDispatch<[action: Action]>;
-  sourceGroups?: SourceGroup[];
-  activeSourceGroupIds: string[];
-  onSelectedSourceGroupsChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  highlightBoxes: Box[] | undefined;
-  activeBoxIds: number[];
-  setActiveBoxIds: React.Dispatch<React.SetStateAction<number[]>>;
-  onSelectedHighlightBoxChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  submapData?: SubmapData;
+  dispatchBaselayersChange: React.ActionDispatch<[BaselayersAction]>;
 };
 
 export function OpenLayersMap({
-  mapGroups,
+  isAuthenticated,
+  defaultData,
   baselayersState,
   dispatchBaselayersChange,
-  sourceGroups = [],
-  onSelectedSourceGroupsChange,
-  activeSourceGroupIds,
-  highlightBoxes,
-  activeBoxIds,
-  setActiveBoxIds,
-  onSelectedHighlightBoxChange,
-  submapData,
 }: MapProps) {
   const mapRef = useRef<Map | null>(null);
   const drawBoxRef = useRef<VectorLayer | null>(null);
   const externalSearchRef = useRef<HTMLDivElement | null>(null);
   const externalSearchMarkerRef = useRef<Feature | null>(null);
   const previousSearchOverlayHandlerRef =
-    useRef<(e: MapBrowserEvent<any>) => void | null>(null);
+    useRef<
+      (
+        e: MapBrowserEvent<KeyboardEvent | PointerEvent | WheelEvent>
+      ) => void | null
+    >(null);
   const previousKeyboardHandlerRef = useRef<(e: KeyboardEvent) => void>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isNewBoxDrawn, setIsNewBoxDrawn] = useState(false);
-  const [flipTiles, setFlipTiles] = useState(true);
   const [isMapInitialized, setIsMapInitialized] = useState(false);
+  const [flipTiles, setFlipTiles] = useState(true);
 
-  const [backHistoryStack, setBackHistoryStack] = useState<
-    { id: string; flipped: boolean }[]
-  >([]);
-  const [forwardHistoryStack, setForwardHistoryStack] = useState<
-    { id: string; flipped: boolean }[]
-  >([]);
+  const isLoadingTiles = useTileLoading(mapRef);
 
-  const { activeBaselayer, internalBaselayers } = baselayersState;
+  const { activeBaselayer } = baselayersState;
 
-  /**
-   * Handler fires when user changes map layers. If the units of the new
-   * layer are the same as the active layer, then we just set a new active
-   * layer. If the units differ, we set new values for vmin, vmax, and cmap
-   * from the band's recommended values in order to prevent nonsensical
-   * TileLayer requests.
-   */
-  const onBaselayerChange = useCallback(
-    async (
-      selectedBaselayerId: string,
-      context: 'layerMenu' | 'goBack' | 'goForward',
-      flipped?: boolean
-    ) => {
-      const isExternalBaselayer = selectedBaselayerId.includes('external');
+  const { getOrCreateLayer } = useLayerRegistry();
 
-      const { activeBaselayer, internalBaselayers } = baselayersState;
-
-      let newActiveBaselayer:
-        | ExternalBaselayer
-        | InternalBaselayer
-        | undefined = undefined;
-
-      if (isExternalBaselayer) {
-        newActiveBaselayer = EXTERNAL_BASELAYERS.find(
-          (b) => b.layer_id === selectedBaselayerId
-        );
-      } else {
-        newActiveBaselayer = internalBaselayers?.find(
-          (b) => b.layer_id === selectedBaselayerId
-        );
-      }
-
-      if (!newActiveBaselayer) return;
-
-      if (context === 'goBack') {
-        setBackHistoryStack((prev) => prev.slice(0, -1));
-        setForwardHistoryStack((prev) =>
-          [...prev].concat({
-            id: String(activeBaselayer?.layer_id),
-            flipped: flipTiles,
-          })
-        );
-      } else if (context === 'goForward') {
-        setBackHistoryStack((prev) =>
-          [...prev].concat({
-            id: String(activeBaselayer?.layer_id),
-            flipped: flipTiles,
-          })
-        );
-        setForwardHistoryStack((prev) => prev.slice(0, -1));
-      } else {
-        setBackHistoryStack((prev) =>
-          [...prev].concat({
-            id: String(activeBaselayer?.layer_id),
-            flipped: flipTiles,
-          })
-        );
-        setForwardHistoryStack([]);
-      }
-
-      if (flipped !== undefined) {
-        setFlipTiles(flipped);
-      }
-
-      // If we switch to an internal baselayer, we need to fetch its histogram data
-      // in order to update it in the reducer
-      if (assertInternalBaselayer(newActiveBaselayer)) {
-        const histogramData = await getHistogramData(
-          newActiveBaselayer.layer_id
-        );
-
-        // If the new layer doesn't yet have vmin or vmax set, set it with the
-        // histogram data
-        if (
-          newActiveBaselayer.vmin === undefined ||
-          newActiveBaselayer.vmax === undefined
-        ) {
-          dispatchBaselayersChange({
-            type: CHANGE_BASELAYER,
-            newBaselayer: {
-              ...newActiveBaselayer,
-              vmin: histogramData.vmin,
-              vmax: histogramData.vmax,
-            },
-            histogramData,
-          });
-        } else {
-          dispatchBaselayersChange({
-            type: CHANGE_BASELAYER,
-            newBaselayer: newActiveBaselayer,
-            histogramData,
-          });
-        }
-      } else {
-        dispatchBaselayersChange({
-          type: CHANGE_BASELAYER,
-          newBaselayer: newActiveBaselayer,
-        });
-      }
-    },
-    [baselayersState, dispatchBaselayersChange, flipTiles, setFlipTiles]
+  const {
+    changeBaselayer,
+    goBack,
+    goForward,
+    optimisticBaselayerId,
+    isPending,
+    disableGoBack,
+    disableGoForward,
+  } = useBaselayerChange(
+    baselayersState,
+    dispatchBaselayersChange,
+    flipTiles,
+    setFlipTiles
   );
 
-  const goBack = useCallback(() => {
-    const baselayer = backHistoryStack[backHistoryStack.length - 1];
-    onBaselayerChange(baselayer.id, 'goBack', baselayer.flipped);
-  }, [onBaselayerChange, backHistoryStack]);
-
-  const goForward = useCallback(() => {
-    const baselayer = forwardHistoryStack[forwardHistoryStack.length - 1];
-    onBaselayerChange(baselayer.id, 'goForward', baselayer.flipped);
-  }, [onBaselayerChange, forwardHistoryStack]);
-
-  const tileLayers = useMemo(() => {
-    return internalBaselayers?.map(
-      (layer) =>
-        new TileLayer({
-          properties: { id: 'baselayer-' + layer.layer_id },
-          source: new XYZ({
-            url: `${SERVICE_URL}/maps/${layer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${layer.cmap}&vmin=${layer.isLogScale ? Math.pow(10, layer.vmin!) : layer.vmin}&vmax=${layer.isLogScale ? Math.pow(10, layer.vmax!) : layer.vmax}&flip=${flipTiles}&log_norm=${layer.isLogScale}&abs=${layer.isAbsoluteValue}`,
-            tileGrid: new TileGrid({
-              extent: [-180, -90, 180, 90],
-              origin: [-180, 90],
-              tileSize: layer.tile_size,
-              resolutions: getBaselayerResolutions(
-                180,
-                layer.tile_size,
-                layer.number_of_levels - 1
-              ),
-            }),
-            interpolate: false,
-            projection: 'EPSG:4326',
-            tilePixelRatio: layer.tile_size / 256,
-          }),
-        })
-    );
-  }, [internalBaselayers, flipTiles]);
-
-  const externalTileLayers = useMemo(() => {
-    return EXTERNAL_BASELAYERS.map((b) => {
-      return new TileLayer({
-        properties: { id: b.layer_id },
-        source: new XYZ({
-          url: typeof b.url === 'string' ? b.url : undefined,
-          tileUrlFunction: typeof b.url !== 'string' ? b.url : undefined,
-          projection: b.projection,
-          tileGrid: new TileGrid({
-            extent: b.extent,
-            resolutions: getBaselayerResolutions(
-              b.extent[2] - b.extent[0],
-              256,
-              b.maxZoom
-            ),
-            origin: [b.extent[0], b.extent[3]],
-          }),
-          wrapX: true,
-        }),
-      });
-    });
-  }, []);
+  const {
+    sourceGroups,
+    activeSourceGroupIds,
+    areSourceGroupsLoading,
+    onSelectedSourceGroupsChange,
+    highlightBoxes,
+    activeBoxIds,
+    areHighlightBoxesLoading,
+    setActiveBoxIds,
+    onSelectedHighlightBoxChange,
+  } = useOverlayData(isAuthenticated);
 
   /**
    * Create the map with a scale control, a layer for the "add box" functionality
@@ -424,29 +256,18 @@ export function OpenLayersMap({
           mapRef.current?.removeLayer(layer);
         }
       });
-      if (assertInternalBaselayer(activeBaselayer)) {
-        const activeLayer = tileLayers!.find(
-          (t) => t.get('id') === 'baselayer-' + activeBaselayer!.layer_id
-        )!;
-        const activeLayerSource = activeLayer.getSource();
-        activeLayerSource?.setUrl(
-          `${SERVICE_URL}/maps/${activeBaselayer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${activeBaselayer.cmap}&vmin=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmin!) : activeBaselayer.vmin}&vmax=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmax!) : activeBaselayer.vmax}&flip=${flipTiles}&log_norm=${activeBaselayer.isLogScale}&abs=${activeBaselayer.isAbsoluteValue}`
-        );
-        mapRef.current.addLayer(activeLayer);
-      } else {
-        const externalBaselayer = EXTERNAL_BASELAYERS.find(
-          (b) => b.layer_id === activeBaselayer.layer_id
-        );
-        const activeLayer = externalTileLayers.find(
-          (t) => t.get('id') === activeBaselayer.layer_id
-        )!;
 
-        if (!externalBaselayer || !activeLayer) return;
+      const isInternal = assertInternalBaselayer(activeBaselayer);
 
-        mapRef.current.addLayer(activeLayer);
-      }
+      const activeLayer = getOrCreateLayer(
+        activeBaselayer,
+        isInternal
+          ? `${SERVICE_URL}/layers/${activeBaselayer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${activeBaselayer.cmap}&vmin=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmin!) : activeBaselayer.vmin}&vmax=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmax!) : activeBaselayer.vmax}&flip=${flipTiles}&log_norm=${activeBaselayer.isLogScale}&abs=${activeBaselayer.isAbsoluteValue}`
+          : undefined
+      );
+      mapRef.current.addLayer(activeLayer);
     }
-  }, [activeBaselayer, tileLayers, externalTileLayers, flipTiles]);
+  }, [activeBaselayer, flipTiles, getOrCreateLayer]);
 
   /**
    * Add keyboard support for switching baselayers
@@ -466,10 +287,10 @@ export function OpenLayersMap({
       if ((e.target as HTMLElement)?.closest('input')) {
         return;
       }
-      if (backHistoryStack.length && e.key === 'h') {
+      if (!disableGoBack && e.key === 'h') {
         goBack();
       }
-      if (forwardHistoryStack.length && e.key === 'l') {
+      if (!disableGoForward && e.key === 'l') {
         goForward();
       }
     };
@@ -484,7 +305,7 @@ export function OpenLayersMap({
         'keypress',
         previousKeyboardHandlerRef.current ?? newHandler
       );
-  }, [backHistoryStack, forwardHistoryStack, goBack, goForward]);
+  }, [disableGoBack, disableGoForward, goBack, goForward]);
 
   const disableToggleForNewBox = isDrawing || isNewBoxDrawn;
 
@@ -546,36 +367,34 @@ export function OpenLayersMap({
         mapRef={mapRef}
         flipped={flipTiles}
       />
-      <HighlightBoxLayer
-        highlightBoxes={highlightBoxes}
-        activeBoxIds={activeBoxIds}
-        mapRef={mapRef}
-        setActiveBoxIds={setActiveBoxIds}
-        submapData={submapData}
-        flipped={flipTiles}
-      />
-      <AddHighlightBoxLayer
+      <BoxLayers
         mapRef={mapRef}
         drawBoxRef={drawBoxRef}
         isDrawing={isDrawing}
         setIsDrawing={setIsDrawing}
         setIsNewBoxDrawn={setIsNewBoxDrawn}
-        submapData={submapData}
         flipped={flipTiles}
+        highlightBoxes={highlightBoxes}
+        activeBoxIds={activeBoxIds}
+        setActiveBoxIds={setActiveBoxIds}
+        activeBaselayer={activeBaselayer}
       />
       <LayerSelector
-        mapGroups={mapGroups}
-        onBaselayerChange={onBaselayerChange}
-        activeBaselayerId={activeBaselayer?.layer_id}
+        defaultData={defaultData}
+        onBaselayerChange={changeBaselayer}
+        selectedBaselayerId={optimisticBaselayerId}
+        activeBaselayer={activeBaselayer}
         sourceGroups={sourceGroups}
         activeSourceGroupIds={activeSourceGroupIds}
         onSelectedSourceGroupsChange={onSelectedSourceGroupsChange}
+        areSourceGroupsLoading={areSourceGroupsLoading}
         highlightBoxes={highlightBoxes}
         activeBoxIds={activeBoxIds}
         onSelectedHighlightBoxChange={onSelectedHighlightBoxChange}
+        areHighlightBoxesLoading={areHighlightBoxesLoading}
         isFlipped={flipTiles}
-        disableGoBack={!backHistoryStack.length}
-        disableGoForward={!forwardHistoryStack.length}
+        disableGoBack={disableGoBack}
+        disableGoForward={disableGoForward}
         goBack={goBack}
         goForward={goForward}
       />
@@ -591,6 +410,7 @@ export function OpenLayersMap({
         externalSearchMarkerRef={externalSearchMarkerRef}
         isMapInitialized={isMapInitialized}
       />
+      <LoadingOverlay isLoading={isPending || isLoadingTiles} />
     </div>
   );
 }

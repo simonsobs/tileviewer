@@ -2,7 +2,7 @@
   position: absolute;
   top: 9px;
   right: 55px;
-  z-index: 999;
+  z-index: 1000;
   column-gap: 0.25em;
   padding: 2px 5px !important;
 }
