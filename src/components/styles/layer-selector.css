@@ -169,3 +169,11 @@ mark {
   color: white;
   background-color: #f26522;
 }
+
+.map-level-offset {
+  margin-left: 10px;
+}
+
+.band-level-offset {
+  margin-left: 10px;
+}

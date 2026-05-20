@@ -1,5 +1,6 @@
 import { Feature } from 'ol';
-import { BoxExtent, SourceData } from '../types/maps';
+import { SourceData } from '../types/sources';
+import { BoxExtent } from '../types/submaps';
 import {
   CATALOG_COLORWAY,
   NUMBER_OF_FIXED_COORDINATE_DECIMALS,

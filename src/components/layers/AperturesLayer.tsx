@@ -55,9 +55,11 @@ export function AperturesLayer({
 
   const isExternalBaselayer = activeBaselayerId?.includes('external');
   const hasMaximum = apertures.length === 3;
-  const title = hasMaximum
-    ? 'At maximum number of data overlays'
-    : 'Add up to 3 data overlays';
+  const title = isExternalBaselayer
+    ? 'This feature is not compatible with external baselayers'
+    : hasMaximum
+      ? 'At maximum number of data overlays'
+      : 'Add up to 3 data overlays';
 
   const aperturesLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const aperturesSourceRef = useRef<VectorSource | null>(null);
