@@ -7,6 +7,7 @@ import type {
 } from '../types/layers';
 import { ChevronRightIcon } from './icons/ChevronRightIcon';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
+import { Spinner } from './LoadingOverlay';
 
 type BaseMenuNode = {
   selectedBaselayerId: string | undefined;
@@ -119,7 +120,7 @@ function GroupNode({
           matchedIds?.has(group.map_group_id)
         )}
       </div>
-      {group.maps.status === 'loading' && <Spinner />}
+      {group.maps.status === 'loading' && <LayerMenuSpinner />}
       {group.maps.status === 'error' && (
         <ErrorNote message={group.maps.message} />
       )}
@@ -163,7 +164,7 @@ function MapNode({
         {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
         {markMatchingSearchText(map.name, matchedIds?.has(map.map_id))}
       </div>
-      {map.bands.status === 'loading' && <Spinner />}
+      {map.bands.status === 'loading' && <LayerMenuSpinner />}
       {map.bands.status === 'loaded' && isExpanded && (
         <>
           {map.bands.data.map((band) => (
@@ -202,7 +203,7 @@ function BandNode({
         {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
         {markMatchingSearchText(band.name, matchedIds?.has(band.band_id))}
       </div>
-      {band.layers.status === 'loading' && <Spinner />}
+      {band.layers.status === 'loading' && <LayerMenuSpinner />}
       {band.layers.status === 'loaded' && isExpanded && (
         <div className="layer-inputs-container">
           {band.layers.data.map((layer) => (
@@ -238,10 +239,14 @@ function BandNode({
   );
 }
 
-function Spinner() {
-  return <div className="layer-tree__spinner" aria-label="Loading" />;
+function LayerMenuSpinner() {
+  return (
+    <div className="layer-menu-spinner">
+      <Spinner />
+    </div>
+  );
 }
 
 function ErrorNote({ message }: { message?: string }) {
-  return <div className="layer-tree__error">{message ?? 'Failed to load'}</div>;
+  return <div>{message ?? 'Failed to load'}</div>;
 }
