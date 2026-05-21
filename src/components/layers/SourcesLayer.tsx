@@ -90,7 +90,7 @@ export function SourcesLayer({
                 : originalCoords;
               return new Feature({
                 geometry: new Circle(syncedCoords, 1 / 6),
-                sourceData: {
+                data: {
                   id: `${source.ra},${source.dec}`,
                   ...source,
                 } as SourceData,
