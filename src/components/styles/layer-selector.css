@@ -177,3 +177,9 @@ mark {
 .band-level-offset {
   margin-left: 10px;
 }
+
+.layer-menu-spinner {
+  position: relative;
+  z-index: 2000;
+  margin-left: 10px;
+}

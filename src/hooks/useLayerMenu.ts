@@ -83,7 +83,7 @@ function buildInitialState(defaultData: DefaultData): LayerMenuState {
                           },
                         };
                       } else {
-                        return { ...band, status: 'idle' };
+                        return { ...band, layers: { status: 'idle' } };
                       }
                     }),
                   } as LoadState<BandMenuState[]>,
