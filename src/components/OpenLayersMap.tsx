@@ -16,7 +16,6 @@ import { CoordinatesDisplay } from './CoordinatesDisplay';
 import { LayerSelector } from './LayerSelector';
 import { CropIcon } from './icons/CropIcon';
 import { GraticuleLayer } from './layers/GraticuleLayer';
-import { SourcesLayer } from './layers/SourcesLayer';
 import {
   generateSearchContent,
   searchOverlayHelper,
@@ -36,6 +35,7 @@ import { useLayerRegistry } from '../hooks/useLayerRegistry';
 import { useBaselayerChange } from '../hooks/useBaselayerChange';
 import { useOverlayData } from '../hooks/useOverlayData';
 import { BoxLayers } from './layers/BoxLayers';
+import { SourceGroups } from './layers/SourceGroups';
 
 export type MapProps = {
   isAuthenticated: boolean;
@@ -361,7 +361,7 @@ export function OpenLayersMap({
         activeBaselayerId={activeBaselayer?.layer_id}
         flipped={flipTiles}
       />
-      <SourcesLayer
+      <SourceGroups
         sourceGroups={sourceGroups}
         activeSourceGroupIds={activeSourceGroupIds}
         mapRef={mapRef}

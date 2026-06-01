@@ -15,7 +15,7 @@ export type Source = {
   /** value of declination for the source */
   dec: number;
   /** additional information about the source */
-  extra: Record<string, unknown>;
+  extra: Record<string, string | number>;
 };
 
 export type SourceData = Source & { id: string };

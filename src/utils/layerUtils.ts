@@ -55,7 +55,11 @@ export function transformCoords(
   }
 }
 
-export function transformFeatureCoords(feature: Feature, flipped: boolean) {
+export function transformFeatureCoords(
+  feature: Feature,
+  flipped: boolean,
+  clickedCoords?: number[]
+) {
   const currData = feature.get('data');
   let newOverlayCoords = [currData.ra, currData.dec];
   let newFeatureData = { ...currData };
@@ -68,6 +72,9 @@ export function transformFeatureCoords(feature: Feature, flipped: boolean) {
     newFeatureData = {
       ...currData,
       ra: currData.ra < 0 ? currData.ra + 360 : currData.ra,
+      ...(clickedCoords
+        ? { offsetX: clickedCoords[0], offsetY: clickedCoords[1] }
+        : {}),
     };
   }
   return {
