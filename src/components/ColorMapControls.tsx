@@ -9,7 +9,7 @@ import {
   CMAP_OPTIONS,
   HISTOGRAM_SIZE_X,
   STEPS_DIVISOR,
-} from '../configs/cmapControlSettings';
+} from '../configs/cmapControlConfigs';
 import { ColorMapSlider } from './ColorMapSlider';
 import { HistogramResponse } from '../types/histogram';
 import { ColorMapHistogram } from './ColorMapHistogram';

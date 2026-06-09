@@ -1,4 +1,4 @@
-import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
+import { EXTERNAL_BASELAYERS } from '../configs/mapConfigs';
 import {
   BaselayersState,
   ExternalBaselayer,

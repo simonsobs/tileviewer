@@ -5,7 +5,7 @@ import {
   assertInternalBaselayer,
   CHANGE_BASELAYER,
 } from '../reducers/baselayersReducer';
-import { EXTERNAL_BASELAYERS } from '../configs/mapSettings';
+import { EXTERNAL_BASELAYERS } from '../configs/mapConfigs';
 import { mapApi } from '../api/client';
 
 type BaselayerNavigation = {

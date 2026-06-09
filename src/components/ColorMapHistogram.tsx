@@ -4,7 +4,7 @@ import { HistogramData } from '../types/histogram';
 import {
   HISTOGRAM_SIZE_X,
   HISTOGRAM_SIZE_Y,
-} from '../configs/cmapControlSettings';
+} from '../configs/cmapControlConfigs';
 
 type Props = {
   /** The applicable histogram data from the histogram response */
