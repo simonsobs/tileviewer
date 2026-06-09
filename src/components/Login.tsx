@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { LOGIN_URL, LOGOUT_URL } from '../configs/mapSettings';
+import { LOGIN_URL, LOGOUT_URL } from '../configs/mapConfigs';
 import './styles/login.css';
 
 function getCookie(name: string): string | null {

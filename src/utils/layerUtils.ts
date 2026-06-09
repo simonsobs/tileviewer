@@ -4,7 +4,7 @@ import { BoxExtent } from '../types/submaps';
 import {
   CATALOG_COLORWAY,
   NUMBER_OF_FIXED_COORDINATE_DECIMALS,
-} from '../configs/mapSettings';
+} from '../configs/mapConfigs';
 import { Point } from 'ol/geom';
 import { Fill, Stroke, Style } from 'ol/style';
 import { FeatureLike } from 'ol/Feature';

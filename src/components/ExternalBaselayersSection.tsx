@@ -3,7 +3,7 @@ import { LayerSelectorProps, NoMatches } from './LayerSelector';
 import {
   EXTERNAL_BASELAYERS,
   EXTERNAL_DETAILS_ID,
-} from '../configs/mapSettings';
+} from '../configs/mapConfigs';
 import { ChevronRightIcon } from './icons/ChevronRightIcon';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
 

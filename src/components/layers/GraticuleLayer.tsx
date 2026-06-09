@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Graticule, Map } from 'ol';
 import Stroke from 'ol/style/Stroke';
-import { NUMBER_OF_FIXED_GRATICULE_DECIMALS } from '../../configs/mapSettings';
+import { NUMBER_OF_FIXED_GRATICULE_DECIMALS } from '../../configs/mapConfigs';
 
 export function GraticuleLayer({
   mapRef,

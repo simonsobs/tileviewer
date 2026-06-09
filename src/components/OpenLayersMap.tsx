@@ -11,7 +11,7 @@ import { BaselayersState, DefaultData } from '../types/layers';
 import {
   DEFAULT_INTERNAL_MAP_SETTINGS,
   SERVICE_URL,
-} from '../configs/mapSettings';
+} from '../configs/mapConfigs';
 import { CoordinatesDisplay } from './CoordinatesDisplay';
 import { LayerSelector } from './LayerSelector';
 import { CropIcon } from './icons/CropIcon';
