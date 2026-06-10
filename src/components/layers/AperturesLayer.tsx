@@ -6,7 +6,7 @@ import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import { Style, Stroke, Text, Fill } from 'ol/style';
 import { Circle } from 'ol/geom';
-import { SERVICE_URL } from '../../configs/mapSettings';
+import { SERVICE_URL } from '../../configs/mapConfigs';
 import {
   transformCoords,
   transformFeatureCoords,

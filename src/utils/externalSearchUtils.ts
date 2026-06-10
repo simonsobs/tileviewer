@@ -1,6 +1,7 @@
 import { Feature, Map } from 'ol';
 import { Coordinate } from 'ol/coordinate';
 import { Geometry, Point } from 'ol/geom';
+import { externalSearches } from '../configs/externalSearchConfigs';
 
 export function generateSearchContent(coords: number[]): HTMLDivElement {
   const div = document.createElement('div');
@@ -11,23 +12,14 @@ export function generateSearchContent(coords: number[]): HTMLDivElement {
   div.append(header);
 
   const ul = document.createElement('ul');
-  const li1 = document.createElement('li');
-  const li2 = document.createElement('li');
 
-  li1.append(
-    generateAnchorElement(
-      `https://simbad.u-strasbg.fr/simbad/sim-coo?Coord=${coords[0]}+${coords[1]}&Radius=5&Radius.unit=arcmin`,
-      'SIMBAD'
-    )
-  );
-  li2.append(
-    generateAnchorElement(
-      `https://www.legacysurvey.org/viewer?ra=${coords[0]}&dec=${coords[1]}&layer=ls-dr10&zoom=14&mark=${coords[0]},${coords[1]}`,
-      'Legacy Survey'
-    )
-  );
+  for (const [name, makeUrl] of Object.entries(externalSearches)) {
+    const li = document.createElement('li');
+    const href = makeUrl(coords[0], coords[1]);
+    li.append(generateAnchorElement(href, name));
+    ul.append(li);
+  }
 
-  ul.append(li1, li2);
   div.append(ul);
 
   return div;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, FormEvent } from 'react';
 import { Map, Feature, MapBrowserEvent } from 'ol';
 import { Geometry } from 'ol/geom';
-import { NUMBER_OF_FIXED_COORDINATE_DECIMALS } from '../configs/mapSettings';
+import { NUMBER_OF_FIXED_COORDINATE_DECIMALS } from '../configs/mapConfigs';
 import { transformGraticuleCoords } from '../utils/layerUtils';
 import './styles/coordinates-display.css';
 import { searchOverlayHelper } from '../utils/externalSearchUtils';

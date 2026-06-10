@@ -1,4 +1,4 @@
-import { SERVICE_URL } from '../configs/mapSettings';
+import { SERVICE_URL } from '../configs/mapConfigs';
 import { HistogramResponse } from '../types/histogram';
 import {
   BandSummary,
