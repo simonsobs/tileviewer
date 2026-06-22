@@ -1,9 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { Map, Overlay } from 'ol';
-import {
-  createSourcePopupContent,
-  transformFeatureCoords,
-} from '../../utils/layerUtils';
+import { createSourcePopupContent } from '../../utils/layerUtils';
 import { SourceData } from '../../types/sources';
 
 export type SourcePopupData = SourceData & {
@@ -54,25 +51,12 @@ export function SourceOverlay({
       popupOverlay.setPosition(undefined);
       popupElement.innerHTML = '';
     } else {
-      const popupCoords = popupOverlay.getPosition();
       const newRa = flipped
         ? sourcePopupData.ra < 0
           ? sourcePopupData.ra + 360
           : sourcePopupData.ra
         : sourcePopupData.ra;
-      if (
-        popupCoords &&
-        sourcePopupData.offsetX === popupCoords[0] &&
-        sourcePopupData.dec === popupCoords[1]
-      ) {
-        console.log('sync overlay position');
-        popupOverlay.setPosition([newRa, sourcePopupData.dec]);
-      } else {
-        popupOverlay.setPosition([
-          sourcePopupData.offsetX,
-          sourcePopupData.dec,
-        ]);
-      }
+      popupOverlay.setPosition([sourcePopupData.offsetX, sourcePopupData.dec]);
       createSourcePopupContent(popupElement, { ...sourcePopupData, ra: newRa });
     }
   }, [sourcePopupData, flipped]);

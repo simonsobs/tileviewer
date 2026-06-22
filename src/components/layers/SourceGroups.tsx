@@ -78,6 +78,14 @@ export function SourceGroups({
     map.addLayer(group);
   }, [mapRef, sourceGroups, activeSourceGroupIds, flipped]);
 
+  // Remove active source popup if the user flips the RA; ignore lint warning
+  // re: sourcePopupData bc functionality fails when including it in dep array
+  useEffect(() => {
+    if (sourcePopupData !== undefined) {
+      setSourcePopupData(undefined);
+    }
+  }, [flipped]);
+
   // Set up interaction
   useEffect(() => {
     const map = mapRef.current;
@@ -100,28 +108,25 @@ export function SourceGroups({
     };
   }, [mapRef]);
 
-  const handleSourceClick = useCallback(
-    (e: SelectEvent) => {
-      const select = selectInteractionRef.current;
-      if (!select) return;
+  const handleSourceClick = useCallback((e: SelectEvent) => {
+    const select = selectInteractionRef.current;
+    if (!select) return;
 
-      const selectedFeatures = e.selected;
-      const clickedMapCoords = e.mapBrowserEvent.coordinate;
-      if (selectedFeatures.length === 0) {
-        setSourcePopupData(undefined);
-      } else {
-        selectedFeatures.forEach((feature) => {
-          const data = feature.get('data');
-          setSourcePopupData({
-            ...data,
-            offsetX: clickedMapCoords[0],
-            offsetY: clickedMapCoords[1],
-          });
+    const selectedFeatures = e.selected;
+    const clickedMapCoords = e.mapBrowserEvent.coordinate;
+    if (selectedFeatures.length === 0) {
+      setSourcePopupData(undefined);
+    } else {
+      selectedFeatures.forEach((feature) => {
+        const data = feature.get('data');
+        setSourcePopupData({
+          ...data,
+          offsetX: clickedMapCoords[0],
+          offsetY: clickedMapCoords[1],
         });
-      }
-    },
-    [mapRef]
-  );
+      });
+    }
+  }, []);
 
   // Update select event when handleSourceClick changes
   useEffect(() => {
