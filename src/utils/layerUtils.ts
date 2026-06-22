@@ -22,16 +22,23 @@ export function getBaselayerResolutions(
   return resolutions;
 }
 
+function wrapTo180(ra: number) {
+  return (((ra % 360) + 540) % 360) - 180;
+}
+
+function wrapTo360(ra: number) {
+  return (((180 - ra) % 360) + 360) % 360;
+}
+
 export function transformGraticuleCoords(
   coords: number[],
   isFlipped: boolean
 ): number[] {
+  const [ra, dec] = coords;
   if (isFlipped) {
-    const [ra, dec] = coords;
-    const newRa = ra * -1 + 180;
-    return [newRa, dec];
+    return [wrapTo360(ra), dec];
   } else {
-    return coords;
+    return [wrapTo180(ra), dec];
   }
 }
 
