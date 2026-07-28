@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Map, View, Feature, MapBrowserEvent } from 'ol';
 import { Overlay } from 'ol';
 import ScaleLine from 'ol/control/ScaleLine.js';
@@ -69,41 +69,6 @@ export function OpenLayersMap({
   const isLoadingTiles = useTileLoading(mapRef);
 
   const { activeBaselayer } = baselayersState;
-
-  // The -180-180/0-360 RA relabeling that "flip" implements is only a
-  // meaningful operation for a layer whose own pixel grid spans the full
-  // sky -- for a submap cutout (a narrow RA/Dec patch) there's no such
-  // convention split to reconcile, and every consumer of `flipTiles` below
-  // (tile fetching, the view recenter, and every overlay that positions
-  // itself in RA/Dec: highlight boxes, graticule, coordinates display,
-  // search, apertures, sources) needs to agree on that or they drift out
-  // of sync with each other and with the submap layer's own tiles (which
-  // the server always renders in their one true, unflipped orientation
-  // for a non-full-sky layer -- see server/layers.py::get_tile).
-  const spansFullSky = useMemo(
-    () =>
-      assertInternalBaselayer(activeBaselayer) &&
-      Math.abs(activeBaselayer.bounding_right - activeBaselayer.bounding_left) >
-        350,
-    [activeBaselayer]
-  );
-  const effectiveFlipped = spansFullSky && flipTiles;
-
-  // Force flipTiles back to its one meaningful state (native/false) when
-  // switching to a layer that doesn't need the convention split. flipTiles
-  // is global state that outlives switching the active layer, so without
-  // this, leaving it "on" while looking at the full-sky layer (where a
-  // highlight box, say, is shown transformed to match) and then switching
-  // to a submap layer would compare that transformed position against the
-  // submap's native one -- two different layers viewed under two
-  // different conventions read as "this doesn't match where I extracted
-  // it from," even though each layer's own rendering is internally
-  // correct.
-  useEffect(() => {
-    if (!spansFullSky) {
-      setFlipTiles(false);
-    }
-  }, [spansFullSky]);
 
   const { getOrCreateLayer } = useLayerRegistry();
 
@@ -297,13 +262,13 @@ export function OpenLayersMap({
       const activeLayer = getOrCreateLayer(
         activeBaselayer,
         isInternal
-          ? `${SERVICE_URL}/layers/${activeBaselayer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${activeBaselayer.cmap}&vmin=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmin!) : activeBaselayer.vmin}&vmax=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmax!) : activeBaselayer.vmax}&flip=${effectiveFlipped}&log_norm=${activeBaselayer.isLogScale}&abs=${activeBaselayer.isAbsoluteValue}`
+          ? `${SERVICE_URL}/layers/${activeBaselayer.layer_id}/{z}/{-y}/{x}/tile.png?cmap=${activeBaselayer.cmap}&vmin=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmin!) : activeBaselayer.vmin}&vmax=${activeBaselayer.isLogScale ? Math.pow(10, activeBaselayer.vmax!) : activeBaselayer.vmax}&flip=${flipTiles}&log_norm=${activeBaselayer.isLogScale}&abs=${activeBaselayer.isAbsoluteValue}`
           : undefined,
-        effectiveFlipped
+        flipTiles
       );
       mapRef.current.addLayer(activeLayer);
     }
-  }, [activeBaselayer, effectiveFlipped, getOrCreateLayer]);
+  }, [activeBaselayer, flipTiles, getOrCreateLayer]);
 
   /**
    * Add keyboard support for switching baselayers
@@ -347,19 +312,18 @@ export function OpenLayersMap({
 
   /**
    * Toggles the state of flipTiles and also preserves the center
-   * of the map's view (only meaningful for a full-sky layer; see
-   * spansFullSky above).
+   * of the map's view
    */
   const handleFlipTiles = useCallback(() => {
     const map = mapRef.current;
-    if (map && spansFullSky) {
+    if (map) {
       const view = map.getView();
       const center = view.getCenter();
       const newCenter = transformCoords(center ?? [0, 0], flipTiles, 'layer');
       view.setCenter(newCenter);
     }
     setFlipTiles(!flipTiles);
-  }, [setFlipTiles, flipTiles, mapRef, spansFullSky]);
+  }, [setFlipTiles, flipTiles, mapRef]);
 
   return (
     <div id="map" style={{ cursor: isDrawing ? 'crosshair' : 'auto' }}>
@@ -367,9 +331,7 @@ export function OpenLayersMap({
         checked={flipTiles}
         onChange={handleFlipTiles}
         disabled={
-          !assertInternalBaselayer(activeBaselayer) ||
-          !spansFullSky ||
-          disableToggleForNewBox
+          !assertInternalBaselayer(activeBaselayer) || disableToggleForNewBox
         }
         disabledMessage={
           disableToggleForNewBox
@@ -393,18 +355,18 @@ export function OpenLayersMap({
         mapRef={mapRef}
         externalSearchRef={externalSearchRef}
         externalSearchMarkerRef={externalSearchMarkerRef}
-        flipped={effectiveFlipped}
+        flipped={flipTiles}
       />
       <AperturesLayer
         mapRef={mapRef}
         activeBaselayerId={activeBaselayer?.layer_id}
-        flipped={effectiveFlipped}
+        flipped={flipTiles}
       />
       <SourceGroups
         sourceGroups={sourceGroups}
         activeSourceGroupIds={activeSourceGroupIds}
         mapRef={mapRef}
-        flipped={effectiveFlipped}
+        flipped={flipTiles}
       />
       <BoxLayers
         mapRef={mapRef}
@@ -412,7 +374,7 @@ export function OpenLayersMap({
         isDrawing={isDrawing}
         setIsDrawing={setIsDrawing}
         setIsNewBoxDrawn={setIsNewBoxDrawn}
-        flipped={effectiveFlipped}
+        flipped={flipTiles}
         highlightBoxes={highlightBoxes}
         activeBoxIds={activeBoxIds}
         setActiveBoxIds={setActiveBoxIds}
@@ -439,11 +401,11 @@ export function OpenLayersMap({
       />
       <GraticuleLayer
         mapRef={mapRef}
-        flipped={effectiveFlipped}
+        flipped={flipTiles}
         isMapInitialized={isMapInitialized}
       />
       <CoordinatesDisplay
-        flipped={effectiveFlipped}
+        flipped={flipTiles}
         mapRef={mapRef}
         externalSearchRef={externalSearchRef}
         externalSearchMarkerRef={externalSearchMarkerRef}

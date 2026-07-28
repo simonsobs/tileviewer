@@ -74,15 +74,6 @@ export function useLayerRegistry() {
       }
 
       if (isInternal) {
-        // Wrapping (repeating the layer at +/-360 degree RA offsets so you
-        // can pan continuously around the sky) only makes sense for a
-        // layer whose own pixel grid actually spans the full sky -- for a
-        // narrow submap cutout there's nothing on the other side to wrap
-        // into, and OL repaints the same already-loaded tile at an
-        // unrelated RA offset instead, showing the small patch twice.
-        const spansFullSky =
-          Math.abs(layer.bounding_right - layer.bounding_left) > 350;
-
         // First request for this layer/flip combination: construct and cache it
         const newLayer = new TileLayer({
           properties: { id: 'baselayer-' + layer.layer_id },
@@ -100,7 +91,13 @@ export function useLayerRegistry() {
             }),
             interpolate: false,
             projection: 'EPSG:4326',
-            wrapX: spansFullSky,
+            // Every internal layer's own pixel grid spans the full sky
+            // (including a submap cutout's -- its array is padded out to
+            // a full-sky-sized grid specifically so this holds; see
+            // processing/wcs_utils.py::build_submap_wcs), so wrapping
+            // (repeating the layer at +/-360 degree RA offsets to pan
+            // continuously around the sky) is always meaningful here.
+            wrapX: true,
           }),
         });
 
