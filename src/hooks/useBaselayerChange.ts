@@ -1,5 +1,9 @@
 import { useOptimistic, useState, useTransition, useCallback } from 'react';
-import { BaselayersState, InternalBaselayer } from '../types/layers';
+import {
+  BaselayersState,
+  ExternalBaselayer,
+  InternalBaselayer,
+} from '../types/layers';
 import {
   BaselayersAction,
   assertInternalBaselayer,
@@ -80,7 +84,10 @@ export function useBaselayerChange(
 
       startTransition(async () => {
         setOptimisticBaselayerId(selectedBaselayerId); // instant UI feedback
-        let newActiveBaselayer = undefined;
+        let newActiveBaselayer:
+          | InternalBaselayer
+          | ExternalBaselayer
+          | undefined;
 
         const isExternal = selectedBaselayerId.includes('external');
 
