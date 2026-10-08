@@ -7,7 +7,7 @@
     sans-serif;
   font-weight: 400;
 
-  color-scheme: light dark;
+  color-scheme: light;
   color: black;
   background-color: #ddd;
 
@@ -22,6 +22,16 @@
   --semi-transparent-bg-color: rgba(255, 255, 255, 0.7);
   --standard-bg-color: white;
   --standard-box-shadow: 0 0 5px #bbb;
+}
+
+/* Page is light-themed, but native controls and dialogs always render dark */
+input,
+select,
+textarea,
+button,
+fieldset,
+dialog {
+  color-scheme: dark;
 }
 
 html,
