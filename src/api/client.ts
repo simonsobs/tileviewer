@@ -193,31 +193,29 @@ class MapApiClient {
     } = submapDataWithBounds;
     const endpoint = `${this.baseUrl}/layers/${layer_id}/submap/${left}/${right}/${top}/${bottom}/image.${fileExtension}?cmap=${cmap}&vmin=${vmin}&vmax=${vmax}&log_norm=${isLogScale}&abs=${isAbsoluteValue}&flip=${flip}`;
 
-    await fetch(endpoint)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Error downloading the submap: ${response.status}`);
-        }
-        return response.blob();
-      })
-      .then((blob) => {
-        // Create a URL for the blob
-        const url = window.URL.createObjectURL(blob);
+    // Errors are intentionally left to propagate (not caught here) so
+    // callers can surface them to the user -- swallowing them down here
+    // used to mean a failed download just quietly stopped with no
+    // visible feedback beyond a console.error.
+    const response = await fetch(endpoint);
+    if (!response.ok) {
+      throw new Error(`Error downloading the submap: ${response.status}`);
+    }
+    const blob = await response.blob();
 
-        // Create a temporary anchor element to trigger the download
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `tileviewer-submap.${fileExtension}`; // Give it a filename
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+    // Create a URL for the blob
+    const url = window.URL.createObjectURL(blob);
 
-        // Clean up the blob URL
-        window.URL.revokeObjectURL(url);
-      })
-      .catch((error) => {
-        console.error('Error downloading the file:', error);
-      });
+    // Create a temporary anchor element to trigger the download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tileviewer-submap.${fileExtension}`; // Give it a filename
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    // Clean up the blob URL
+    window.URL.revokeObjectURL(url);
   }
 }
 

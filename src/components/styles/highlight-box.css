@@ -17,6 +17,14 @@
   text-wrap: nowrap;
 }
 
+.box-menu-download-error {
+  color: #c0392b;
+  font-size: 0.85em;
+  margin: 2px 0 0;
+  text-wrap: wrap;
+  max-width: 160px;
+}
+
 .draw-box-btn-container {
   position: absolute;
   top: 65px;

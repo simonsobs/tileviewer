@@ -1,4 +1,4 @@
-import { ReactNode, useCallback } from 'react';
+import { ReactNode, useCallback, useState } from 'react';
 import { BoxWithDimensions, NewBoxData, SubmapData } from '../types/submaps';
 import { MenuIcon } from './icons/MenuIcon';
 import {
@@ -8,6 +8,7 @@ import {
 import { transformBoxCoords } from '../utils/layerUtils';
 import { Map } from 'ol';
 import { mapApi } from '../api/client';
+import { Spinner } from './LoadingOverlay';
 
 type BoxMenuProps = {
   isNewBox: boolean;
@@ -34,16 +35,27 @@ export function BoxMenu({
 }: BoxMenuProps) {
   const map = mapRef.current;
 
+  // Which download (if any) is currently in flight, and the error from the
+  // last attempt if it failed. Generating a submap export can take several
+  // seconds server-side before the response even starts, during which a
+  // plain button click otherwise looks like it did nothing.
+  const [downloadingExt, setDownloadingExt] =
+    useState<SubmapFileExtensions | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
   const topLeftBoxPosition = map?.getPixelFromCoordinate([
     boxData.top_left_ra,
     boxData.top_left_dec,
   ]);
 
   const onDownloadClick = useCallback(
-    (ext: SubmapFileExtensions) => {
-      if (submapData) {
-        const boxPosition = transformBoxCoords(boxData, flipped);
-        mapApi.downloadSubmap(
+    async (ext: SubmapFileExtensions) => {
+      if (!submapData) return;
+      const boxPosition = transformBoxCoords(boxData, flipped);
+      setDownloadError(null);
+      setDownloadingExt(ext);
+      try {
+        await mapApi.downloadSubmap(
           {
             ...submapData,
             top: boxPosition.top_left_dec,
@@ -54,6 +66,13 @@ export function BoxMenu({
           ext,
           flipped
         );
+      } catch (error) {
+        console.error('Error downloading the file:', error);
+        setDownloadError(
+          `Failed to download ${ext.toUpperCase()}. Please try again.`
+        );
+      } finally {
+        setDownloadingExt(null);
       }
     },
     [submapData, boxData, flipped]
@@ -83,12 +102,21 @@ export function BoxMenu({
               <button
                 className="map-btn menu-btn"
                 key={option.display}
-                disabled={!submapData}
+                disabled={!submapData || downloadingExt !== null}
                 onClick={() => onDownloadClick(option.ext)}
               >
-                Download {option.display}
+                {downloadingExt === option.ext ? (
+                  <>
+                    <Spinner size={12} /> Downloading...
+                  </>
+                ) : (
+                  `Download ${option.display}`
+                )}
               </button>
             ))}
+            {downloadError && (
+              <p className="box-menu-download-error">{downloadError}</p>
+            )}
             {...additionalButtons}
           </div>
         )}
