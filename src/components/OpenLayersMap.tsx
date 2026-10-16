@@ -360,6 +360,7 @@ export function OpenLayersMap({
         mapRef={mapRef}
         activeBaselayerId={activeBaselayer?.layer_id}
         flipped={flipTiles}
+        isMapInitialized={isMapInitialized}
       />
       <SourceGroups
         sourceGroups={sourceGroups}
