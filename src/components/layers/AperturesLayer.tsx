@@ -22,6 +22,7 @@ type AperturesLayerProps = {
   mapRef: React.RefObject<Map | null>;
   activeBaselayerId: string | undefined;
   flipped: boolean;
+  isMapInitialized: boolean;
 };
 
 export interface ApertureRequestData {
@@ -46,6 +47,7 @@ export function AperturesLayer({
   mapRef,
   activeBaselayerId,
   flipped,
+  isMapInitialized,
 }: AperturesLayerProps) {
   const [isDrawing, setIsDrawing] = useState(false);
   const [apertures, setApertures] = useState<ApertureResponseWithId[]>([]);
@@ -64,6 +66,7 @@ export function AperturesLayer({
   const aperturesLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const aperturesSourceRef = useRef<VectorSource | null>(null);
   const selectInteractionRef = useRef<Select | null>(null);
+  const nextApertureIdRef = useRef(0);
   const [newAperture, setNewAperture] = useState<
     ApertureRequestData | undefined
   >(undefined);
@@ -213,7 +216,8 @@ export function AperturesLayer({
    * refs that can be used elsewhere
    */
   useEffect(() => {
-    if (!mapRef.current) return;
+    const map = mapRef.current;
+    if (!map || !isMapInitialized) return;
 
     const aperturesSource = new VectorSource();
     const aperturesLayer = new VectorLayer({
@@ -228,8 +232,8 @@ export function AperturesLayer({
       style: null,
     });
 
-    mapRef.current.addLayer(aperturesLayer);
-    mapRef.current.addInteraction(selectInteraction);
+    map.addLayer(aperturesLayer);
+    map.addInteraction(selectInteraction);
 
     aperturesLayerRef.current = aperturesLayer;
     aperturesSourceRef.current = aperturesSource;
@@ -249,10 +253,10 @@ export function AperturesLayer({
     });
 
     return () => {
-      mapRef.current?.removeInteraction(selectInteraction);
-      mapRef.current?.removeLayer(aperturesLayer);
+      map.removeInteraction(selectInteraction);
+      map.removeLayer(aperturesLayer);
     };
-  }, []);
+  }, [isMapInitialized]);
 
   /**
    * Triggered primarily when a new aperture is drawn on the map, thereby fetching the data, creating
@@ -273,7 +277,7 @@ export function AperturesLayer({
         `${SERVICE_URL}/analysis/aperture/${activeBaselayerId}?ra=${transformedRa}&dec=${dec}&radius=${radius}`
       );
 
-      const id = crypto.randomUUID();
+      const id = `aperture-${nextApertureIdRef.current++}`;
       const response = (await apertureData.json()) as ApertureResponse;
 
       const circle = new Circle([ra, dec], radius / 60);
