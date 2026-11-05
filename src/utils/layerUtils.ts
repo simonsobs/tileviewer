@@ -42,6 +42,17 @@ export function transformGraticuleCoords(
   }
 }
 
+/** Converts a sky position to the map coordinates it's drawn at, the inverse of
+ * transformGraticuleCoords. Accepts RA in either the -180 -> 180 or 0 -> 360 convention, and always
+ * returns an x within the map's -180 -> 180 extent. */
+export function raDecToMapCoords(
+  coords: number[],
+  isFlipped: boolean
+): number[] {
+  const [ra, dec] = coords;
+  return [wrapTo180(isFlipped ? 180 - ra : ra), dec];
+}
+
 export function transformCoords(
   coords: number[],
   isFlipped: boolean,

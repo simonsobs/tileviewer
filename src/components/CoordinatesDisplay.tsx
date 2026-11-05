@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState, FormEvent } from 'react';
 import { Map, Feature, MapBrowserEvent } from 'ol';
 import { Geometry } from 'ol/geom';
 import { NUMBER_OF_FIXED_COORDINATE_DECIMALS } from '../configs/mapConfigs';
-import { transformGraticuleCoords } from '../utils/layerUtils';
+import {
+  raDecToMapCoords,
+  transformGraticuleCoords,
+} from '../utils/layerUtils';
 import './styles/coordinates-display.css';
 import { searchOverlayHelper } from '../utils/externalSearchUtils';
 
@@ -77,10 +80,7 @@ export function CoordinatesDisplay({
         const ra = parseFloat(raStr);
         const dec = parseFloat(decStr);
         if (!isNaN(ra) && !isNaN(dec)) {
-          const transformedCoords = transformGraticuleCoords(
-            [ra, dec],
-            flipped
-          );
+          const transformedCoords = raDecToMapCoords([ra, dec], flipped);
           mapRef.current.getView().setCenter(transformedCoords);
           searchOverlayHelper(
             mapRef.current,

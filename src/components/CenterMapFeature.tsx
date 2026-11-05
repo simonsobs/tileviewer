@@ -1,17 +1,23 @@
-import { FormEvent, useCallback, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { MagnifyingGlass } from './icons/MagnifyingGlass';
 import { Dialog } from './Dialog';
 import { Map, Feature } from 'ol';
 import './styles/center-map-feature.css';
 import { Geometry } from 'ol/geom';
 import { searchOverlayHelper } from '../utils/externalSearchUtils';
-import { transformGraticuleCoords } from '../utils/layerUtils';
+import { raDecToMapCoords } from '../utils/layerUtils';
+import { resolveSimbadObject, SimbadResolveError } from '../utils/simbad';
 
 type CenterMapFeatureProps = {
   mapRef: React.RefObject<Map | null>;
   externalSearchRef: React.RefObject<HTMLDivElement | null>;
   externalSearchMarkerRef: React.RefObject<Feature<Geometry> | null>;
   flipped: boolean;
+};
+
+type SearchError = {
+  message: string;
+  detail?: string;
 };
 
 export function CenterMapFeature({
@@ -21,64 +27,72 @@ export function CenterMapFeature({
   flipped,
 }: CenterMapFeatureProps) {
   const [showDialog, setShowDialog] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<SearchError | undefined>(undefined);
+  const [isSearching, setIsSearching] = useState(false);
+  /** Aborts the in-flight search, so a closed dialog or a newer search isn't overridden by it */
+  const searchControllerRef = useRef<AbortController | null>(null);
+
+  const cancelSearch = useCallback(() => {
+    searchControllerRef.current?.abort();
+    searchControllerRef.current = null;
+    setIsSearching(false);
+  }, []);
+
+  useEffect(() => cancelSearch, [cancelSearch]);
 
   const onSubmit = useCallback(
     async (e: FormEvent) => {
       e.preventDefault();
       if (!mapRef.current) return;
       const formData = new FormData(e.target as HTMLFormElement);
-      const inputValue = String(formData.get('feature_name'));
-      if (inputValue) {
-        const response = await fetch(
-          'https://simbad.cds.unistra.fr/simbad/sim-script?script=' +
-            encodeURIComponent(
-              `output console display ascii
-                    format object "%COO(d;A) %COO(d;D)"
-                    query id ${inputValue}`
-            )
+      const inputValue = String(formData.get('feature_name')).trim();
+      if (!inputValue) return;
+
+      cancelSearch();
+      const controller = new AbortController();
+      searchControllerRef.current = controller;
+      setIsSearching(true);
+      setError(undefined);
+
+      try {
+        const { ra, dec } = await resolveSimbadObject(
+          inputValue,
+          controller.signal
         );
-        const text = await response.text();
+        if (controller.signal.aborted || !mapRef.current) return;
 
-        // Extract the ::data:: section
-        const dataMatch = text.match(/::data::+[\s\S]*?([\d.+-]+\s+[\d.+-]+)/);
-        if (!dataMatch) {
-          setError(`RA/Dec not found in SIMBAD response to: ${inputValue}`);
-          return;
-        }
-
-        // Extract ra, dec values
-        const [raStr, decStr] = dataMatch[1].trim().split(/\s+/);
-        const ra = parseFloat(raStr);
-        const dec = parseFloat(decStr);
-
-        if (!isNaN(ra) && !isNaN(dec)) {
-          const transformedCoords = transformGraticuleCoords(
-            [ra, dec],
-            flipped
-          );
-          mapRef.current.getView().setCenter(transformedCoords);
-          searchOverlayHelper(
-            mapRef.current,
-            externalSearchRef,
-            externalSearchMarkerRef,
-            transformedCoords,
-            [ra, dec]
-          );
-          setShowDialog(false);
-          if (error) {
-            setError(undefined);
-          }
+        const transformedCoords = raDecToMapCoords([ra, dec], flipped);
+        mapRef.current.getView().setCenter(transformedCoords);
+        searchOverlayHelper(
+          mapRef.current,
+          externalSearchRef,
+          externalSearchMarkerRef,
+          transformedCoords,
+          [ra, dec]
+        );
+        setShowDialog(false);
+      } catch (e) {
+        if (controller.signal.aborted) return;
+        setError(
+          e instanceof SimbadResolveError
+            ? { message: e.message, detail: e.detail }
+            : { message: 'Something went wrong while searching SIMBAD.' }
+        );
+      } finally {
+        if (searchControllerRef.current === controller) {
+          searchControllerRef.current = null;
+          setIsSearching(false);
         }
       }
     },
-    [mapRef, externalSearchRef, externalSearchMarkerRef, flipped, error]
+    [mapRef, externalSearchRef, externalSearchMarkerRef, flipped, cancelSearch]
   );
 
   const closeDialog = useCallback(() => {
+    cancelSearch();
     setShowDialog(false);
     setError(undefined);
-  }, []);
+  }, [cancelSearch]);
 
   return (
     <div className="center-feature-container">
@@ -86,7 +100,7 @@ export function CenterMapFeature({
         type="button"
         className="map-btn"
         title="Go to a feature's position"
-        onClick={() => setShowDialog(!showDialog)}
+        onClick={() => (showDialog ? closeDialog() : setShowDialog(true))}
       >
         <MagnifyingGlass />
       </button>
@@ -112,13 +126,19 @@ export function CenterMapFeature({
               />
             </label>
             {error && (
-              <div className="feature-search-error">
+              <div className="feature-search-error" role="alert">
                 <h3>Error</h3>
-                <p>{error}</p>
-                <p>Please try again.</p>
+                <p>{error.message}</p>
+                {error.detail && (
+                  <p className="feature-search-error-detail">{error.detail}</p>
+                )}
               </div>
             )}
-            <input type="submit" value="Go" />
+            <input
+              type="submit"
+              value={isSearching ? 'Searching…' : 'Go'}
+              disabled={isSearching}
+            />
           </form>
         </Dialog>
       )}

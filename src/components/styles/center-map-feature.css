@@ -10,7 +10,7 @@
 }
 
 .feature-search-error {
-  height: 50px;
+  min-height: 50px;
 }
 
 .feature-search-error > h3,
@@ -20,4 +20,10 @@
 
 .feature-search-error > h3 {
   color: red;
+}
+
+.feature-search-error-detail {
+  font-size: 0.85em;
+  opacity: 0.8;
+  overflow-wrap: anywhere;
 }
