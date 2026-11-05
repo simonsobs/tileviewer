@@ -102,7 +102,9 @@ Simply click and drag the map to pan around.
 :align: center
 ```
 
-3. If the feature is found via a SIMBAD search, the map will center on a map marker with a popup at the feature's position.
+3. If the feature is found via a SIMBAD search, the map will center on a map marker with a popup at the feature's position. If the search fails, the dialog stays open and explains why (e.g. no object by that name, or SIMBAD is unreachable).
+
+Names are resolved through CDS's Sesame service. If CDS is down or slow to respond (after 8 seconds), the search automatically retries against SIMBAD's mirror at Harvard (`simbad.cfa.harvard.edu`). Once a host has answered, later searches, and the "Search SIMBAD" link in the External Searches popup, use that host first.
 
 ```{image} images/go_to_feature_found_example.png
 :alt: Example of feature found via Go To Feature search
