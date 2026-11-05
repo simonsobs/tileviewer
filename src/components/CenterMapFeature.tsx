@@ -5,7 +5,7 @@ import { Map, Feature } from 'ol';
 import './styles/center-map-feature.css';
 import { Geometry } from 'ol/geom';
 import { searchOverlayHelper } from '../utils/externalSearchUtils';
-import { transformGraticuleCoords } from '../utils/layerUtils';
+import { raDecToMapCoords } from '../utils/layerUtils';
 import { resolveSimbadObject, SimbadResolveError } from '../utils/simbad';
 
 type CenterMapFeatureProps = {
@@ -61,7 +61,7 @@ export function CenterMapFeature({
         );
         if (controller.signal.aborted || !mapRef.current) return;
 
-        const transformedCoords = transformGraticuleCoords([ra, dec], flipped);
+        const transformedCoords = raDecToMapCoords([ra, dec], flipped);
         mapRef.current.getView().setCenter(transformedCoords);
         searchOverlayHelper(
           mapRef.current,
