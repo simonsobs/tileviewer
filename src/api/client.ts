@@ -21,8 +21,7 @@ import { SubmapFileExtensions } from '../configs/submapConfigs';
 class MapApiClient {
   private baseUrl: string;
   private cachedLayerIds = new Set<string>();
-  private cmapCache = new Map<string, string>();
-  private histogramCache = new Map<string, HistogramResponse>();
+  private histogramCache = new Map<string, Promise<HistogramResponse>>();
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -139,26 +138,28 @@ class MapApiClient {
     return boxes.map((b, idx): Box => ({ ...b, id: idx }));
   }
 
-  /** Get histogram data; uses a cache to only fetch the data once */
-  async getHistogramData(layerId: string): Promise<HistogramResponse> {
-    if (this.histogramCache.has(layerId)) {
-      return this.histogramCache.get(layerId)!;
-    }
-    const data = await this.get<HistogramResponse>(
+  /**
+   * Get histogram data; caches the request's promise so concurrent and
+   * subsequent calls share a single fetch
+   */
+  getHistogramData(layerId: string): Promise<HistogramResponse> {
+    const cached = this.histogramCache.get(layerId);
+    if (cached) return cached;
+
+    const request = this.get<HistogramResponse>(
       `/histograms/data/${layerId}`
-    );
-    this.histogramCache.set(layerId, data);
-    return data;
+    ).catch((e) => {
+      // Don't cache failures so the request can be retried
+      this.histogramCache.delete(layerId);
+      throw e;
+    });
+    this.histogramCache.set(layerId, request);
+    return request;
   }
 
-  /** Get cmap image; uses a cache to prevent needless server requests */
-  async getCmapImage(cmap: string) {
-    if (this.cmapCache.has(cmap)) {
-      return this.cmapCache.get(cmap) as string;
-    }
-    const image = await fetch(`${this.baseUrl}/histograms/${cmap}.png`);
-    this.cmapCache.set(cmap, image.url);
-    return image.url;
+  /** Get the cmap image's URL; the browser fetches and caches the image itself */
+  getCmapImageUrl(cmap: string) {
+    return `${this.baseUrl}/histograms/${cmap}.png`;
   }
 
   /** Get menu state based on a search query */

@@ -1,10 +1,4 @@
-import {
-  ChangeEventHandler,
-  useCallback,
-  useState,
-  useMemo,
-  useEffect,
-} from 'react';
+import { ChangeEventHandler, useCallback, useState, useMemo } from 'react';
 import {
   CMAP_OPTIONS,
   HISTOGRAM_SIZE_X,
@@ -62,7 +56,6 @@ export type ColorMapConfigChangeAction =
 export function ColorMapControls(props: ColorMapControlsProps) {
   const { activeBaselayer, dispatchBaselayersChange, histogramData } = props;
 
-  const [cmapImage, setCmapImage] = useState<string | undefined>(undefined);
   const [showCustomDialog, setShowCustomDialog] = useState(false);
   const [cmapOptions, setCmapOptions] = useState(CMAP_OPTIONS);
 
@@ -84,17 +77,6 @@ export function ColorMapControls(props: ColorMapControlsProps) {
     },
     [activeBaselayer, dispatchBaselayersChange]
   );
-
-  /**
-   * Fetch or retrieve from cache the cmap image when user changes cmap selection
-   */
-  useEffect(() => {
-    async function getImage() {
-      const image = await mapApi.getCmapImage(cmap);
-      setCmapImage(image);
-    }
-    getImage();
-  }, [cmap]);
 
   /** Processes the histogram data so that it's ready to create the polygon in ColorMapHistogram  */
   const processedHistogramData = useMemo(() => {
@@ -265,7 +247,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
         />
         {sliderAttributes && (
           <ColorMapSlider
-            cmapImage={cmapImage}
+            cmapImage={mapApi.getCmapImageUrl(cmap)}
             vmin={vmin}
             vmax={vmax}
             cmapRange={vmax - vmin}

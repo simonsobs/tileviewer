@@ -12,6 +12,7 @@ import { useQuery } from './hooks/useQuery';
 import { OpenLayersMap } from './components/OpenLayersMap';
 import { Login } from './components/Login';
 import { LoadingOverlay } from './components/LoadingOverlay';
+import { getIsAuthenticated } from './utils/authUtils';
 
 function App() {
   /** contains useful state of the baselayer for tile requests and matplotlib color mapping */
@@ -20,7 +21,8 @@ function App() {
     initialBaselayersState
   );
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  /** read synchronously from cookies so queries don't run before auth state is known */
+  const [isAuthenticated] = useState(getIsAuthenticated);
 
   /** Fetch the default state to use as the initial baselayer and layer menu  hierarchy */
   const { data: defaultData, isLoading: isInitializing } = useQuery<
@@ -74,11 +76,8 @@ function App() {
 
   return (
     <>
-      <Login
-        isAuthenticated={isAuthenticated}
-        setIsAuthenticated={setIsAuthenticated}
-      />
-      {isAuthenticated !== null && activeBaselayer && defaultData && (
+      <Login isAuthenticated={isAuthenticated} />
+      {activeBaselayer && defaultData && (
         <OpenLayersMap
           defaultData={defaultData}
           baselayersState={baselayersState}
@@ -86,15 +85,13 @@ function App() {
           isAuthenticated={isAuthenticated}
         />
       )}
-      {isAuthenticated !== null &&
-        assertInternalBaselayer(activeBaselayer) &&
-        histogramData && (
-          <ColorMapControls
-            activeBaselayer={activeBaselayer}
-            dispatchBaselayersChange={dispatchBaselayersChange}
-            histogramData={histogramData}
-          />
-        )}
+      {assertInternalBaselayer(activeBaselayer) && histogramData && (
+        <ColorMapControls
+          activeBaselayer={activeBaselayer}
+          dispatchBaselayersChange={dispatchBaselayersChange}
+          histogramData={histogramData}
+        />
+      )}
       <LoadingOverlay isLoading={isInitializing} />
     </>
   );
