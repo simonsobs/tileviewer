@@ -21,7 +21,7 @@ export type HighlightBoxData = {
 
 export type OverlayData = SourceGroupData & HighlightBoxData;
 
-export function useOverlayData(isAuthenticated: boolean | null): OverlayData {
+export function useOverlayData(isAuthenticated: boolean): OverlayData {
   /** tracks highlight boxes that are "checked" and visible on the map  */
   const [activeBoxIds, setActiveBoxIds] = useState<number[]>([]);
 
