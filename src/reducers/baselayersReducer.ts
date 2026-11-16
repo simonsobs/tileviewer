@@ -3,6 +3,7 @@ import {
   BaselayersState,
   ExternalBaselayer,
   InternalBaselayer,
+  SyncedCmapValues,
 } from '../types/layers';
 import { HistogramResponse } from '../types/histogram';
 import { safeLog } from '../utils/numberUtils';
@@ -23,6 +24,7 @@ export const initialBaselayersState: BaselayersState = {
   activeBaselayer: undefined,
   internalBaselayers: undefined,
   histogramData: undefined,
+  syncedCmapValuesByType: undefined,
 };
 
 export const CHANGE_CMAP_TYPE = 'CHANGE_CMAP';
@@ -31,6 +33,7 @@ export const CHANGE_ABSOLUTE_VALUE = 'CHANGE_ABSOLUTE_VALUE';
 export const CHANGE_CMAP_VALUES = 'CHANGE_CMAP_VALUES';
 export const CHANGE_BASELAYER = 'CHANGE_BASELAYER';
 export const SET_BASELAYERS_STATE = 'SET_BASELAYERS_STATE';
+export const CHANGE_SYNC_CMAP_VALUES = 'CHANGE_SYNC_CMAP_VALUES';
 
 export type ChangeCmapAction = {
   type: typeof CHANGE_CMAP_TYPE;
@@ -57,6 +60,11 @@ export type ChangeCmapValuesAction = {
   vmax: number;
 };
 
+type ChangeSyncCmapValuesAction = {
+  type: typeof CHANGE_SYNC_CMAP_VALUES;
+  activeBaselayer: InternalBaselayer;
+};
+
 type ChangeBaselayerAction = {
   type: typeof CHANGE_BASELAYER;
   newBaselayer: InternalBaselayer | ExternalBaselayer;
@@ -74,6 +82,7 @@ export type BaselayersAction =
   | ChangeLogScaleAction
   | ChangeAbsoluteValueAction
   | ChangeCmapValuesAction
+  | ChangeSyncCmapValuesAction
   | ChangeBaselayerAction
   | SetBaselayersAction;
 
@@ -102,6 +111,7 @@ export function baselayersReducer(
           ? action.defaultInternalBaselayer
           : EXTERNAL_BASELAYERS[0],
         histogramData: action.histogramData,
+        syncedCmapValuesByType: new Map(),
       };
     }
     case 'CHANGE_CMAP': {
@@ -229,27 +239,80 @@ export function baselayersReducer(
         };
       }
     }
+    case 'CHANGE_SYNC_CMAP_VALUES': {
+      const { activeBaselayer } = action;
+      const mapTypeKey = `${activeBaselayer.units}-${activeBaselayer.quantity}`;
+      const syncedCmapValuesByType = new Map(state.syncedCmapValuesByType);
+
+      // if map type was synced, just delete from Map and do nothing else
+      if (syncedCmapValuesByType.has(mapTypeKey)) {
+        syncedCmapValuesByType?.delete(mapTypeKey);
+        return {
+          ...state,
+          syncedCmapValuesByType,
+        };
+      }
+
+      // otherwise, set key and synced values into the Map
+      const syncedValues: SyncedCmapValues = {
+        cmap: activeBaselayer.cmap,
+        vmin: activeBaselayer.vmin,
+        vmax: activeBaselayer.vmax,
+        isLogScale: activeBaselayer.isLogScale,
+        isAbsoluteValue: activeBaselayer.isAbsoluteValue,
+      };
+      syncedCmapValuesByType.set(mapTypeKey, syncedValues);
+
+      // next, sync any matching "map type" layers
+      const updatedLayers = new Map(state.internalBaselayers);
+      state.internalBaselayers?.forEach((layer, id) => {
+        if (
+          layer.units === activeBaselayer.units &&
+          layer.quantity === activeBaselayer.quantity
+        ) {
+          updatedLayers.set(id, { ...layer, ...syncedValues });
+        }
+      });
+      return {
+        ...state,
+        internalBaselayers: updatedLayers,
+        syncedCmapValuesByType,
+      };
+    }
     case 'CHANGE_BASELAYER': {
       const { newBaselayer, histogramData } = action;
+      const internalBaselayers = new Map(state.internalBaselayers);
 
       const isNewInternalBaselayer =
         assertInternalBaselayer(newBaselayer) &&
         !state.internalBaselayers?.has(newBaselayer.layer_id);
 
-      if (histogramData) {
-        return {
-          internalBaselayers: isNewInternalBaselayer
-            ? state.internalBaselayers?.set(newBaselayer.layer_id, newBaselayer)
-            : state.internalBaselayers,
-          histogramData,
-          activeBaselayer: newBaselayer,
-        };
-      } else {
-        return {
-          ...state,
-          activeBaselayer: newBaselayer,
-        };
+      let layer = newBaselayer;
+
+      // when loading a new baselayer, check if its units-quantity is in the synced Map and apply if so
+      if (isNewInternalBaselayer) {
+        const syncedValues = state.syncedCmapValuesByType?.get(
+          `${newBaselayer.units}-${newBaselayer.quantity}`
+        );
+
+        layer = syncedValues
+          ? {
+              ...newBaselayer,
+              ...syncedValues,
+            }
+          : {
+              ...newBaselayer,
+            };
+
+        internalBaselayers.set(layer.layer_id, layer);
       }
+
+      return {
+        ...state,
+        internalBaselayers,
+        activeBaselayer: layer,
+        ...(histogramData && { histogramData }),
+      };
     }
     default: {
       throw Error('Unknown action');

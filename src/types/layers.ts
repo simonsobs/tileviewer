@@ -74,6 +74,11 @@ export type InternalBaselayer = Omit<LayerResponse, 'vmin' | 'vmax'> & {
   vmax: undefined | number;
 } & EnhancedLayerAttributes;
 
+export type SyncedCmapValues = Pick<
+  InternalBaselayer,
+  'cmap' | 'vmin' | 'vmax' | 'isLogScale' | 'isAbsoluteValue'
+>;
+
 export type GraticuleDetails = {
   pixelWidth: number;
   interval: number;
@@ -98,6 +103,7 @@ export type BaselayersState = {
   internalBaselayers?: Map<string, InternalBaselayer>;
   /** the active baselayer's histogram data */
   histogramData?: HistogramResponse;
+  syncedCmapValuesByType?: Map<string, SyncedCmapValues>;
 };
 
 export type LoadState<T> =
