@@ -17,6 +17,7 @@ import {
   CHANGE_CMAP_TYPE,
   CHANGE_CMAP_VALUES,
   CHANGE_SYNC_CMAP_VALUES,
+  getMapTypeKey,
 } from '../reducers/baselayersReducer';
 import { BaselayersState, InternalBaselayer } from '../types/layers';
 import { mapApi } from '../api/client';
@@ -75,14 +76,9 @@ export function ColorMapControls(props: ColorMapControlsProps) {
 
   const onColorMapConfigChange = useCallback(
     (action: ColorMapConfigChangeAction) => {
-      if (activeBaselayer) {
-        dispatchBaselayersChange({
-          ...action,
-          activeBaselayer,
-        });
-      }
+      dispatchBaselayersChange(action);
     },
-    [activeBaselayer, dispatchBaselayersChange]
+    [dispatchBaselayersChange]
   );
 
   /** Processes the histogram data so that it's ready to create the polygon in ColorMapHistogram  */
@@ -169,28 +165,35 @@ export function ColorMapControls(props: ColorMapControlsProps) {
   );
 
   const onSyncCmapValuesChange = useCallback(() => {
-    dispatchBaselayersChange({
-      type: CHANGE_SYNC_CMAP_VALUES,
-      activeBaselayer,
-    });
-  }, [activeBaselayer, dispatchBaselayersChange]);
+    dispatchBaselayersChange({ type: CHANGE_SYNC_CMAP_VALUES });
+  }, [dispatchBaselayersChange]);
 
-  const shouldDisableLog = vmin <= 0;
+  // Only disable turning log scale on; in log scale, vmin is a log value and may validly be <= 0
+  const shouldDisableLog = !isLogScale && vmin <= 0;
+  const isLinked = !!syncedCmapValuesByType?.has(
+    getMapTypeKey(activeBaselayer)
+  );
 
   return (
     <>
-      <CustomColorMapDialog
-        isOpen={showCustomDialog}
-        closeModal={() => setShowCustomDialog(false)}
-        cmapOptions={cmapOptions}
-        setCmapOptions={setCmapOptions}
-        values={[vmin, vmax]}
-        cmap={cmap}
-        units={units}
-        isLogScale={isLogScale}
-        isAbsoluteValue={isAbsoluteValue}
-        onColorMapConfigChange={onColorMapConfigChange}
-      />
+      {/* Only mount the dialog while it's open so that its temp state is initialized from the
+          current settings each time it opens, discarding any edits that weren't submitted */}
+      {showCustomDialog && (
+        <CustomColorMapDialog
+          isOpen={showCustomDialog}
+          closeModal={() => setShowCustomDialog(false)}
+          cmapOptions={cmapOptions}
+          setCmapOptions={setCmapOptions}
+          values={[vmin, vmax]}
+          cmap={cmap}
+          units={units}
+          isLogScale={isLogScale}
+          isAbsoluteValue={isAbsoluteValue}
+          isLinked={isLinked}
+          onColorMapConfigChange={onColorMapConfigChange}
+          onSyncCmapValuesChange={onSyncCmapValuesChange}
+        />
+      )}
       <div
         className="cmap-controls-pane"
         // The width of the controls pane should equal the HISTOGRAM_SIZE_X constant set in
@@ -256,9 +259,7 @@ export function ColorMapControls(props: ColorMapControlsProps) {
                 <input
                   type="checkbox"
                   onChange={onSyncCmapValuesChange}
-                  checked={syncedCmapValuesByType?.has(
-                    `${activeBaselayer.units}-${activeBaselayer.quantity}`
-                  )}
+                  checked={isLinked}
                 />
                 Link
               </label>
