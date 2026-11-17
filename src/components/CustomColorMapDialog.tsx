@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ColorMapConfigChangeAction } from './ColorMapControls';
 import './styles/color-map-dialog.css';
 import { Dialog } from './Dialog';
@@ -17,6 +17,11 @@ import {
  * 2. Should we also persist a user's parameters?
  */
 
+/** Converts stored vmin/vmax values into the linear strings displayed in the dialog's inputs */
+function toDisplayValues(values: [number, number], isLogScale: boolean) {
+  return values.map((v) => String(isLogScale ? Math.pow(10, v) : v));
+}
+
 interface Props
   extends Pick<
     InternalBaselayer,
@@ -31,7 +36,11 @@ interface Props
   setCmapOptions: (options: string[]) => void;
   /** The list of color map options used to determine whether or not to append a new color map option */
   cmapOptions: string[];
+  /** Whether the layer's color mapping is synced across layers with the same 'units-quantity' combination */
+  isLinked: boolean;
   onColorMapConfigChange: (action: ColorMapConfigChangeAction) => void;
+  /** Handler that toggles syncing of the layer's color mapping */
+  onSyncCmapValuesChange: () => void;
 }
 
 export function CustomColorMapDialog({
@@ -44,71 +53,66 @@ export function CustomColorMapDialog({
   units,
   isLogScale,
   isAbsoluteValue,
+  isLinked,
   onColorMapConfigChange,
+  onSyncCmapValuesChange,
 }: Props) {
-  // Create temporary values to maintain component state without setting the global state, which is only done during "Update Map"
-  const [tempCmap, setTempCmap] = useState(cmap);
-  const [tempValues, setTempValues] = useState<Array<string | undefined>>(
-    values.map((v) => (isLogScale ? String(Math.pow(10, v)) : String(v)))
+  // Create temporary values to maintain component state without setting the global state, which is only done during "Update Map".
+  // The parent only mounts this component while the dialog is open, so these are initialized from the current settings on each open.
+  const [initialDisplayValues] = useState(() =>
+    toDisplayValues(values, isLogScale)
   );
+  const [tempCmap, setTempCmap] = useState(cmap);
+  const [tempValues, setTempValues] = useState<string[]>(initialDisplayValues);
   const [tempIsLogScale, setTempIsLogScale] = useState(isLogScale);
   const [tempIsAbsValue, setTempIsAbsValue] = useState(isAbsoluteValue);
+  const [tempIsLinked, setTempIsLinked] = useState(isLinked);
 
-  /** Sync the tempCmap with higher-level cmap state changes */
-  useEffect(() => {
-    setTempCmap(cmap);
-  }, [cmap]);
-
-  /** Sync the tempValues with higher-level values state changes */
-  useEffect(() => {
-    setTempValues(
-      values.map((v) => (isLogScale ? String(Math.pow(10, v)) : String(v)))
-    );
-  }, [values, isLogScale]);
-
-  /** Sync the tempIsLogScale with higher-level isLogScale state changes */
-  useEffect(() => {
-    setTempIsLogScale(isLogScale);
-  }, [isLogScale]);
-
-  /** Sync the tempIsAbsValue with higher-level isLogScale state changes */
-  useEffect(() => {
-    setTempIsAbsValue(isAbsoluteValue);
-  }, [isAbsoluteValue]);
+  /** A message describing why the temp settings can't be submitted, if they're invalid */
+  const submitError = useMemo(() => {
+    if (tempValues.some((v) => v === '')) {
+      return 'Enter both a minimum and maximum value';
+    }
+    if (tempIsLogScale && tempValues.some((v) => Number(v) <= 0)) {
+      return 'Log scale requires positive minimum and maximum values';
+    }
+  }, [tempValues, tempIsLogScale]);
 
   /** Handles "submitting" the temp values set in the dialog and closes the modal */
   const handleUpdate = useCallback(() => {
+    if (submitError) return;
+
     // For each input, only fire the update handler if the value changed
+
+    // Toggle linking first so that any other changes below are synced (or not) accordingly
+    if (tempIsLinked !== isLinked) {
+      onSyncCmapValuesChange();
+    }
 
     if (tempCmap !== cmap) {
       onColorMapConfigChange({ type: CHANGE_CMAP_TYPE, cmap: tempCmap });
     }
 
-    if (
-      Number(tempValues[0]) !== values[0] ||
-      Number(tempValues[1]) !== values[1]
-    ) {
-      const safeVmin = tempValues[0]
-        ? isLogScale
-          ? safeLog(Number(tempValues[0]))
-          : Number(tempValues[0])
-        : 0;
-      const safeVmax = tempValues[1]
-        ? isLogScale
-          ? safeLog(Number(tempValues[1]))
-          : Number(tempValues[1])
-        : 0;
-      onColorMapConfigChange({
-        type: CHANGE_CMAP_VALUES,
-        vmin: safeVmin,
-        vmax: safeVmax,
-      });
-    }
-
+    // Change the scale before the values so that the values below are set in the new scale
     if (tempIsLogScale !== isLogScale) {
       onColorMapConfigChange({
         type: CHANGE_LOG_SCALE,
         isLogScale: tempIsLogScale,
+      });
+    }
+
+    // Compare against the displayed values, since stored values are in log units when in log scale
+    if (
+      tempValues[0] !== initialDisplayValues[0] ||
+      tempValues[1] !== initialDisplayValues[1]
+    ) {
+      const [vmin, vmax] = tempValues.map((v) =>
+        tempIsLogScale ? safeLog(Number(v)) : Number(v)
+      );
+      onColorMapConfigChange({
+        type: CHANGE_CMAP_VALUES,
+        vmin,
+        vmax,
       });
     }
 
@@ -125,18 +129,22 @@ export function CustomColorMapDialog({
     }
     closeModal();
   }, [
+    submitError,
     onColorMapConfigChange,
     tempCmap,
     tempValues,
+    initialDisplayValues,
     closeModal,
     cmapOptions,
     setCmapOptions,
     isLogScale,
     tempIsLogScale,
     cmap,
-    values,
     tempIsAbsValue,
     isAbsoluteValue,
+    tempIsLinked,
+    isLinked,
+    onSyncCmapValuesChange,
   ]);
 
   return (
@@ -196,7 +204,10 @@ export function CustomColorMapDialog({
           />
         </label>
         <div className="cmap-toggles">
-          <label className="dialog-label cmap-dialog-toggle">
+          <label
+            className="dialog-label cmap-dialog-toggle"
+            title="Use a logarithmic color scale"
+          >
             <input
               type="checkbox"
               checked={tempIsLogScale}
@@ -204,7 +215,10 @@ export function CustomColorMapDialog({
             />
             Log Scale
           </label>
-          <label className="dialog-label cmap-dialog-toggle">
+          <label
+            className="dialog-label cmap-dialog-toggle"
+            title="Color by absolute value of the data"
+          >
             <input
               type="checkbox"
               checked={tempIsAbsValue}
@@ -212,8 +226,24 @@ export function CustomColorMapDialog({
             />
             Abs. Value
           </label>
+          <label
+            className="dialog-label cmap-dialog-toggle"
+            title="Sync color mapping across all maps with the same 'units-quantity' combination"
+          >
+            <input
+              type="checkbox"
+              checked={tempIsLinked}
+              onChange={(e) => setTempIsLinked(e.target.checked)}
+            />
+            Link
+          </label>
         </div>
-        <input type="submit" value="Update Map" />
+        <input
+          type="submit"
+          value="Update Map"
+          disabled={!!submitError}
+          title={submitError ?? 'Apply these settings to the map'}
+        />
       </form>
     </Dialog>
   );

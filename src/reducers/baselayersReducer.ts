@@ -3,6 +3,7 @@ import {
   BaselayersState,
   ExternalBaselayer,
   InternalBaselayer,
+  SyncedCmapValues,
 } from '../types/layers';
 import { HistogramResponse } from '../types/histogram';
 import { safeLog } from '../utils/numberUtils';
@@ -19,10 +20,66 @@ export function assertInternalBaselayer(
   return baselayer !== undefined && 'grant' in baselayer;
 }
 
+export function getMapTypeKey(baselayer: InternalBaselayer) {
+  return `${baselayer.units}-${baselayer.quantity}`;
+}
+
+function getSyncedCmapValues(baselayer: InternalBaselayer): SyncedCmapValues {
+  return {
+    cmap: baselayer.cmap,
+    vmin: baselayer.vmin,
+    vmax: baselayer.vmax,
+    isLogScale: baselayer.isLogScale,
+    isAbsoluteValue: baselayer.isAbsoluteValue,
+  };
+}
+
+/**
+ * Sets the updated active baselayer in state and, if its units-quantity type is synced,
+ * propagates its cmap values to the synced Map and all loaded layers of the same type
+ */
+function applyCmapChange(
+  state: BaselayersState,
+  updatedActiveBaselayer: InternalBaselayer
+): BaselayersState {
+  const internalBaselayers = new Map(state.internalBaselayers);
+  internalBaselayers.set(
+    updatedActiveBaselayer.layer_id,
+    updatedActiveBaselayer
+  );
+
+  const mapTypeKey = getMapTypeKey(updatedActiveBaselayer);
+  if (!state.syncedCmapValuesByType?.has(mapTypeKey)) {
+    return {
+      ...state,
+      internalBaselayers,
+      activeBaselayer: updatedActiveBaselayer,
+    };
+  }
+
+  const syncedValues = getSyncedCmapValues(updatedActiveBaselayer);
+  const syncedCmapValuesByType = new Map(state.syncedCmapValuesByType);
+  syncedCmapValuesByType.set(mapTypeKey, syncedValues);
+
+  internalBaselayers.forEach((layer, id) => {
+    if (getMapTypeKey(layer) === mapTypeKey) {
+      internalBaselayers.set(id, { ...layer, ...syncedValues });
+    }
+  });
+
+  return {
+    ...state,
+    internalBaselayers,
+    activeBaselayer: updatedActiveBaselayer,
+    syncedCmapValuesByType,
+  };
+}
+
 export const initialBaselayersState: BaselayersState = {
   activeBaselayer: undefined,
   internalBaselayers: undefined,
   histogramData: undefined,
+  syncedCmapValuesByType: undefined,
 };
 
 export const CHANGE_CMAP_TYPE = 'CHANGE_CMAP';
@@ -31,30 +88,31 @@ export const CHANGE_ABSOLUTE_VALUE = 'CHANGE_ABSOLUTE_VALUE';
 export const CHANGE_CMAP_VALUES = 'CHANGE_CMAP_VALUES';
 export const CHANGE_BASELAYER = 'CHANGE_BASELAYER';
 export const SET_BASELAYERS_STATE = 'SET_BASELAYERS_STATE';
+export const CHANGE_SYNC_CMAP_VALUES = 'CHANGE_SYNC_CMAP_VALUES';
 
 export type ChangeCmapAction = {
   type: typeof CHANGE_CMAP_TYPE;
-  activeBaselayer: InternalBaselayer | ExternalBaselayer;
   cmap: string;
 };
 
 export type ChangeLogScaleAction = {
   type: typeof CHANGE_LOG_SCALE;
-  activeBaselayer: InternalBaselayer | ExternalBaselayer;
   isLogScale: boolean;
 };
 
 export type ChangeAbsoluteValueAction = {
   type: typeof CHANGE_ABSOLUTE_VALUE;
-  activeBaselayer: InternalBaselayer | ExternalBaselayer;
   isAbsoluteValue: boolean;
 };
 
 export type ChangeCmapValuesAction = {
   type: typeof CHANGE_CMAP_VALUES;
-  activeBaselayer: InternalBaselayer | ExternalBaselayer;
   vmin: number;
   vmax: number;
+};
+
+type ChangeSyncCmapValuesAction = {
+  type: typeof CHANGE_SYNC_CMAP_VALUES;
 };
 
 type ChangeBaselayerAction = {
@@ -74,6 +132,7 @@ export type BaselayersAction =
   | ChangeLogScaleAction
   | ChangeAbsoluteValueAction
   | ChangeCmapValuesAction
+  | ChangeSyncCmapValuesAction
   | ChangeBaselayerAction
   | SetBaselayersAction;
 
@@ -102,22 +161,17 @@ export function baselayersReducer(
           ? action.defaultInternalBaselayer
           : EXTERNAL_BASELAYERS[0],
         histogramData: action.histogramData,
+        syncedCmapValuesByType: new Map(),
       };
     }
     case 'CHANGE_CMAP': {
-      if (assertInternalBaselayer(action.activeBaselayer)) {
+      const { activeBaselayer } = state;
+      if (assertInternalBaselayer(activeBaselayer)) {
         const updatedActiveBaselayer = {
-          ...action.activeBaselayer,
+          ...activeBaselayer,
           cmap: action.cmap,
         };
-        return {
-          ...state,
-          internalBaselayers: state.internalBaselayers?.set(
-            action.activeBaselayer.layer_id,
-            updatedActiveBaselayer
-          ),
-          activeBaselayer: updatedActiveBaselayer,
-        };
+        return applyCmapChange(state, updatedActiveBaselayer);
       } else {
         return {
           ...state,
@@ -125,9 +179,10 @@ export function baselayersReducer(
       }
     }
     case 'CHANGE_LOG_SCALE': {
-      if (assertInternalBaselayer(action.activeBaselayer)) {
-        const { activeBaselayer, isLogScale } = action;
-        const { vmin, vmax } = action.activeBaselayer;
+      const { activeBaselayer } = state;
+      if (assertInternalBaselayer(activeBaselayer)) {
+        const { isLogScale } = action;
+        const { vmin, vmax } = activeBaselayer;
 
         // Return early if vmin or vmax are undefined
         if (vmin === undefined || vmax === undefined) return { ...state };
@@ -155,14 +210,7 @@ export function baselayersReducer(
           isLogScale: action.isLogScale,
         };
 
-        return {
-          ...state,
-          internalBaselayers: state.internalBaselayers?.set(
-            action.activeBaselayer.layer_id,
-            updatedActiveBaselayer
-          ),
-          activeBaselayer: updatedActiveBaselayer,
-        };
+        return applyCmapChange(state, updatedActiveBaselayer);
       } else {
         return {
           ...state,
@@ -170,8 +218,9 @@ export function baselayersReducer(
       }
     }
     case 'CHANGE_ABSOLUTE_VALUE': {
-      if (assertInternalBaselayer(action.activeBaselayer)) {
-        const { vmin, vmax } = action.activeBaselayer;
+      const { activeBaselayer } = state;
+      if (assertInternalBaselayer(activeBaselayer)) {
+        const { vmin, vmax } = activeBaselayer;
 
         // Return early if vmin or vmax are undefined
         if (vmin === undefined || vmax === undefined) return { ...state };
@@ -188,20 +237,13 @@ export function baselayersReducer(
         }
 
         const updatedActiveBaselayer = {
-          ...action.activeBaselayer,
+          ...activeBaselayer,
           isAbsoluteValue: action.isAbsoluteValue,
           vmin: min,
           vmax: max,
         };
 
-        return {
-          ...state,
-          internalBaselayers: state.internalBaselayers?.set(
-            action.activeBaselayer.layer_id,
-            updatedActiveBaselayer
-          ),
-          activeBaselayer: updatedActiveBaselayer,
-        };
+        return applyCmapChange(state, updatedActiveBaselayer);
       } else {
         return {
           ...state,
@@ -209,47 +251,80 @@ export function baselayersReducer(
       }
     }
     case 'CHANGE_CMAP_VALUES': {
-      if (assertInternalBaselayer(action.activeBaselayer)) {
+      const { activeBaselayer } = state;
+      if (assertInternalBaselayer(activeBaselayer)) {
         const updatedActiveBaselayer = {
-          ...action.activeBaselayer,
+          ...activeBaselayer,
           vmin: action.vmin,
           vmax: action.vmax,
         };
-        return {
-          ...state,
-          internalBaselayers: state.internalBaselayers?.set(
-            action.activeBaselayer.layer_id,
-            updatedActiveBaselayer
-          ),
-          activeBaselayer: updatedActiveBaselayer,
-        };
+        return applyCmapChange(state, updatedActiveBaselayer);
       } else {
         return {
           ...state,
         };
       }
     }
+    case 'CHANGE_SYNC_CMAP_VALUES': {
+      const { activeBaselayer } = state;
+      if (!assertInternalBaselayer(activeBaselayer)) return { ...state };
+
+      const mapTypeKey = getMapTypeKey(activeBaselayer);
+      const syncedCmapValuesByType = new Map(state.syncedCmapValuesByType);
+
+      // if map type was synced, just delete from Map and do nothing else
+      if (syncedCmapValuesByType.has(mapTypeKey)) {
+        syncedCmapValuesByType.delete(mapTypeKey);
+        return {
+          ...state,
+          syncedCmapValuesByType,
+        };
+      }
+
+      // otherwise, mark the map type as synced and sync any matching "map type" layers
+      syncedCmapValuesByType.set(
+        mapTypeKey,
+        getSyncedCmapValues(activeBaselayer)
+      );
+      return applyCmapChange(
+        { ...state, syncedCmapValuesByType },
+        activeBaselayer
+      );
+    }
     case 'CHANGE_BASELAYER': {
       const { newBaselayer, histogramData } = action;
+      const internalBaselayers = new Map(state.internalBaselayers);
 
       const isNewInternalBaselayer =
         assertInternalBaselayer(newBaselayer) &&
         !state.internalBaselayers?.has(newBaselayer.layer_id);
 
-      if (histogramData) {
-        return {
-          internalBaselayers: isNewInternalBaselayer
-            ? state.internalBaselayers?.set(newBaselayer.layer_id, newBaselayer)
-            : state.internalBaselayers,
-          histogramData,
-          activeBaselayer: newBaselayer,
-        };
-      } else {
-        return {
-          ...state,
-          activeBaselayer: newBaselayer,
-        };
+      let layer = newBaselayer;
+
+      // when loading a new baselayer, check if its units-quantity is in the synced Map and apply if so
+      if (isNewInternalBaselayer) {
+        const syncedValues = state.syncedCmapValuesByType?.get(
+          getMapTypeKey(newBaselayer)
+        );
+
+        layer = syncedValues
+          ? {
+              ...newBaselayer,
+              ...syncedValues,
+            }
+          : {
+              ...newBaselayer,
+            };
+
+        internalBaselayers.set(layer.layer_id, layer);
       }
+
+      return {
+        ...state,
+        internalBaselayers,
+        activeBaselayer: layer,
+        ...(histogramData && { histogramData }),
+      };
     }
     default: {
       throw Error('Unknown action');

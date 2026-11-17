@@ -16,13 +16,16 @@ import {
   CHANGE_ABSOLUTE_VALUE,
   CHANGE_CMAP_TYPE,
   CHANGE_CMAP_VALUES,
+  CHANGE_SYNC_CMAP_VALUES,
+  getMapTypeKey,
 } from '../reducers/baselayersReducer';
-import { InternalBaselayer } from '../types/layers';
+import { BaselayersState, InternalBaselayer } from '../types/layers';
 import { mapApi } from '../api/client';
 
 export type ColorMapControlsProps = {
   activeBaselayer: InternalBaselayer;
   dispatchBaselayersChange: React.ActionDispatch<[BaselayersAction]>;
+  syncedCmapValuesByType: BaselayersState['syncedCmapValuesByType'] | undefined;
   /** the histogramData that is fetched/cached with each baselayer change */
   histogramData: HistogramResponse;
 };
@@ -54,7 +57,12 @@ export type ColorMapConfigChangeAction =
  * @returns ColorMapControls
  */
 export function ColorMapControls(props: ColorMapControlsProps) {
-  const { activeBaselayer, dispatchBaselayersChange, histogramData } = props;
+  const {
+    activeBaselayer,
+    dispatchBaselayersChange,
+    histogramData,
+    syncedCmapValuesByType,
+  } = props;
 
   const [showCustomDialog, setShowCustomDialog] = useState(false);
   const [cmapOptions, setCmapOptions] = useState(CMAP_OPTIONS);
@@ -68,14 +76,9 @@ export function ColorMapControls(props: ColorMapControlsProps) {
 
   const onColorMapConfigChange = useCallback(
     (action: ColorMapConfigChangeAction) => {
-      if (activeBaselayer) {
-        dispatchBaselayersChange({
-          ...action,
-          activeBaselayer,
-        });
-      }
+      dispatchBaselayersChange(action);
     },
-    [activeBaselayer, dispatchBaselayersChange]
+    [dispatchBaselayersChange]
   );
 
   /** Processes the histogram data so that it's ready to create the polygon in ColorMapHistogram  */
@@ -161,22 +164,36 @@ export function ColorMapControls(props: ColorMapControlsProps) {
     [onColorMapConfigChange]
   );
 
-  const shouldDisableLog = vmin <= 0;
+  const onSyncCmapValuesChange = useCallback(() => {
+    dispatchBaselayersChange({ type: CHANGE_SYNC_CMAP_VALUES });
+  }, [dispatchBaselayersChange]);
+
+  // Only disable turning log scale on; in log scale, vmin is a log value and may validly be <= 0
+  const shouldDisableLog = !isLogScale && vmin <= 0;
+  const isLinked = !!syncedCmapValuesByType?.has(
+    getMapTypeKey(activeBaselayer)
+  );
 
   return (
     <>
-      <CustomColorMapDialog
-        isOpen={showCustomDialog}
-        closeModal={() => setShowCustomDialog(false)}
-        cmapOptions={cmapOptions}
-        setCmapOptions={setCmapOptions}
-        values={[vmin, vmax]}
-        cmap={cmap}
-        units={units}
-        isLogScale={isLogScale}
-        isAbsoluteValue={isAbsoluteValue}
-        onColorMapConfigChange={onColorMapConfigChange}
-      />
+      {/* Only mount the dialog while it's open so that its temp state is initialized from the
+          current settings each time it opens, discarding any edits that weren't submitted */}
+      {showCustomDialog && (
+        <CustomColorMapDialog
+          isOpen={showCustomDialog}
+          closeModal={() => setShowCustomDialog(false)}
+          cmapOptions={cmapOptions}
+          setCmapOptions={setCmapOptions}
+          values={[vmin, vmax]}
+          cmap={cmap}
+          units={units}
+          isLogScale={isLogScale}
+          isAbsoluteValue={isAbsoluteValue}
+          isLinked={isLinked}
+          onColorMapConfigChange={onColorMapConfigChange}
+          onSyncCmapValuesChange={onSyncCmapValuesChange}
+        />
+      )}
       <div
         className="cmap-controls-pane"
         // The width of the controls pane should equal the HISTOGRAM_SIZE_X constant set in
@@ -198,7 +215,14 @@ export function ColorMapControls(props: ColorMapControlsProps) {
               ))}
             </select>
             <div className="cmap-toggles">
-              <label className="cmap-toggle checkbox">
+              <label
+                className="cmap-toggle checkbox"
+                title={
+                  shouldDisableLog
+                    ? 'Log scale requires a positive vmin'
+                    : 'Use a logarithmic color scale'
+                }
+              >
                 <input
                   type="checkbox"
                   checked={isLogScale}
@@ -209,15 +233,13 @@ export function ColorMapControls(props: ColorMapControlsProps) {
                     })
                   }
                   disabled={shouldDisableLog}
-                  title={
-                    shouldDisableLog
-                      ? 'Disabled due to a non-positive vmin value.'
-                      : undefined
-                  }
                 />
                 Log
               </label>
-              <label className="cmap-toggle checkbox">
+              <label
+                className="cmap-toggle checkbox"
+                title="Color by absolute value of the data"
+              >
                 <input
                   type="checkbox"
                   checked={isAbsoluteValue}
@@ -229,6 +251,17 @@ export function ColorMapControls(props: ColorMapControlsProps) {
                   }
                 />
                 Abs.
+              </label>
+              <label
+                className="cmap-toggle checkbox"
+                title="Sync color mapping across all maps with the same 'units-quantity' combination"
+              >
+                <input
+                  type="checkbox"
+                  onChange={onSyncCmapValuesChange}
+                  checked={isLinked}
+                />
+                Link
               </label>
             </div>
           </div>

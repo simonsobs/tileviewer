@@ -72,7 +72,8 @@ function App() {
     },
   });
 
-  const { activeBaselayer, histogramData } = baselayersState;
+  const { activeBaselayer, histogramData, syncedCmapValuesByType } =
+    baselayersState;
 
   return (
     <>
@@ -89,6 +90,7 @@ function App() {
         <ColorMapControls
           activeBaselayer={activeBaselayer}
           dispatchBaselayersChange={dispatchBaselayersChange}
+          syncedCmapValuesByType={syncedCmapValuesByType}
           histogramData={histogramData}
         />
       )}
