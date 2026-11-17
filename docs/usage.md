@@ -211,13 +211,15 @@ Additionally, the tile server responds to the following boolean values:
 :align: center
 ```
 
-2. Edit the desired parameter(s), then submit.
+2. Edit the desired parameter(s), then click `Update Map`. Closing the dialog without submitting discards any edits.
 
 ```{image} images/histo_dialog.png
 :alt: Dialog box to edit parameters
 :width: 400px
 :align: center
 ```
+
+The `Update Map` button is disabled while the parameters are invalid, such as when `vmin` or `vmax` is empty, or when `Log Scale` is checked and `vmin` or `vmax` is not positive. Hover over the button to see why it's disabled.
 
 #### Changing vmin and vmax
 
@@ -274,6 +276,22 @@ Alternatively, use the dialog box shown above to precisely set `vmin` and `vmax`
 #### Changing `cmap`
 
 Users can use the dropdown selector to choose between one of the built-in options. If a different `cmap` value compatible with `matplotlib` is desired, use the dialog box and enter its value in the color map field.
+
+### Linking Parameters Across Baselayers
+
+Baselayers that share the same units and quantity (e.g. `uK` and `T`) can be linked so that they all use the same `cmap`, `vmin`, `vmax`, `log`, and `abs` parameters. This makes it easier to compare baselayers of the same kind of data without adjusting each one.
+
+To link baselayers, check `Link` in the histogram controls or in the dialog box. When linked:
+
+- All loaded baselayers with the same units and quantity immediately take on the current baselayer's parameters.
+- Any later changes to the parameters, made with the histogram controls, dialog box, or [keyboard shortcuts](keyboard-shortcuts.md), are applied to all linked baselayers.
+- Baselayers of the same units and quantity that are opened later also use the linked parameters instead of their defaults.
+
+Baselayers with different units or quantities are not affected, and each combination of units and quantity can be linked independently.
+
+To unlink baselayers, uncheck `Link`. Each baselayer keeps its current parameters, but later changes only apply to the current baselayer.
+
+Links last until the page is reloaded.
 
 ## Apertures
 
