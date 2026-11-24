@@ -6,6 +6,7 @@ import type {
   InternalBaselayer,
   MapSummary,
   BandSummary,
+  LoadState,
 } from '../types/layers';
 
 export interface LayerMenuState {
@@ -239,6 +240,17 @@ export function layerMenuReducer(
     case 'MERGE_SEARCH_SELECTION': {
       const { map_group_id, map_id, band_id } = action.layer;
       const { maps, bands, layers } = action;
+      // Only the selected band's layers were fetched, so its siblings stay idle until expanded
+      const fetchedBands: LoadState<BandMenuState[]> = {
+        status: 'loaded',
+        data: bands.map((b) => ({
+          ...b,
+          layers:
+            b.band_id === band_id
+              ? { status: 'loaded', data: layers }
+              : { status: 'idle' },
+        })),
+      };
       const newMapGroupState: MapGroupMenuState[] = state.mapGroups.map((g) => {
         if (g.map_group_id === map_group_id) {
           if (g.maps.status === 'loaded') {
@@ -277,19 +289,7 @@ export function layerMenuReducer(
                       };
                     } else {
                       // bands were not loaded, so add fetched bands and fetched layers
-                      return {
-                        ...m,
-                        bands: {
-                          status: 'loaded',
-                          data: bands.map((b) => ({
-                            ...b,
-                            layers: {
-                              status: 'loaded',
-                              data: layers,
-                            },
-                          })),
-                        },
-                      };
+                      return { ...m, bands: fetchedBands };
                     }
                   } else {
                     return m;
@@ -303,18 +303,11 @@ export function layerMenuReducer(
               ...g,
               maps: {
                 status: 'loaded',
+                // Only the selected map's bands were fetched, so its siblings stay idle until expanded
                 data: maps.map((m) => ({
                   ...m,
-                  bands: {
-                    status: 'loaded',
-                    data: bands.map((b) => ({
-                      ...b,
-                      layers: {
-                        status: 'loaded',
-                        data: layers,
-                      },
-                    })),
-                  },
+                  bands:
+                    m.map_id === map_id ? fetchedBands : { status: 'idle' },
                 })),
               },
             };
