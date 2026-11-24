@@ -1,15 +1,6 @@
 // @vitest-environment jsdom
 import { act, useReducer } from 'react';
-import { createRoot, Root } from 'react-dom/client';
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  test,
-  vi,
-} from 'vitest';
+import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { ColorMapControls } from '../components/ColorMapControls';
 import {
   BaselayersAction,
@@ -17,6 +8,13 @@ import {
 } from '../reducers/baselayersReducer';
 import { BaselayersState, InternalBaselayer } from '../types/layers';
 import { makeLayer, makeState } from './baselayerFixtures';
+import {
+  click,
+  inputByLabel,
+  polyfillDialog,
+  setUpTestRoot,
+  type,
+} from './testUtils';
 
 // The histogram and slider aren't under test here and rely on layout APIs jsdom doesn't have
 vi.mock('../components/ColorMapHistogram', () => ({
@@ -26,8 +24,7 @@ vi.mock('../components/ColorMapSlider', () => ({
   ColorMapSlider: () => null,
 }));
 
-let container: HTMLDivElement;
-let root: Root;
+const testRoot = setUpTestRoot();
 /** The reducer state after the latest render */
 let state: BaselayersState;
 /** Every action dispatched by the component, in order */
@@ -51,68 +48,26 @@ function Harness({ initialState }: { initialState: BaselayersState }) {
 }
 
 function render(initialState: BaselayersState) {
-  act(() => root.render(<Harness initialState={initialState} />));
+  testRoot.render(<Harness initialState={initialState} />);
 }
 
-beforeAll(() => {
-  (
-    globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
-  ).IS_REACT_ACT_ENVIRONMENT = true;
-  // jsdom doesn't implement modal dialogs
-  HTMLDialogElement.prototype.showModal = function () {
-    this.open = true;
-  };
-  HTMLDialogElement.prototype.close = function () {
-    this.open = false;
-  };
-});
+beforeAll(polyfillDialog);
 
 beforeEach(() => {
-  container = document.createElement('div');
-  document.body.appendChild(container);
-  root = createRoot(container);
   dispatched = [];
 });
 
-afterEach(() => {
-  act(() => root.unmount());
-  container.remove();
-});
-
-const panel = () => container.querySelector('.cmap-controls-pane')!;
-const dialog = () => container.querySelector('dialog');
-
-/** Finds the input inside the label whose text starts with the given text */
-function inputByLabel(scope: Element, text: string) {
-  const label = [...scope.querySelectorAll('label')].find((l) =>
-    l.textContent?.trim().startsWith(text)
-  );
-  if (!label) throw new Error(`No label starting with "${text}"`);
-  return label.querySelector('input')!;
-}
+const panel = () => testRoot.container().querySelector('.cmap-controls-pane')!;
+const dialog = () => testRoot.container().querySelector('dialog');
 
 const submitButton = () =>
   dialog()!.querySelector<HTMLInputElement>('input[type="submit"]')!;
 
 function openDialog() {
-  act(() =>
-    container.querySelector<HTMLButtonElement>('.dialog-popout-btn')!.click()
+  click(
+    testRoot.container().querySelector<HTMLButtonElement>('.dialog-popout-btn')!
   );
 }
-
-/** Sets an input's value the way a user typing would, so that React's onChange fires */
-function type(input: HTMLInputElement, value: string) {
-  const setValue = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
-    'value'
-  )!.set!;
-  act(() => {
-    setValue.call(input, value);
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-}
-
-const click = (el: HTMLElement) => act(() => el.click());
 
 function setDialogValues(min: string, max: string) {
   // Set max first so the min input's max attribute never blocks submission
