@@ -29,6 +29,9 @@ dist-ssr
 
 *.tsbuildinfo
 
+# Test coverage reports
+coverage
+
 # Sphinx build artifacts
 docs/_build
 docs/_autosummary/

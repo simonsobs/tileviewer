@@ -12,7 +12,18 @@ export default defineConfig(({ mode }) => {
     },
     base: mode === 'production' ? './' : '',
     test: {
-      // ... Specify options here.
+      coverage: {
+        provider: 'v8',
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: [
+          'src/tests/**',
+          'src/types/**',
+          'src/components/icons/**',
+          'src/main.tsx',
+          'src/vite-env.d.ts',
+        ],
+        reporter: ['text', 'html'],
+      },
     },
   };
 });
